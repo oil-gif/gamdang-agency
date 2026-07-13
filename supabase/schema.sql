@@ -89,6 +89,10 @@ create table if not exists projects (
   name text not null,
   client_name text,
   description text,
+  -- งาน Model หรืองาน Influencer — กำหนดตอนสร้าง ใช้เป็น default card type
+  project_type text not null default 'model' check (project_type in ('model', 'influencer')),
+  shooting_date date,
+  budget text,
   status text not null default 'draft' check (status in ('draft', 'active', 'completed', 'archived')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

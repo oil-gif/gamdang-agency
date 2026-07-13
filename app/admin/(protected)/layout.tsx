@@ -23,6 +23,7 @@ export default async function AdminProtectedLayout({
   const navLinks = [
     { href: "/admin", label: "Dashboard", badge: 0 },
     { href: "/admin/talents", label: "Talents", badge: 0 },
+    { href: "/admin/projects", label: "Projects", badge: 0 },
     { href: "/admin/approvals", label: "รออนุมัติ", badge: pendingCount },
   ];
 
