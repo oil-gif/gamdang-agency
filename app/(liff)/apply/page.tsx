@@ -27,12 +27,21 @@ export default function ApplyPage() {
         const idToken = liff.getIDToken();
         if (!idToken) throw new Error("ไม่พบข้อมูลยืนยันตัวตนจาก LINE");
 
+        // liff.login() carries the current URL (including this) through
+        // the redirect back here, so a link sent by an admin to bind this
+        // login to a specific existing talent record survives the login
+        // round-trip.
+        const linkToken = new URLSearchParams(window.location.search).get("link");
+
         const res = await fetch("/api/line/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken }),
+          body: JSON.stringify({ idToken, linkToken }),
         });
-        if (!res.ok) throw new Error("เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error ?? "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่");
+        }
 
         if (!cancelled) router.replace("/apply/edit");
       } catch (err) {
