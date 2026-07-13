@@ -63,6 +63,67 @@ export async function getTalent(id: string) {
   return data;
 }
 
+// The approval queue: everyone waiting for admin review (mostly LINE
+// self-applicants). Includes each talent's comp card path so the queue can
+// show a thumbnail without a second round-trip per row.
+export async function getPendingTalents() {
+  const { data: talents, error } = await supabase
+    .from("talents")
+    .select("*")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  if (!talents || talents.length === 0) return [];
+
+  const { data: photos } = await supabase
+    .from("talent_photos")
+    .select("talent_id, storage_path")
+    .eq("kind", "compcard")
+    .in(
+      "talent_id",
+      talents.map((t) => t.id),
+    );
+
+  const compcardByTalent = new Map(
+    (photos ?? []).map((p) => [p.talent_id, p.storage_path]),
+  );
+  return talents.map((t) => ({
+    ...t,
+    compcard_path: compcardByTalent.get(t.id) ?? null,
+  }));
+}
+
+export async function getPendingCount() {
+  const { count, error } = await supabase
+    .from("talents")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+export async function approveTalent(formData: FormData) {
+  const id = String(formData.get("id"));
+  const { error } = await supabase
+    .from("talents")
+    .update({ status: "active" })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/approvals");
+  revalidatePath("/admin/talents");
+}
+
+export async function rejectTalent(formData: FormData) {
+  const id = String(formData.get("id"));
+  const { error } = await supabase
+    .from("talents")
+    .update({ status: "rejected" })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/approvals");
+  revalidatePath("/admin/talents");
+}
+
 function num(formData: FormData, key: string) {
   const raw = formData.get(key);
   const n = Number(raw);

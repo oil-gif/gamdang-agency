@@ -1,13 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOutAdmin } from "@/actions/auth";
+import { getPendingCount } from "@/actions/talents";
 import { createAdminAuthClient } from "@/lib/supabase/auth-server";
 import { Button } from "@/components/ui/button";
-
-const NAV_LINKS = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/talents", label: "Talents" },
-];
 
 export default async function AdminProtectedLayout({
   children,
@@ -23,15 +19,31 @@ export default async function AdminProtectedLayout({
     redirect("/admin/login");
   }
 
+  const pendingCount = await getPendingCount();
+  const navLinks = [
+    { href: "/admin", label: "Dashboard", badge: 0 },
+    { href: "/admin/talents", label: "Talents", badge: 0 },
+    { href: "/admin/approvals", label: "รออนุมัติ", badge: pendingCount },
+  ];
+
   return (
     <div className="min-h-screen bg-neutral-50">
       <header className="bg-brand-navy flex items-center justify-between px-6 py-4 text-white">
         <div className="flex items-center gap-6">
           <span className="font-semibold">Gamdang Admin</span>
           <nav className="flex gap-4 text-sm text-white/80">
-            {NAV_LINKS.map((link) => (
-              <Link key={link.href} href={link.href} className="hover:text-white">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex items-center gap-1.5 hover:text-white"
+              >
                 {link.label}
+                {link.badge > 0 && (
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#B82233] px-1.5 text-xs font-semibold text-white">
+                    {link.badge}
+                  </span>
+                )}
               </Link>
             ))}
           </nav>
