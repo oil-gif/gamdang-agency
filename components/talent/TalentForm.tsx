@@ -314,9 +314,22 @@ export function TalentForm({
         </>
       )}
 
-      <div className="flex gap-3">
-        <Button type="submit">บันทึก</Button>
-      </div>
+      {mode === "self" ? (
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0">
+          <div className="mx-auto max-w-3xl">
+            <Button
+              type="submit"
+              className="h-12 w-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] text-base font-semibold text-white shadow-sm hover:opacity-95"
+            >
+              บันทึกข้อมูล
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-3">
+          <Button type="submit">บันทึก</Button>
+        </div>
+      )}
     </form>
   );
 }
