@@ -47,8 +47,11 @@
   - แยก JWT session (purpose="session") กับ link (purpose="link") ด้วย claim `purpose` กัน link token ถูกเอาไปใช้เป็น session cookie
   - หน้า admin edit โชว์สถานะ "ผูกบัญชี LINE แล้ว: <ชื่อ>" ถ้ามี `line_user_id` แล้ว ไม่งั้นโชว์ปุ่มสร้างลิงก์
 
+- **ทดสอบจริงผ่านแอป LINE แล้ว (พี่เจ้าของทดสอบเอง)** — สมัครใหม่ผ่าน LINE ได้, จำข้อมูล, แก้ไข+save ได้ + redesign หน้า `/apply/edit` ให้สวย/responsive (header gradient + avatar/สถานะ, sticky save bar, หัวข้อสีน้ำเงิน + วงเล็บอังกฤษ 2 ภาษา, บังคับเบอร์โทร)
+- **⚠️ GOTCHA สำคัญมาก — รูปอัพแล้วเปิดไม่ได้ (แก้แล้ว commit `ab6dac3`)**: ต้นตอคือ `supabase.storage.upload()` บน **Vercel serverless ทำ Node `Buffer` เพี้ยน** (ไบต์กลายเป็น UTF-8 replacement char `0xEFBFBD` → ไฟล์ WebP header เสีย เปิดไม่ได้ทั้ง sharp/browser/เว็บวิว). อัพจาก local dev ไม่เจอเพราะ Buffer รอดใน Node ปกติ **→ ต้องห่อเป็น `new Blob([new Uint8Array(buf)])` ก่อน upload เสมอ** (ดู `app/api/upload/route.ts`). ระหว่างไล่บั๊กเพิ่มของประกอบ 2 อย่างที่ยังใช้อยู่: (1) `app/photo/[...path]/route.ts` เสิร์ฟรูป same-origin + transcode เป็น JPEG (กันเว็บวิว LINE render WebP ไม่ได้), (2) upload เปลี่ยนจาก multipart เป็น base64 JSON. รูปเก่าที่อัพก่อน `ab6dac3` เสียถาวร ต้องลบทิ้งอัพใหม่.
+
 **ค้างอยู่:**
-1. **ยังไม่เคยทดสอบ end-to-end จริงผ่านแอป LINE** — ทั้ง 2 flow (สมัครใหม่ + เชื่อม record เก่า) ต้องเปิดจากในแอป LINE จริง (LIFF URL `https://liff.line.me/2010689219-wGKbITGb`, เปิดจาก browser ธรรมดาจะค้างที่หน้า loading เพราะ LIFF SDK ต้องรันในแอป LINE เท่านั้น)
+1. **flow เชื่อม record เก่า (admin-issued link) ยังไม่ได้ทดสอบจริงผ่านแอป LINE** — สมัครใหม่ทดสอบแล้ว แต่ปุ่ม "สร้างลิงก์เชื่อม LINE" + เปิดลิงก์ `?link=<token>` ในแอป LINE ยังไม่เคยรันจริง
 2. หมายเหตุความปลอดภัยที่ค้างจากก่อนหน้านี้ (ไม่ใช่ของใหม่): `/api/upload` และ `deletePhoto` ยังไม่เช็คว่าเป็น admin จริงๆ (อาศัยแค่ middleware กัน `/admin/:path*`) — ตอนนี้เพิ่มเช็คฝั่ง talent session แล้ว แต่ฝั่ง admin ยังเปิดกว้างอยู่เหมือนเดิม ถ้าจะ harden เพิ่มค่อยทำทีหลังได้
 
 ## Milestone ที่เหลือ (ยังไม่เริ่ม)
