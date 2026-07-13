@@ -49,9 +49,18 @@ export async function POST(req: NextRequest) {
 
   const path = `${talentId}/${kind}/${randomUUID()}.webp`;
 
+  // Upload a Blob, NOT the raw Node Buffer: in the Vercel serverless
+  // runtime, supabase-js mangles a Buffer payload (bytes come out
+  // UTF-8-replaced), storing an undecodable image. Wrapping the bytes in a
+  // Blob keeps them binary-clean. (This never showed up in local dev, where
+  // Buffer uploads happen to survive.)
+  const outputBlob = new Blob([new Uint8Array(outputBuffer)], {
+    type: "image/webp",
+  });
+
   const { error: uploadError } = await supabase.storage
     .from("talent-photos")
-    .upload(path, outputBuffer, { contentType: "image/webp" });
+    .upload(path, outputBlob, { contentType: "image/webp" });
 
   if (uploadError) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 });
