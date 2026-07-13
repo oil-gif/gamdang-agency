@@ -106,15 +106,20 @@ export async function saveTalent(formData: FormData) {
   if (id) {
     const { error } = await supabase.from("talents").update(payload).eq("id", id);
     if (error) throw new Error(error.message);
-  } else {
-    const { error } = await supabase
-      .from("talents")
-      .insert({ ...payload, source: "admin" });
-    if (error) throw new Error(error.message);
+    revalidatePath("/admin/talents");
+    redirect("/admin/talents");
   }
 
+  const { data: created, error } = await supabase
+    .from("talents")
+    .insert({ ...payload, source: "admin" })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+
   revalidatePath("/admin/talents");
-  redirect("/admin/talents");
+  // Go straight to the edit page so photos can be added right away.
+  redirect(`/admin/talents/${created.id}`);
 }
 
 export async function deleteTalent(formData: FormData) {

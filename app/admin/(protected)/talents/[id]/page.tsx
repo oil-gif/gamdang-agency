@@ -1,5 +1,6 @@
 import { getTalent } from "@/actions/talents";
 import { TalentForm } from "@/components/admin/TalentForm";
+import { TalentPhotos } from "@/components/admin/TalentPhotos";
 
 export default async function EditTalentPage({
   params,
@@ -13,10 +14,11 @@ export default async function EditTalentPage({
   const talent = await getTalent(id);
 
   return (
-    <div className="space-y-4">
+    <div className="max-w-3xl space-y-6">
       <h1 className="text-2xl font-bold text-neutral-800">
         แก้ไข: {talent.nickname_th}
       </h1>
+      <TalentPhotos talentId={id} />
       <TalentForm talent={talent} error={error} />
     </div>
   );
