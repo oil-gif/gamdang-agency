@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { saveTalent } from "@/actions/talents";
+import { saveTalent, saveTalentSelf } from "@/actions/talents";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -51,15 +51,20 @@ type Talent = {
 export function TalentForm({
   talent,
   error,
+  mode = "admin",
 }: {
   talent?: Talent;
   error?: string;
+  mode?: "admin" | "self";
 }) {
   const [isInfluencer, setIsInfluencer] = useState(talent?.is_influencer ?? false);
+  const action = mode === "self" ? saveTalentSelf : saveTalent;
 
   return (
-    <form action={saveTalent} className="max-w-3xl space-y-6">
-      {talent?.id && <input type="hidden" name="id" value={talent.id} />}
+    <form action={action} className="max-w-3xl space-y-6">
+      {mode === "admin" && talent?.id && (
+        <input type="hidden" name="id" value={talent.id} />
+      )}
 
       {error && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -210,7 +215,7 @@ export function TalentForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>บทบาท & สถานะ</CardTitle>
+          <CardTitle>บทบาท{mode === "admin" && " & สถานะ"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-6">
@@ -227,20 +232,22 @@ export function TalentForm({
               เป็น Influencer
             </label>
           </div>
-          <div className="max-w-xs space-y-1.5">
-            <Label htmlFor="status">สถานะ</Label>
-            <Select name="status" defaultValue={talent?.status ?? "pending"}>
-              <SelectTrigger id="status" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">รออนุมัติ</SelectItem>
-                <SelectItem value="active">อนุมัติแล้ว</SelectItem>
-                <SelectItem value="rejected">ปฏิเสธ</SelectItem>
-                <SelectItem value="inactive">ไม่ใช้งาน</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {mode === "admin" && (
+            <div className="max-w-xs space-y-1.5">
+              <Label htmlFor="status">สถานะ</Label>
+              <Select name="status" defaultValue={talent?.status ?? "pending"}>
+                <SelectTrigger id="status" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">รออนุมัติ</SelectItem>
+                  <SelectItem value="active">อนุมัติแล้ว</SelectItem>
+                  <SelectItem value="rejected">ปฏิเสธ</SelectItem>
+                  <SelectItem value="inactive">ไม่ใช้งาน</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </CardContent>
       </Card>
 

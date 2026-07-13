@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/server";
 import { computeTierAndFollowers } from "@/lib/tier";
 import { CATEGORIES, ETHNICITIES } from "@/lib/constants";
 import { yearsAgo } from "@/lib/age";
+import { getTalentSession } from "@/lib/auth/talent-session";
 
 export type TalentFilters = {
   q?: string;
@@ -155,6 +156,83 @@ export async function saveTalent(formData: FormData) {
   revalidatePath("/admin/talents");
   // Go straight to the edit page so photos can be added right away.
   redirect(`/admin/talents/${created.id}`);
+}
+
+// Same shape as saveTalent(), but for the LIFF self-service flow: the
+// talent id comes from their session cookie (never from formData, so one
+// talent can't edit another's row), and status/source are never part of
+// the payload so a talent can't grant themselves "active".
+export async function saveTalentSelf(formData: FormData) {
+  const session = await getTalentSession();
+  if (!session) redirect("/apply");
+
+  const gender = str(formData, "gender");
+  const dob = str(formData, "dob");
+  if (!gender || !dob) {
+    redirect(
+      `/apply/edit?error=${encodeURIComponent("กรุณากรอกเพศและวันเกิด (บังคับ)")}`,
+    );
+  }
+
+  const followers = {
+    ig: num(formData, "ig_followers"),
+    tiktok: num(formData, "tiktok_followers"),
+    youtube: num(formData, "youtube_followers"),
+    facebook: num(formData, "facebook_followers"),
+    lemon8: num(formData, "lemon8_followers"),
+  };
+  const { max_followers, tier } = computeTierAndFollowers(followers);
+
+  const categories = formData
+    .getAll("categories")
+    .map(String)
+    .filter((c) => (CATEGORIES as readonly string[]).includes(c));
+
+  const ethnicityValues = ETHNICITIES.map((e) => e.value) as readonly string[];
+  const ethnicities = formData
+    .getAll("ethnicities")
+    .map(String)
+    .filter((e) => ethnicityValues.includes(e));
+
+  const payload = {
+    nickname_th: str(formData, "nickname_th"),
+    nickname_en: str(formData, "nickname_en"),
+    full_name: str(formData, "full_name"),
+    gender,
+    dob,
+    ethnicities,
+    height_cm: formData.get("height_cm") ? num(formData, "height_cm") : null,
+    weight_kg: formData.get("weight_kg") ? num(formData, "weight_kg") : null,
+    measurements: str(formData, "measurements"),
+    phone: str(formData, "phone"),
+    email: str(formData, "email"),
+    contact_line_or_whatsapp: str(formData, "contact_line_or_whatsapp"),
+    note: str(formData, "note"),
+    is_model: formData.get("is_model") === "on",
+    is_influencer: formData.get("is_influencer") === "on",
+    ig_handle: str(formData, "ig_handle"),
+    ig_followers: followers.ig,
+    tiktok_handle: str(formData, "tiktok_handle"),
+    tiktok_followers: followers.tiktok,
+    youtube_handle: str(formData, "youtube_handle"),
+    youtube_followers: followers.youtube,
+    facebook_handle: str(formData, "facebook_handle"),
+    facebook_followers: followers.facebook,
+    lemon8_handle: str(formData, "lemon8_handle"),
+    lemon8_followers: followers.lemon8,
+    max_followers,
+    tier,
+    categories,
+  };
+
+  const { error } = await supabase
+    .from("talents")
+    .update(payload)
+    .eq("id", session.talentId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/apply/edit");
+  redirect("/apply/edit?saved=1");
 }
 
 export async function deleteTalent(formData: FormData) {

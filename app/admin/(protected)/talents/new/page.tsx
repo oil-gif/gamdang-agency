@@ -1,4 +1,4 @@
-import { TalentForm } from "@/components/admin/TalentForm";
+import { TalentForm } from "@/components/talent/TalentForm";
 
 export default async function NewTalentPage({
   searchParams,

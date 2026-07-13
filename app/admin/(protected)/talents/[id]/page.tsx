@@ -1,5 +1,5 @@
 import { getTalent } from "@/actions/talents";
-import { TalentForm } from "@/components/admin/TalentForm";
+import { TalentForm } from "@/components/talent/TalentForm";
 import { TalentPhotos } from "@/components/admin/TalentPhotos";
 
 export default async function EditTalentPage({
