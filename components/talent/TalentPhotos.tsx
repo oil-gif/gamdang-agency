@@ -1,7 +1,6 @@
-import Image from "next/image";
 import { deletePhoto, getTalentPhotos } from "@/actions/photos";
 import { PhotoUploader } from "@/components/talent/PhotoUploader";
-import { getPhotoUrl } from "@/lib/storage";
+import { getPhotoProxyUrl } from "@/lib/storage";
 
 function DeleteButton({ id, talentId }: { id: string; talentId: string }) {
   return (
@@ -29,7 +28,9 @@ export async function TalentPhotos({ talentId }: { talentId: string }) {
   return (
     <section className="space-y-6 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
       <div>
-        <h2 className="text-lg font-semibold text-neutral-800">รูปภาพ</h2>
+        <h2 className="text-lg font-semibold text-[#1D4ED8]">
+          รูปภาพ <span className="font-normal text-[#1D4ED8]/60">(Photos)</span>
+        </h2>
         <p className="mt-0.5 text-sm text-neutral-500">
           Comp Card คือรูปหลัก (แนวนอน) ส่วน Gallery เพิ่มได้หลายรูป
         </p>
@@ -39,12 +40,11 @@ export async function TalentPhotos({ talentId }: { talentId: string }) {
         <h3 className="text-sm font-medium text-neutral-600">Comp Card</h3>
         {compcard ? (
           <div className="group relative aspect-video w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100">
-            <Image
-              src={getPhotoUrl(compcard.storage_path)}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={getPhotoProxyUrl(compcard.storage_path)}
               alt="Comp Card"
-              fill
-              sizes="(max-width: 640px) 100vw, 28rem"
-              className="object-cover"
+              className="absolute inset-0 size-full object-cover"
             />
             <DeleteButton id={compcard.id} talentId={talentId} />
           </div>
@@ -70,12 +70,11 @@ export async function TalentPhotos({ talentId }: { talentId: string }) {
               key={p.id}
               className="group relative aspect-square overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100"
             >
-              <Image
-                src={getPhotoUrl(p.storage_path)}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={getPhotoProxyUrl(p.storage_path)}
                 alt=""
-                fill
-                sizes="(max-width: 640px) 50vw, 20rem"
-                className="object-cover"
+                className="absolute inset-0 size-full object-cover"
               />
               <DeleteButton id={p.id} talentId={talentId} />
             </div>

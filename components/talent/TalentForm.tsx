@@ -74,7 +74,9 @@ export function TalentForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>ข้อมูลส่วนตัว</CardTitle>
+          <CardTitle className="text-[#1D4ED8]">
+            ข้อมูลส่วนตัว <span className="font-normal text-[#1D4ED8]/60">(Personal Info)</span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
@@ -158,7 +160,9 @@ export function TalentForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>เชื้อชาติ</CardTitle>
+          <CardTitle className="text-[#1D4ED8]">
+            เชื้อชาติ <span className="font-normal text-[#1D4ED8]/60">(Ethnicity)</span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {ETHNICITIES.map((e) => (
@@ -182,12 +186,20 @@ export function TalentForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>ติดต่อ</CardTitle>
+          <CardTitle className="text-[#1D4ED8]">
+            ติดต่อ <span className="font-normal text-[#1D4ED8]/60">(Contact)</span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="phone">เบอร์โทร</Label>
-            <Input id="phone" name="phone" defaultValue={talent?.phone ?? ""} />
+            <Label htmlFor="phone">เบอร์โทร (Phone) *</Label>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              defaultValue={talent?.phone ?? ""}
+              required
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
@@ -215,7 +227,12 @@ export function TalentForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>บทบาท{mode === "admin" && " & สถานะ"}</CardTitle>
+          <CardTitle className="text-[#1D4ED8]">
+            บทบาท{mode === "admin" && " & สถานะ"}{" "}
+            <span className="font-normal text-[#1D4ED8]/60">
+              ({mode === "admin" ? "Role & Status" : "Role"})
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-6">
@@ -255,7 +272,9 @@ export function TalentForm({
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Expertise</CardTitle>
+              <CardTitle className="text-[#1D4ED8]">
+                ความเชี่ยวชาญ <span className="font-normal text-[#1D4ED8]/60">(Expertise)</span>
+              </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-4">
               {CATEGORIES.map((c) => (
@@ -273,7 +292,10 @@ export function TalentForm({
 
           <Card>
             <CardHeader>
-              <CardTitle>Social & Followers</CardTitle>
+              <CardTitle className="text-[#1D4ED8]">
+                โซเชียล & ผู้ติดตาม{" "}
+                <span className="font-normal text-[#1D4ED8]/60">(Social & Followers)</span>
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {(

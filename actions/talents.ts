@@ -168,9 +168,10 @@ export async function saveTalentSelf(formData: FormData) {
 
   const gender = str(formData, "gender");
   const dob = str(formData, "dob");
-  if (!gender || !dob) {
+  const phone = str(formData, "phone");
+  if (!gender || !dob || !phone) {
     redirect(
-      `/apply/edit?error=${encodeURIComponent("กรุณากรอกเพศและวันเกิด (บังคับ)")}`,
+      `/apply/edit?error=${encodeURIComponent("กรุณากรอกเพศ วันเกิด และเบอร์โทร (บังคับ)")}`,
     );
   }
 
