@@ -54,6 +54,59 @@ export async function getProjectTalents(projectId: string) {
   });
 }
 
+// Candidates for the "เพิ่ม Talent" picker: active talents matching the
+// search, excluding ones already in the project, with a photo for the
+// mini preview card (gallery first for influencers, comp card otherwise).
+export async function getPickerTalents(
+  projectId: string,
+  q?: string,
+  role?: "model" | "influencer",
+) {
+  const { data: existing } = await supabase
+    .from("project_talents")
+    .select("talent_id")
+    .eq("project_id", projectId);
+  const excludeIds = new Set((existing ?? []).map((r) => r.talent_id));
+
+  let query = supabase
+    .from("talents")
+    .select("*")
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
+  if (q) {
+    const term = q.replace(/[%,]/g, "");
+    query = query.or(
+      `nickname_th.ilike.%${term}%,nickname_en.ilike.%${term}%,code.ilike.%${term}%`,
+    );
+  }
+  if (role === "model") query = query.eq("is_model", true);
+  if (role === "influencer") query = query.eq("is_influencer", true);
+
+  const { data: talents, error } = await query;
+  if (error) throw new Error(error.message);
+
+  const candidates = (talents ?? [])
+    .filter((t) => !excludeIds.has(t.id))
+    .slice(0, 12);
+  if (candidates.length === 0) return [];
+
+  const { data: photos } = await supabase
+    .from("talent_photos")
+    .select("talent_id, kind, storage_path, display_order")
+    .in(
+      "talent_id",
+      candidates.map((t) => t.id),
+    )
+    .order("display_order", { ascending: true });
+
+  return candidates.map((t) => {
+    const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
+    const gallery = mine.find((p) => p.kind === "gallery")?.storage_path ?? null;
+    const compcard = mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
+    return { ...t, photo_path: t.is_influencer ? (gallery ?? compcard) : (compcard ?? gallery) };
+  });
+}
+
 function str(formData: FormData, key: string) {
   const raw = formData.get(key);
   const value = typeof raw === "string" ? raw.trim() : "";

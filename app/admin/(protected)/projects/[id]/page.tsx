@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   addTalentToProject,
   deleteProject,
+  getPickerTalents,
   getProject,
   getProjectTalents,
   moveProjectTalent,
@@ -14,7 +15,6 @@ import {
   renewProjectLink,
   revokeProjectLink,
 } from "@/actions/project-links";
-import { getTalents } from "@/actions/talents";
 import { CopyButton } from "@/components/admin/CopyButton";
 import { ProjectForm } from "@/components/admin/ProjectForm";
 import { Badge } from "@/components/ui/badge";
@@ -22,9 +22,51 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { calculateAge } from "@/lib/age";
 import { TIER_LABEL } from "@/lib/constants";
+import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
 import { getPhotoProxyUrl } from "@/lib/storage";
 
 const BASE_URL = "https://gamdang-app.vercel.app";
+
+function CardTypeSwitch({
+  ptId,
+  projectId,
+  current,
+}: {
+  ptId: string;
+  projectId: string;
+  current: string;
+}) {
+  return (
+    <div className="flex overflow-hidden rounded-lg border border-neutral-200 text-xs font-medium">
+      {(
+        [
+          ["compcard", "Comp Card"],
+          ["influcard", "Influ Card"],
+        ] as const
+      ).map(([value, label]) => {
+        const active = current === value;
+        return (
+          <form key={value} action={setProjectTalentCardType}>
+            <input type="hidden" name="id" value={ptId} />
+            <input type="hidden" name="project_id" value={projectId} />
+            <input type="hidden" name="card_type" value={value} />
+            <button
+              type="submit"
+              disabled={active}
+              className={
+                active
+                  ? "cursor-default bg-[#1D4ED8] px-3 py-1.5 text-white"
+                  : "bg-white px-3 py-1.5 text-neutral-500 hover:bg-neutral-50"
+              }
+            >
+              {label}
+            </button>
+          </form>
+        );
+      })}
+    </div>
+  );
+}
 
 export default async function ProjectDetailPage({
   params,
@@ -36,27 +78,20 @@ export default async function ProjectDetailPage({
   const { id } = await params;
   const { error, pq, prole } = await searchParams;
 
-  const [project, projectTalents, links] = await Promise.all([
+  const [project, projectTalents, links, candidates] = await Promise.all([
     getProject(id),
     getProjectTalents(id),
     getProjectLinks(id),
+    getPickerTalents(
+      id,
+      pq || undefined,
+      prole === "model" || prole === "influencer" ? prole : undefined,
+    ),
   ]);
-
-  // Talent picker: search active talents not already in this project.
-  const existingIds = new Set(projectTalents.map((pt) => pt.talent_id));
-  const candidates = (
-    await getTalents({
-      q: pq || undefined,
-      role: prole === "model" || prole === "influencer" ? prole : undefined,
-      status: "active",
-    })
-  )
-    .filter((t) => !existingIds.has(t.id))
-    .slice(0, 12);
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-neutral-800">{project.name}</h1>
           {project.project_type === "influencer" ? (
@@ -65,12 +100,17 @@ export default async function ProjectDetailPage({
             <Badge className="bg-[#1D4ED8] text-white">งาน Model</Badge>
           )}
         </div>
-        <form action={deleteProject}>
-          <input type="hidden" name="id" value={id} />
-          <Button type="submit" variant="ghost" size="sm">
-            ลบโปรเจกต์
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/admin/projects/${id}/print`}>🖨 สร้าง PDF</Link>
           </Button>
-        </form>
+          <form action={deleteProject}>
+            <input type="hidden" name="id" value={id} />
+            <Button type="submit" variant="ghost" size="sm">
+              ลบโปรเจกต์
+            </Button>
+          </form>
+        </div>
       </div>
 
       <ProjectForm project={project} error={error} />
@@ -91,21 +131,27 @@ export default async function ProjectDetailPage({
             return (
               <div
                 key={pt.id}
-                className="flex items-center gap-3 rounded-lg border bg-white p-3"
+                className="flex items-center gap-3 rounded-xl border bg-white p-3 shadow-sm"
               >
                 <span className="w-6 text-center font-mono text-sm text-neutral-400">
                   {i + 1}
                 </span>
-                <div className="size-14 shrink-0 overflow-hidden rounded-md border bg-neutral-100">
-                  {pt.compcard_path ? (
+                <div className="size-14 shrink-0 overflow-hidden rounded-full border bg-neutral-100">
+                  {(pt.card_type === "influcard"
+                    ? (pt.gallery_paths[0] ?? pt.compcard_path)
+                    : (pt.compcard_path ?? pt.gallery_paths[0])) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={getPhotoProxyUrl(pt.compcard_path)}
+                      src={getPhotoProxyUrl(
+                        pt.card_type === "influcard"
+                          ? (pt.gallery_paths[0] ?? pt.compcard_path!)
+                          : (pt.compcard_path ?? pt.gallery_paths[0]!),
+                      )}
                       alt=""
                       className="size-full object-cover"
                     />
                   ) : (
-                    <div className="flex size-full items-center justify-center text-[10px] text-neutral-400">
+                    <div className="flex size-full items-center justify-center text-[9px] text-neutral-400">
                       ไม่มีรูป
                     </div>
                   )}
@@ -124,21 +170,8 @@ export default async function ProjectDetailPage({
                   </p>
                 </div>
 
-                {/* card type toggle */}
-                <form action={setProjectTalentCardType}>
-                  <input type="hidden" name="id" value={pt.id} />
-                  <input type="hidden" name="project_id" value={id} />
-                  <input
-                    type="hidden"
-                    name="card_type"
-                    value={pt.card_type === "compcard" ? "influcard" : "compcard"}
-                  />
-                  <Button type="submit" size="sm" variant="outline">
-                    {pt.card_type === "compcard" ? "Comp Card" : "Influ Card"} ⇄
-                  </Button>
-                </form>
+                <CardTypeSwitch ptId={pt.id} projectId={id} current={pt.card_type} />
 
-                {/* reorder */}
                 <div className="flex flex-col">
                   <form action={moveProjectTalent}>
                     <input type="hidden" name="id" value={pt.id} />
@@ -205,32 +238,76 @@ export default async function ProjectDetailPage({
           </Button>
         </form>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {candidates.map((t) => (
-            <div
-              key={t.id}
-              className="flex items-center gap-3 rounded-lg border bg-white p-3"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-neutral-800">
-                  {t.nickname_th}
-                </p>
-                <p className="text-xs text-neutral-400">
-                  {t.code}
-                  {t.dob ? ` · ${calculateAge(t.dob)} ปี` : ""}
-                  {t.is_model ? " · Model" : ""}
-                  {t.is_influencer ? " · Influ" : ""}
-                </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {candidates.map((t) => {
+            const top = topSocial(t);
+            const socials = talentSocials(t);
+            const expertise = ((t.categories ?? []) as string[]).slice(0, 3);
+            return (
+              <div
+                key={t.id}
+                className="flex gap-3 rounded-xl border bg-white p-3 shadow-sm"
+              >
+                <div className="size-16 shrink-0 overflow-hidden rounded-full border bg-neutral-100">
+                  {t.photo_path ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={getPhotoProxyUrl(t.photo_path)}
+                      alt=""
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex size-full items-center justify-center text-[9px] text-neutral-400">
+                      ไม่มีรูป
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="truncate font-medium text-neutral-800">
+                      {t.nickname_th}
+                    </p>
+                    <span className="font-mono text-[10px] text-neutral-400">
+                      {t.code}
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-500">
+                    {t.dob ? `${calculateAge(t.dob)} ปี` : ""}
+                    {t.is_model ? " · Model" : ""}
+                    {t.is_influencer
+                      ? ` · ${TIER_LABEL[t.tier] ?? t.tier}${top ? ` · ${formatFollowers(top.followers)} on ${top.label}` : ""}`
+                      : ""}
+                  </p>
+                  {expertise.length > 0 && (
+                    <p className="mt-0.5 truncate text-[11px] text-[#B82233]">
+                      {expertise.join(" · ")}
+                    </p>
+                  )}
+                  {socials.length > 0 && (
+                    <div className="mt-1 flex gap-1">
+                      {socials.map((s) => (
+                        <span
+                          key={s.key}
+                          title={s.label}
+                          className="flex size-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
+                          style={{ backgroundColor: s.color }}
+                        >
+                          {s.short}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <form action={addTalentToProject} className="self-center">
+                  <input type="hidden" name="project_id" value={id} />
+                  <input type="hidden" name="talent_id" value={t.id} />
+                  <Button type="submit" size="sm">
+                    + เพิ่ม
+                  </Button>
+                </form>
               </div>
-              <form action={addTalentToProject}>
-                <input type="hidden" name="project_id" value={id} />
-                <input type="hidden" name="talent_id" value={t.id} />
-                <Button type="submit" size="sm">
-                  + เพิ่ม
-                </Button>
-              </form>
-            </div>
-          ))}
+            );
+          })}
           {candidates.length === 0 && (
             <p className="text-sm text-neutral-400 sm:col-span-2">
               ไม่พบ talent (แสดงเฉพาะสถานะ &quot;อนุมัติแล้ว&quot; ที่ยังไม่อยู่ในโปรเจกต์)
@@ -255,7 +332,7 @@ export default async function ProjectDetailPage({
             const url = `${BASE_URL}/p/${l.token}`;
             const expired = l.expires_at && new Date(l.expires_at) < new Date();
             return (
-              <div key={l.id} className="rounded-lg border bg-white p-3">
+              <div key={l.id} className="rounded-xl border bg-white p-3 shadow-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <code className="min-w-0 flex-1 truncate rounded bg-neutral-50 px-2 py-1 text-xs">
                     {url}
