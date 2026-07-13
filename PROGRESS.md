@@ -59,10 +59,21 @@
 - nav ในแอดมินมีลิงก์ "รออนุมัติ" + badge จำนวน pending (สีแดงแบรนด์) จาก `getPendingCount()`
 - ยังไม่ได้ทดสอบกด approve/reject จริงผ่าน UI (auth guard + query + build ผ่านแล้ว, DB มี pending 2 คน) — พี่ล็อกอินแอดมินแล้วลองได้เลย
 
-## Milestone ที่เหลือ (ยังไม่เริ่ม)
-10. Project system (สร้าง/แก้/ลบ project, เพิ่ม-ลบ-เรียงลำดับ talent, เลือก compcard/influcard)
-11. Public project link `/p/[token]` — **ใช้ T&C gate ไม่ใช้รหัสผ่าน** (ยืนยันกับพี่แล้ว, เก็บ IP+timestamp)
-12. Polish + deploy รอบสุดท้าย (ตอนนี้ deploy พื้นฐานเสร็จแล้วจาก milestone 8)
+## Milestone 10 + 11: Project system + Client portfolio link — เสร็จแล้ว (commit `1de4cc3`, ทดสอบ e2e ผ่าน)
+- ต้องรัน migration `supabase/migrations/002_project_fields.sql` ก่อน (เพิ่ม `projects.project_type`/`shooting_date`/`budget`) — **รันแล้ว** ใน Supabase
+- หลังบ้าน `/admin/projects` (มีเมนูใน nav): สร้าง/แก้ project (ประเภทงาน model/influencer, ลูกค้า, shooting date, budget, สถานะ) + จัดการ talent ในโปรเจกต์ (ค้นหา/filter เฉพาะ active, เพิ่ม/เอาออก, สลับ compcard⇄influcard ต่อคน, เรียง ▲▼) + จัดการลิงก์ลูกค้า (token 30 วัน, copy/ยกเลิก/ต่ออายุ, เห็น view count + สถานะ T&C)
+- หน้าลูกค้า `/p/[token]`: T&C gate เก็บ IP+เวลา → หน้าปก gradient + header GAMDANG AGENCY. การ์ด Model = compcard เต็ม (fallback รูป) + อายุ/สูง/หนัก/ethnicity. การ์ด Influencer = รูป gallery + tier + ยอด follower ช่องที่เยอะสุด + expertise + ไอคอน social กดได้ (รองรับ handle หรือ URL เต็ม). ปุ่มลอย print → PDF ลิงก์กดได้
+- ไฟล์สำคัญ: `actions/projects.ts`, `actions/project-links.ts`, `actions/public-link.ts`, `lib/social.ts` (topSocial/talentSocials), `lib/public-link.ts`, `app/p/[token]/page.tsx`, `components/admin/ProjectForm.tsx`
+
+## ค้างอยู่ (เฟสถัดไป): หน้าบ้านสาธารณะ 3 Tab + AI Model
+สเปคจากพี่เจ้าของ (ยังไม่เริ่ม):
+- หน้าแรก `/` (ตอนนี้ยังเป็น template Next.js เปล่า) ทำเป็นการ์ดโชว์ talent: ดึงรูปเดี่ยว + ชื่อ + อายุ
+- แบ่ง 3 Tab: **Model (สีน้ำเงิน #1D4ED8) / Influencer (สีแดง #B82233) / AI Model (gradient)** — ถ้า talent เป็นทั้ง model+influ ขึ้นทั้ง 2 tab
+- **AI Model = ประเภทใหม่** ต้องเพิ่ม schema `is_ai_model boolean` + `character text` (เช่น "Energetic / Fun") ในตาราง talents + ช่องกรอกใน TalentForm (เฉพาะ admin) — AI model ไม่มี LINE/followers เป็นตัวละครที่ admin สร้าง
+- ออกแบบให้สวย ดู pro
+
+## Polish รอบสุดท้าย (ยังไม่เริ่ม)
+- เปลี่ยนรหัส admin, ลบหน้า /style-guide ถ้าไม่ใช้, ฯลฯ
 
 ## ตัวช่วยที่ตั้งไว้แล้ว ไม่ต้องตั้งใหม่
 - `gh` CLI login เป็น account `oil-gif` แล้ว
