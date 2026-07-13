@@ -29,25 +29,23 @@
 - `ethnicity` (text เดี่ยว) → เปลี่ยนเป็น `ethnicities text[]` (multi-select, fixed list 10 ตัวเลือกใน `lib/constants.ts`)
 - เพศ (`gender`) กับวันเกิด (`dob`) บังคับกรอกในฟอร์ม (validate ใน `actions/talents.ts` → `saveTalent()`)
 
-## กำลังทำอยู่ — Milestone 8: LIFF apply/edit flow (ยังไม่เสร็จ)
+## Milestone 8: LIFF apply/edit flow — โค้ดเสร็จแล้ว, รอทดสอบจริงผ่านแอป LINE
 
-**ทำไปแล้ว:**
-- Deploy ขึ้น Vercel สำเร็จ (`https://gamdang-app.vercel.app`) เพื่อให้มี HTTPS URL จริงไว้ผูกกับ LIFF (LIFF เปิดจาก localhost ไม่ได้)
-- อ่าน `actions/talents.ts` เตรียม refactor แต่ **ยังไม่ได้แก้ไฟล์จริง**
+**ทำเสร็จแล้ว (deploy ขึ้น production แล้ว):**
+- Channel ID/Secret + LIFF ID ได้จากพี่แล้ว, LIFF app สร้างใน LINE Developers Console แล้ว (Endpoint URL `/apply`, scope `profile openid`, size Full)
+- Env vars ตั้งครบทั้ง `.env.local` และ Vercel production: `LINE_CHANNEL_ID`, `LINE_CHANNEL_SECRET`, `NEXT_PUBLIC_LIFF_ID`, `LINE_SESSION_SECRET`
+- `lib/auth/talent-session.ts` — sign/verify JWT cookie ด้วย `jose` (cookie ชื่อ `talent_session`, 30 วัน)
+- `app/api/line/verify/route.ts` — verify ID token ผ่าน LINE, upsert `talents` โดย `line_user_id` (ไม่แตะ status/source ของ record เดิม), set session cookie
+- `app/(liff)/apply/page.tsx` — LIFF login, ส่ง ID token ไป verify, redirect ไป `/apply/edit`
+- `app/(liff)/apply/edit/page.tsx` — อ่าน session cookie, render รูป + ฟอร์มโหมด self
+- `TalentForm` ย้ายไป `components/talent/TalentForm.tsx` แล้ว รับ prop `mode: "admin" | "self"` (self mode ซ่อนช่อง "สถานะ")
+- `saveTalentSelf(formData)` ใน `actions/talents.ts` — talentId มาจาก session cookie เท่านั้น, แก้ `status`/`source` ไม่ได้
+- `TalentPhotos`/`PhotoUploader` ย้ายไป `components/talent/` แล้วเปิดใช้ในหน้า self ด้วย (พี่ขอเพิ่มระหว่างทำ) — ต้องแก้ `app/api/upload/route.ts` และ `deletePhoto()` ให้เช็คว่า talent session ตรงกับ `talent_id` ที่ส่งมาก่อน เพราะตอนนี้ talentId โผล่ใน hidden form field ของหน้า public แล้ว (ก่อนหน้านี้ endpoint พวกนี้ไม่มีการเช็คสิทธิ์เลย อาศัยว่าเข้าถึงได้แค่จากหน้า /admin เท่านั้น)
 
-**ค้างอยู่ (ต้องทำต่อ):**
-1. รอพี่ไปที่ **LINE Developers Console** (https://developers.line.biz/console/) → หา Provider/Channel เดิมของระบบเก่า (มี Channel ID/Secret อยู่แล้ว) → เพิ่ม **LIFF app ใหม่** ใต้ channel เดิม:
-   - Endpoint URL: `https://gamdang-app.vercel.app/apply`
-   - Scope: `profile`, `openid`
-   - Size: Full
-   - ได้ **LIFF ID** (รูปแบบ `1234567890-AbCdEfGh`) กับ **Channel ID** มาให้ผม
-2. เขียนโค้ด (ยังไม่ได้ทำ):
-   - `lib/auth/talent-session.ts` — sign/verify JWT cookie ด้วย `jose` (ต้อง `npm install jose`, ต้องตั้ง `LINE_SESSION_SECRET` ใน `.env.local` + Vercel)
-   - `app/api/line/verify/route.ts` — รับ LINE ID token, verify ผ่าน `POST https://api.line.me/oauth2/v2.1/verify`, upsert แถวใน `talents` (`source='self', status='pending'`), set session cookie
-   - `app/(liff)/apply/page.tsx` — client component, init `@line/liff` (ต้อง `npm install @line/liff`), login, ส่ง ID token ไป verify, แล้ว redirect ไป `/apply/edit`
-   - `app/(liff)/apply/edit/page.tsx` — server component อ่าน session cookie, render `TalentForm` โหมด self (ซ่อนช่อง "สถานะ" ที่มีแต่ admin ควรเห็น)
-   - ปรับ `components/admin/TalentForm.tsx` ให้รับ prop `mode: "admin" | "self"` แล้วอาจย้ายไปไว้ที่ `components/talent/TalentForm.tsx` เพราะใช้ร่วมกันทั้ง admin และ talent แล้ว (ตาม pattern shared component ที่วางแผนไว้)
-   - เพิ่ม `saveTalentSelf(formData)` ใน `actions/talents.ts` — อ่าน talentId จาก session cookie เอง (ห้ามรับ id จาก formData เพื่อกันคนหนึ่งแก้ข้อมูลอีกคน), ไม่ให้แก้ `status`/`source`
+**ค้างอยู่:**
+1. **ยังไม่เคยทดสอบ end-to-end จริงผ่านแอป LINE** — ต้องเอา LIFF URL (`https://liff.line.me/2010689219-wGKbITGb`) เปิดจากในแอป LINE จริง (เปิดจาก browser ธรรมดาจะค้างที่หน้า loading เพราะ LIFF SDK ต้องรันในแอป LINE เท่านั้น)
+2. เช็คว่า record เก่าที่ admin สร้างไว้ (ไม่มี `line_user_id`) ผูกกับ LINE account ยังไง ถ้า talent คนเดิมสมัครผ่าน LINE ซ้ำ จะกลายเป็นสร้าง record ใหม่ (เพราะ upsert match ด้วย `line_user_id` ที่ยังไม่มี ไม่ใช่ผูกกับ record admin สร้างไว้) — ยังไม่ได้คุยกับพี่ว่าต้องมี flow เชื่อม record เก่ากับ LINE login ไหม
+3. หมายเหตุความปลอดภัยที่ค้างจากก่อนหน้านี้ (ไม่ใช่ของใหม่): `/api/upload` และ `deletePhoto` ยังไม่เช็คว่าเป็น admin จริงๆ (อาศัยแค่ middleware กัน `/admin/:path*`) — ตอนนี้เพิ่มเช็คฝั่ง talent session แล้ว แต่ฝั่ง admin ยังเปิดกว้างอยู่เหมือนเดิม ถ้าจะ harden เพิ่มค่อยทำทีหลังได้
 
 ## Milestone ที่เหลือ (ยังไม่เริ่ม)
 9. Admin approval queue (approve/reject คนที่สมัครผ่าน LINE ให้ `status: pending → active`)
