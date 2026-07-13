@@ -1,5 +1,5 @@
 import { deletePhoto, getTalentPhotos } from "@/actions/photos";
-import { PhotoUploader } from "@/components/admin/PhotoUploader";
+import { PhotoUploader } from "@/components/talent/PhotoUploader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPhotoUrl } from "@/lib/storage";

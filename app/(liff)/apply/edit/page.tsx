@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTalent } from "@/actions/talents";
 import { TalentForm } from "@/components/talent/TalentForm";
+import { TalentPhotos } from "@/components/talent/TalentPhotos";
 import { getTalentSession } from "@/lib/auth/talent-session";
 
 export default async function ApplyEditPage({
@@ -22,6 +23,7 @@ export default async function ApplyEditPage({
           บันทึกข้อมูลเรียบร้อยแล้ว
         </div>
       )}
+      <TalentPhotos talentId={session.talentId} />
       <TalentForm talent={talent} error={error} mode="self" />
     </div>
   );

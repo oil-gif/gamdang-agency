@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import sharp from "sharp";
 import { supabase } from "@/lib/supabase/server";
+import { getTalentSession } from "@/lib/auth/talent-session";
 
 // sharp is a native binding — must run on the Node.js runtime, not Edge.
 export const runtime = "nodejs";
@@ -18,6 +19,15 @@ export async function POST(req: NextRequest) {
   }
   if (kind !== "gallery" && kind !== "compcard") {
     return NextResponse.json({ error: "invalid kind" }, { status: 400 });
+  }
+
+  // This endpoint has no admin auth check (only /admin/:path* pages are
+  // gated) — a logged-in talent's talent_id is now visible in /apply/edit's
+  // hidden form fields, so anyone with a talent session must be blocked
+  // from uploading to a talent_id that isn't their own.
+  const talentSession = await getTalentSession();
+  if (talentSession && talentSession.talentId !== talentId) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
   const inputBuffer = Buffer.from(await file.arrayBuffer());
