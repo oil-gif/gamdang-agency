@@ -41,11 +41,15 @@
 - `TalentForm` ย้ายไป `components/talent/TalentForm.tsx` แล้ว รับ prop `mode: "admin" | "self"` (self mode ซ่อนช่อง "สถานะ")
 - `saveTalentSelf(formData)` ใน `actions/talents.ts` — talentId มาจาก session cookie เท่านั้น, แก้ `status`/`source` ไม่ได้
 - `TalentPhotos`/`PhotoUploader` ย้ายไป `components/talent/` แล้วเปิดใช้ในหน้า self ด้วย (พี่ขอเพิ่มระหว่างทำ) — ต้องแก้ `app/api/upload/route.ts` และ `deletePhoto()` ให้เช็คว่า talent session ตรงกับ `talent_id` ที่ส่งมาก่อน เพราะตอนนี้ talentId โผล่ใน hidden form field ของหน้า public แล้ว (ก่อนหน้านี้ endpoint พวกนี้ไม่มีการเช็คสิทธิ์เลย อาศัยว่าเข้าถึงได้แค่จากหน้า /admin เท่านั้น)
+- **Flow เชื่อม record เก่ากับ LINE (แก้ปัญหา duplicate)** — commit `a851492`:
+  - แอดมินกดปุ่ม "สร้างลิงก์เชื่อม LINE" ในหน้า `/admin/talents/[id]` (`components/admin/LineLinkButton.tsx` → `actions/talent-link.ts` → `createTalentLinkToken()`) ได้ลิงก์ `https://liff.line.me/<LIFF_ID>?link=<token>` (JWT อายุ 7 วัน, purpose="link") ส่งให้ talent ทาง LINE
+  - talent เปิดลิงก์ในแอป LINE → `/apply` ส่ง `linkToken` ไปด้วย → `/api/line/verify` เอา LINE identity ผูกเข้ากับ record เดิม (ไม่ upsert สร้างใหม่) พร้อมเช็คว่าทั้งสองฝั่งยังไม่ถูกผูกกับคนอื่น
+  - แยก JWT session (purpose="session") กับ link (purpose="link") ด้วย claim `purpose` กัน link token ถูกเอาไปใช้เป็น session cookie
+  - หน้า admin edit โชว์สถานะ "ผูกบัญชี LINE แล้ว: <ชื่อ>" ถ้ามี `line_user_id` แล้ว ไม่งั้นโชว์ปุ่มสร้างลิงก์
 
 **ค้างอยู่:**
-1. **ยังไม่เคยทดสอบ end-to-end จริงผ่านแอป LINE** — ต้องเอา LIFF URL (`https://liff.line.me/2010689219-wGKbITGb`) เปิดจากในแอป LINE จริง (เปิดจาก browser ธรรมดาจะค้างที่หน้า loading เพราะ LIFF SDK ต้องรันในแอป LINE เท่านั้น)
-2. เช็คว่า record เก่าที่ admin สร้างไว้ (ไม่มี `line_user_id`) ผูกกับ LINE account ยังไง ถ้า talent คนเดิมสมัครผ่าน LINE ซ้ำ จะกลายเป็นสร้าง record ใหม่ (เพราะ upsert match ด้วย `line_user_id` ที่ยังไม่มี ไม่ใช่ผูกกับ record admin สร้างไว้) — ยังไม่ได้คุยกับพี่ว่าต้องมี flow เชื่อม record เก่ากับ LINE login ไหม
-3. หมายเหตุความปลอดภัยที่ค้างจากก่อนหน้านี้ (ไม่ใช่ของใหม่): `/api/upload` และ `deletePhoto` ยังไม่เช็คว่าเป็น admin จริงๆ (อาศัยแค่ middleware กัน `/admin/:path*`) — ตอนนี้เพิ่มเช็คฝั่ง talent session แล้ว แต่ฝั่ง admin ยังเปิดกว้างอยู่เหมือนเดิม ถ้าจะ harden เพิ่มค่อยทำทีหลังได้
+1. **ยังไม่เคยทดสอบ end-to-end จริงผ่านแอป LINE** — ทั้ง 2 flow (สมัครใหม่ + เชื่อม record เก่า) ต้องเปิดจากในแอป LINE จริง (LIFF URL `https://liff.line.me/2010689219-wGKbITGb`, เปิดจาก browser ธรรมดาจะค้างที่หน้า loading เพราะ LIFF SDK ต้องรันในแอป LINE เท่านั้น)
+2. หมายเหตุความปลอดภัยที่ค้างจากก่อนหน้านี้ (ไม่ใช่ของใหม่): `/api/upload` และ `deletePhoto` ยังไม่เช็คว่าเป็น admin จริงๆ (อาศัยแค่ middleware กัน `/admin/:path*`) — ตอนนี้เพิ่มเช็คฝั่ง talent session แล้ว แต่ฝั่ง admin ยังเปิดกว้างอยู่เหมือนเดิม ถ้าจะ harden เพิ่มค่อยทำทีหลังได้
 
 ## Milestone ที่เหลือ (ยังไม่เริ่ม)
 9. Admin approval queue (approve/reject คนที่สมัครผ่าน LINE ให้ `status: pending → active`)
