@@ -1,0 +1,110 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { supabase } from "@/lib/supabase/server";
+import { computeTierAndFollowers } from "@/lib/tier";
+import { CATEGORIES } from "@/lib/constants";
+
+export async function getTalents() {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function getTalent(id: string) {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+function num(formData: FormData, key: string) {
+  const raw = formData.get(key);
+  const n = Number(raw);
+  return Number.isFinite(n) && raw !== "" ? n : 0;
+}
+
+function str(formData: FormData, key: string) {
+  const raw = formData.get(key);
+  const value = typeof raw === "string" ? raw.trim() : "";
+  return value === "" ? null : value;
+}
+
+export async function saveTalent(formData: FormData) {
+  const id = str(formData, "id");
+
+  const followers = {
+    ig: num(formData, "ig_followers"),
+    tiktok: num(formData, "tiktok_followers"),
+    youtube: num(formData, "youtube_followers"),
+    facebook: num(formData, "facebook_followers"),
+    lemon8: num(formData, "lemon8_followers"),
+  };
+  const { max_followers, tier } = computeTierAndFollowers(followers);
+
+  const categories = formData
+    .getAll("categories")
+    .map(String)
+    .filter((c) => (CATEGORIES as readonly string[]).includes(c));
+
+  const payload = {
+    nickname_th: str(formData, "nickname_th"),
+    nickname_en: str(formData, "nickname_en"),
+    full_name: str(formData, "full_name"),
+    gender: str(formData, "gender"),
+    dob: str(formData, "dob"),
+    ethnicity: str(formData, "ethnicity"),
+    height_cm: formData.get("height_cm") ? num(formData, "height_cm") : null,
+    weight_kg: formData.get("weight_kg") ? num(formData, "weight_kg") : null,
+    measurements: str(formData, "measurements"),
+    phone: str(formData, "phone"),
+    email: str(formData, "email"),
+    contact_line_or_whatsapp: str(formData, "contact_line_or_whatsapp"),
+    note: str(formData, "note"),
+    is_model: formData.get("is_model") === "on",
+    is_influencer: formData.get("is_influencer") === "on",
+    status: str(formData, "status") ?? "pending",
+    ig_handle: str(formData, "ig_handle"),
+    ig_followers: followers.ig,
+    tiktok_handle: str(formData, "tiktok_handle"),
+    tiktok_followers: followers.tiktok,
+    youtube_handle: str(formData, "youtube_handle"),
+    youtube_followers: followers.youtube,
+    facebook_handle: str(formData, "facebook_handle"),
+    facebook_followers: followers.facebook,
+    lemon8_handle: str(formData, "lemon8_handle"),
+    lemon8_followers: followers.lemon8,
+    max_followers,
+    tier,
+    categories,
+  };
+
+  if (id) {
+    const { error } = await supabase.from("talents").update(payload).eq("id", id);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabase
+      .from("talents")
+      .insert({ ...payload, source: "admin" });
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath("/admin/talents");
+  redirect("/admin/talents");
+}
+
+export async function deleteTalent(formData: FormData) {
+  const id = String(formData.get("id"));
+  const { error } = await supabase.from("talents").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/talents");
+}
