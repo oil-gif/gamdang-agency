@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import { computeTierAndFollowers } from "@/lib/tier";
-import { CATEGORIES } from "@/lib/constants";
+import { CATEGORIES, ETHNICITIES } from "@/lib/constants";
 
 export async function getTalents() {
   const { data, error } = await supabase
@@ -41,6 +41,15 @@ function str(formData: FormData, key: string) {
 
 export async function saveTalent(formData: FormData) {
   const id = str(formData, "id");
+  const backTo = id ? `/admin/talents/${id}` : "/admin/talents/new";
+
+  const gender = str(formData, "gender");
+  const dob = str(formData, "dob");
+  if (!gender || !dob) {
+    redirect(
+      `${backTo}?error=${encodeURIComponent("กรุณากรอกเพศและวันเกิด (บังคับ)")}`,
+    );
+  }
 
   const followers = {
     ig: num(formData, "ig_followers"),
@@ -56,13 +65,19 @@ export async function saveTalent(formData: FormData) {
     .map(String)
     .filter((c) => (CATEGORIES as readonly string[]).includes(c));
 
+  const ethnicityValues = ETHNICITIES.map((e) => e.value) as readonly string[];
+  const ethnicities = formData
+    .getAll("ethnicities")
+    .map(String)
+    .filter((e) => ethnicityValues.includes(e));
+
   const payload = {
     nickname_th: str(formData, "nickname_th"),
     nickname_en: str(formData, "nickname_en"),
     full_name: str(formData, "full_name"),
-    gender: str(formData, "gender"),
-    dob: str(formData, "dob"),
-    ethnicity: str(formData, "ethnicity"),
+    gender,
+    dob,
+    ethnicities,
     height_cm: formData.get("height_cm") ? num(formData, "height_cm") : null,
     weight_kg: formData.get("weight_kg") ? num(formData, "weight_kg") : null,
     measurements: str(formData, "measurements"),

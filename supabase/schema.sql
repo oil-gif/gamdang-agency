@@ -23,7 +23,7 @@ create table if not exists talents (
   nickname_en text,
   gender text check (gender in ('male', 'female', 'other')),
   dob date,
-  ethnicity text,
+  ethnicities text[] not null default '{}',
   height_cm int,
   weight_kg int,
   measurements text,
@@ -57,6 +57,7 @@ create table if not exists talents (
 );
 
 create index if not exists talents_categories_idx on talents using gin (categories);
+create index if not exists talents_ethnicities_idx on talents using gin (ethnicities);
 create index if not exists talents_status_idx on talents (status);
 
 create table if not exists talent_photos (

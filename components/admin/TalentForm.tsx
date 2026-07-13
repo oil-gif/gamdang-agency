@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CATEGORIES } from "@/lib/constants";
+import { CATEGORIES, ETHNICITIES } from "@/lib/constants";
 
 type Talent = {
   id?: string;
@@ -24,7 +24,7 @@ type Talent = {
   full_name?: string | null;
   gender?: string | null;
   dob?: string | null;
-  ethnicity?: string | null;
+  ethnicities?: string[] | null;
   height_cm?: number | null;
   weight_kg?: number | null;
   measurements?: string | null;
@@ -48,12 +48,24 @@ type Talent = {
   categories?: string[];
 };
 
-export function TalentForm({ talent }: { talent?: Talent }) {
+export function TalentForm({
+  talent,
+  error,
+}: {
+  talent?: Talent;
+  error?: string;
+}) {
   const [isInfluencer, setIsInfluencer] = useState(talent?.is_influencer ?? false);
 
   return (
     <form action={saveTalent} className="max-w-3xl space-y-6">
       {talent?.id && <input type="hidden" name="id" value={talent.id} />}
+
+      {error && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -86,8 +98,8 @@ export function TalentForm({ talent }: { talent?: Talent }) {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="gender">เพศ</Label>
-            <Select name="gender" defaultValue={talent?.gender ?? undefined}>
+            <Label htmlFor="gender">เพศ *</Label>
+            <Select name="gender" defaultValue={talent?.gender ?? undefined} required>
               <SelectTrigger id="gender" className="w-full">
                 <SelectValue placeholder="เลือกเพศ" />
               </SelectTrigger>
@@ -99,20 +111,13 @@ export function TalentForm({ talent }: { talent?: Talent }) {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="dob">วันเกิด</Label>
+            <Label htmlFor="dob">วันเกิด *</Label>
             <Input
               id="dob"
               name="dob"
               type="date"
               defaultValue={talent?.dob ?? ""}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="ethnicity">เชื้อชาติ</Label>
-            <Input
-              id="ethnicity"
-              name="ethnicity"
-              defaultValue={talent?.ethnicity ?? ""}
+              required
             />
           </div>
           <div className="space-y-1.5">
@@ -143,6 +148,30 @@ export function TalentForm({ talent }: { talent?: Talent }) {
               defaultValue={talent?.measurements ?? ""}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>เชื้อชาติ</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {ETHNICITIES.map((e) => (
+            <label key={e.value} className="flex items-start gap-2 text-sm">
+              <Checkbox
+                name="ethnicities"
+                value={e.value}
+                defaultChecked={talent?.ethnicities?.includes(e.value) ?? false}
+                className="mt-0.5"
+              />
+              <span>
+                {e.label}
+                {"hint" in e && e.hint && (
+                  <span className="block text-xs text-neutral-400">{e.hint}</span>
+                )}
+              </span>
+            </label>
+          ))}
         </CardContent>
       </Card>
 
