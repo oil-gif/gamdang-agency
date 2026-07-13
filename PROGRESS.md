@@ -54,8 +54,12 @@
 1. **flow เชื่อม record เก่า (admin-issued link) ยังไม่ได้ทดสอบจริงผ่านแอป LINE** — สมัครใหม่ทดสอบแล้ว แต่ปุ่ม "สร้างลิงก์เชื่อม LINE" + เปิดลิงก์ `?link=<token>` ในแอป LINE ยังไม่เคยรันจริง
 2. หมายเหตุความปลอดภัยที่ค้างจากก่อนหน้านี้ (ไม่ใช่ของใหม่): `/api/upload` และ `deletePhoto` ยังไม่เช็คว่าเป็น admin จริงๆ (อาศัยแค่ middleware กัน `/admin/:path*`) — ตอนนี้เพิ่มเช็คฝั่ง talent session แล้ว แต่ฝั่ง admin ยังเปิดกว้างอยู่เหมือนเดิม ถ้าจะ harden เพิ่มค่อยทำทีหลังได้
 
+## Milestone 9: Admin approval queue — เสร็จแล้ว (commit `588bfb2`)
+- หน้า `/admin/approvals` โชว์ talent ที่ `status='pending'` เป็นการ์ด (รูป compcard ผ่าน `/photo` proxy + code/บทบาท/อายุ/ส่วนสูง/tier/เบอร์/สรุป social) พร้อมปุ่ม อนุมัติ/ปฏิเสธ (`approveTalent`/`rejectTalent` → status active/rejected) + ลิงก์ไปหน้าแก้ไขเต็ม
+- nav ในแอดมินมีลิงก์ "รออนุมัติ" + badge จำนวน pending (สีแดงแบรนด์) จาก `getPendingCount()`
+- ยังไม่ได้ทดสอบกด approve/reject จริงผ่าน UI (auth guard + query + build ผ่านแล้ว, DB มี pending 2 คน) — พี่ล็อกอินแอดมินแล้วลองได้เลย
+
 ## Milestone ที่เหลือ (ยังไม่เริ่ม)
-9. Admin approval queue (approve/reject คนที่สมัครผ่าน LINE ให้ `status: pending → active`)
 10. Project system (สร้าง/แก้/ลบ project, เพิ่ม-ลบ-เรียงลำดับ talent, เลือก compcard/influcard)
 11. Public project link `/p/[token]` — **ใช้ T&C gate ไม่ใช้รหัสผ่าน** (ยืนยันกับพี่แล้ว, เก็บ IP+timestamp)
 12. Polish + deploy รอบสุดท้าย (ตอนนี้ deploy พื้นฐานเสร็จแล้วจาก milestone 8)
