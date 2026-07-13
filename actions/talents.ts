@@ -5,13 +5,48 @@ import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import { computeTierAndFollowers } from "@/lib/tier";
 import { CATEGORIES, ETHNICITIES } from "@/lib/constants";
+import { yearsAgo } from "@/lib/age";
 
-export async function getTalents() {
-  const { data, error } = await supabase
+export type TalentFilters = {
+  q?: string;
+  role?: "model" | "influencer";
+  gender?: string;
+  status?: string;
+  tier?: string;
+  category?: string;
+  ethnicity?: string;
+  minHeight?: number;
+  maxHeight?: number;
+  minAge?: number;
+  maxAge?: number;
+};
+
+export async function getTalents(filters: TalentFilters = {}) {
+  let query = supabase
     .from("talents")
     .select("*")
     .order("created_at", { ascending: false });
 
+  if (filters.q) {
+    const term = filters.q.replace(/[%,]/g, "");
+    query = query.or(
+      `nickname_th.ilike.%${term}%,nickname_en.ilike.%${term}%,code.ilike.%${term}%`,
+    );
+  }
+  if (filters.role === "model") query = query.eq("is_model", true);
+  if (filters.role === "influencer") query = query.eq("is_influencer", true);
+  if (filters.gender) query = query.eq("gender", filters.gender);
+  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.tier) query = query.eq("tier", filters.tier);
+  if (filters.category) query = query.contains("categories", [filters.category]);
+  if (filters.ethnicity) query = query.contains("ethnicities", [filters.ethnicity]);
+  if (filters.minHeight) query = query.gte("height_cm", filters.minHeight);
+  if (filters.maxHeight) query = query.lte("height_cm", filters.maxHeight);
+  // Older = smaller (earlier) dob, so "at least minAge" means dob <= cutoff.
+  if (filters.minAge) query = query.lte("dob", yearsAgo(filters.minAge));
+  if (filters.maxAge) query = query.gte("dob", yearsAgo(filters.maxAge + 1));
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return data;
 }

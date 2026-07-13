@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { getTalents } from "@/actions/talents";
-import { deleteTalent } from "@/actions/talents";
+import { deleteTalent, getTalents, type TalentFilters } from "@/actions/talents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,10 +10,46 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TalentFilterPanel } from "@/components/admin/TalentFilterPanel";
 import { STATUS_LABEL_TH, TIER_LABEL } from "@/lib/constants";
+import { calculateAge } from "@/lib/age";
 
-export default async function TalentsListPage() {
-  const talents = await getTalents();
+type RawParams = Record<string, string | undefined>;
+
+function parseFilters(params: RawParams): TalentFilters {
+  const num = (key: string) => {
+    const v = params[key];
+    const n = v ? Number(v) : undefined;
+    return n && Number.isFinite(n) ? n : undefined;
+  };
+  const pick = (key: string) => {
+    const v = params[key];
+    return v && v !== "any" ? v : undefined;
+  };
+
+  return {
+    q: params.q || undefined,
+    role: pick("role") as TalentFilters["role"],
+    gender: pick("gender"),
+    status: pick("status"),
+    tier: pick("tier"),
+    category: pick("category"),
+    ethnicity: pick("ethnicity"),
+    minHeight: num("min_height"),
+    maxHeight: num("max_height"),
+    minAge: num("min_age"),
+    maxAge: num("max_age"),
+  };
+}
+
+export default async function TalentsListPage({
+  searchParams,
+}: {
+  searchParams: Promise<RawParams>;
+}) {
+  const params = await searchParams;
+  const filters = parseFilters(params);
+  const talents = await getTalents(filters);
 
   return (
     <div className="space-y-4">
@@ -27,6 +62,8 @@ export default async function TalentsListPage() {
         </Button>
       </div>
 
+      <TalentFilterPanel searchParams={params} />
+
       <div className="overflow-x-auto rounded-lg border bg-white">
         <Table>
           <TableHeader>
@@ -34,6 +71,8 @@ export default async function TalentsListPage() {
               <TableHead>Code</TableHead>
               <TableHead>ชื่อเล่น</TableHead>
               <TableHead>บทบาท</TableHead>
+              <TableHead>อายุ</TableHead>
+              <TableHead>ส่วนสูง</TableHead>
               <TableHead>Tier</TableHead>
               <TableHead>สถานะ</TableHead>
               <TableHead className="text-right">จัดการ</TableHead>
@@ -48,6 +87,8 @@ export default async function TalentsListPage() {
                   {t.is_model && <Badge variant="secondary">Model</Badge>}
                   {t.is_influencer && <Badge variant="secondary">Influencer</Badge>}
                 </TableCell>
+                <TableCell>{t.dob ? `${calculateAge(t.dob)} ปี` : "-"}</TableCell>
+                <TableCell>{t.height_cm ? `${t.height_cm} ซม.` : "-"}</TableCell>
                 <TableCell>{TIER_LABEL[t.tier] ?? t.tier}</TableCell>
                 <TableCell>
                   <Badge
@@ -77,8 +118,8 @@ export default async function TalentsListPage() {
             ))}
             {talents.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-neutral-400">
-                  ยังไม่มี talent — กด &ldquo;เพิ่ม Talent&rdquo; ด้านบน
+                <TableCell colSpan={8} className="text-center text-neutral-400">
+                  ไม่พบ talent ที่ตรงกับตัวกรอง
                 </TableCell>
               </TableRow>
             )}
