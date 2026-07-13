@@ -97,7 +97,7 @@ export function TalentForm({
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="full_name">ชื่อ-นามสกุลจริง</Label>
+            <Label htmlFor="full_name">ชื่อ-นามสกุลจริง (Full Name)</Label>
             <Input
               id="full_name"
               name="full_name"
@@ -105,7 +105,7 @@ export function TalentForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="gender">เพศ *</Label>
+            <Label htmlFor="gender">เพศ (Gender) *</Label>
             <Select name="gender" defaultValue={talent?.gender ?? undefined} required>
               <SelectTrigger id="gender" className="w-full">
                 <SelectValue placeholder="เลือกเพศ" />
@@ -118,7 +118,7 @@ export function TalentForm({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="dob">วันเกิด *</Label>
+            <Label htmlFor="dob">วันเกิด (Date of Birth) *</Label>
             <Input
               id="dob"
               name="dob"
@@ -128,7 +128,7 @@ export function TalentForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="height_cm">ส่วนสูง (ซม.)</Label>
+            <Label htmlFor="height_cm">ส่วนสูง (Height, ซม.)</Label>
             <Input
               id="height_cm"
               name="height_cm"
@@ -137,7 +137,7 @@ export function TalentForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="weight_kg">น้ำหนัก (กก.)</Label>
+            <Label htmlFor="weight_kg">น้ำหนัก (Weight, กก.)</Label>
             <Input
               id="weight_kg"
               name="weight_kg"
@@ -147,7 +147,7 @@ export function TalentForm({
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="measurements">
-              รอบอก/เอว/สะโพก, ไซส์รองเท้า (พิมพ์อิสระ)
+              รอบอก/เอว/สะโพก, ไซส์รองเท้า (Measurements — พิมพ์อิสระ)
             </Label>
             <Input
               id="measurements"
@@ -298,6 +298,14 @@ export function TalentForm({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p className="text-xs text-neutral-400">
+                สมัครเป็น Influencer ต้องกรอกลิงก์และจำนวนผู้ติดตามอย่างน้อย 1 ช่องทาง
+                และมีผู้ติดตามขั้นต่ำ 3,000 คน
+                <span className="mt-0.5 block">
+                  (To apply as an Influencer, add at least 1 social channel with a
+                  minimum of 3,000 followers.)
+                </span>
+              </p>
               {(
                 [
                   ["ig", "Instagram"],

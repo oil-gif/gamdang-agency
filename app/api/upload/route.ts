@@ -9,12 +9,14 @@ import { getTalentSession } from "@/lib/auth/talent-session";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const form = await req.formData();
-  const file = form.get("file");
-  const talentId = String(form.get("talent_id") ?? "");
-  const kind = String(form.get("kind") ?? "");
+  // Body is base64 JSON, not multipart — see the note in PhotoUploader.tsx
+  // (the LINE in-app browser corrupts binary multipart uploads).
+  const body = await req.json().catch(() => null);
+  const talentId = String(body?.talent_id ?? "");
+  const kind = String(body?.kind ?? "");
+  const data = typeof body?.data === "string" ? body.data : "";
 
-  if (!(file instanceof File) || !talentId) {
+  if (!data || !talentId) {
     return NextResponse.json({ error: "missing file or talent_id" }, { status: 400 });
   }
   if (kind !== "gallery" && kind !== "compcard") {
@@ -30,7 +32,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const inputBuffer = Buffer.from(await file.arrayBuffer());
+  const base64 = data.includes(",") ? data.slice(data.indexOf(",") + 1) : data;
+  const inputBuffer = Buffer.from(base64, "base64");
   const maxWidth = kind === "compcard" ? 1200 : 1600;
 
   let outputBuffer: Buffer;
