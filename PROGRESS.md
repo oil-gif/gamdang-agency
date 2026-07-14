@@ -5,8 +5,8 @@
 ## 📌 TODO ถัดไป (เรียงตามลำดับ — อัพเดต 2026-07-14)
 
 **รอพี่เจ้าของทำ (ผู้ช่วยทำแทนไม่ได้):**
-- [ ] **รัน migration 005** (`supabase/migrations/005_casting_submission.sql` — เพิ่ม `extra_photo_paths`/`intro_video_url`) — จำเป็นก่อนใช้ฟอร์ม casting ของงาน Model
-- [ ] ทดสอบ casting flow: สร้าง project ประเภท **งาน Model** → เพิ่ม talent → "📤 ขอส่งงานทาง LINE" (ได้ Flex "ขอข้อมูลเพิ่มเพื่อเสนอลูกค้า 📸") → ฟอร์มอัพรูป 3 รูป + ลิงก์ผลงานเก่า + คลิปแนะนำตัว → หลังบ้านเห็น chips 🖼/🎬 → "📊 Report ผลงาน" = **Casting Report** (การ์ดคนที่ลูกค้าเลือก + รูป 3 + ลิงก์ + คลิป)
+- [x] ~~รัน migration 005~~ **รันแล้ว + ผู้ช่วยเทส e2e ผ่าน** (ฟอร์ม casting render ครบ, อัพรูปได้ไฟล์ valid, /photo เสิร์ฟ casting folder, ลบรูปได้)
+- [ ] ทดสอบ casting flow ด้วยมือพี่: สร้าง project ประเภท **งาน Model** → เพิ่ม talent → "📤 ขอส่งงานทาง LINE" (ได้ Flex "ขอข้อมูลเพิ่มเพื่อเสนอลูกค้า 📸") → ฟอร์มอัพรูป 3 รูป + ลิงก์ผลงานเก่า + คลิปแนะนำตัว → หลังบ้านเห็น chips 🖼/🎬 → "📊 Report ผลงาน" = **Casting Report** (การ์ดคนที่ลูกค้าเลือก + รูป 3 + ลิงก์ + คลิป)
 - [ ] **รัน migration 003** ใน Supabase SQL Editor (https://supabase.com/dashboard/project/xwhubbybwfrdepipszoy/sql/new): เนื้อหาอยู่ที่ `supabase/migrations/003_ai_model.sql` — จำเป็นก่อนสร้าง AI Model (ถ้าไม่รัน กดบันทึกฟอร์ม talent ฝั่ง admin จะ error เพราะ insert คอลัมน์ `is_ai_model` ที่ยังไม่มี)
 - [ ] สร้าง AI Model ตัวแรก: /admin/talents/new → ติ๊ก "เป็น AI Model" → กรอก Character (เช่น `Energetic / Fun`) → อัพรูป → ตั้งสถานะ active → เช็คว่าขึ้น tab AI Model หน้าแรก
 - [ ] ทดสอบ flow เชื่อม record เก่ากับ LINE จริงในแอป LINE (ปุ่ม "สร้างลิงก์เชื่อม LINE" ในหน้าแก้ไข talent ที่ยังไม่ผูก LINE → ส่งลิงก์เข้า LINE ตัวเอง → เปิด → ต้องผูกเข้า record เดิมไม่สร้างใหม่)
