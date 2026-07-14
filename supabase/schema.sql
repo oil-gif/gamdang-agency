@@ -53,6 +53,10 @@ create table if not exists talents (
 
   categories text[] not null default '{}',
 
+  -- ผลงาน/คลิปแนะนำตัว เก็บที่ตัว talent ถาวร (แอดมินกรอก หรือ casting form sync มา)
+  portfolio_links text[] not null default '{}',
+  intro_video_url text,
+
   compcard_photo_id uuid,
 
   created_at timestamptz not null default now(),
@@ -86,6 +90,13 @@ begin
       foreign key (compcard_photo_id) references talent_photos(id) on delete set null;
   end if;
 end $$;
+
+-- อัพรูปเป็น batch แล้วค่อยมอบหมายทีหลังว่าเป็นรูป gallery/compcard ของใคร
+create table if not exists photo_inbox (
+  id uuid primary key default gen_random_uuid(),
+  storage_path text not null,
+  created_at timestamptz not null default now()
+);
 
 create table if not exists projects (
   id uuid primary key default gen_random_uuid(),
@@ -163,6 +174,7 @@ alter table talent_photos enable row level security;
 alter table projects enable row level security;
 alter table project_talents enable row level security;
 alter table project_links enable row level security;
+alter table photo_inbox enable row level security;
 
 -- Storage bucket for all talent photos (public: these are marketing photos
 -- meant to be shown on public client links anyway; filenames are random

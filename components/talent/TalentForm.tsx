@@ -36,6 +36,8 @@ type Talent = {
   is_influencer?: boolean;
   is_ai_model?: boolean;
   character?: string | null;
+  portfolio_links?: string[] | null;
+  intro_video_url?: string | null;
   status?: string;
   ig_handle?: string | null;
   ig_followers?: number;
@@ -227,6 +229,42 @@ export function TalentForm({
           </div>
         </CardContent>
       </Card>
+
+      {mode === "admin" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-[#1D4ED8]">
+              ผลงาน &amp; คลิปแนะนำตัว{" "}
+              <span className="font-normal text-[#1D4ED8]/60">(Portfolio)</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="portfolio_links">
+                ลิงก์ผลงาน (บรรทัดละ 1 ลิงก์ สูงสุด 5 — talent ส่งเองผ่านฟอร์ม casting ได้ด้วย)
+              </Label>
+              <Textarea
+                id="portfolio_links"
+                name="portfolio_links"
+                rows={4}
+                placeholder={"https://...\nhttps://..."}
+                defaultValue={(talent?.portfolio_links ?? []).join("\n")}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="intro_video_url">
+                ลิงก์คลิปแนะนำตัว (TikTok / YouTube / Drive)
+              </Label>
+              <Input
+                id="intro_video_url"
+                name="intro_video_url"
+                placeholder="https://..."
+                defaultValue={talent?.intro_video_url ?? ""}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

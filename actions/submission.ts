@@ -39,7 +39,7 @@ export async function saveSubmission(formData: FormData) {
 
   const { data: pt } = await supabase
     .from("project_talents")
-    .select("id, project_id, extra_photo_paths, project:projects(project_type)")
+    .select("id, project_id, talent_id, extra_photo_paths, project:projects(project_type)")
     .eq("id", verified.projectTalentId)
     .maybeSingle();
   if (!pt) redirect("/submit/expired");
@@ -71,6 +71,16 @@ export async function saveSubmission(formData: FormData) {
     })
     .eq("id", pt.id);
   if (error) throw new Error(error.message);
+
+  // งาน model: sync ผลงาน/คลิปเข้า record ของ talent ด้วย (เก็บถาวรในระบบ
+  // เห็นในหน้า talent หลังบ้าน) — อัพเดตเฉพาะค่าที่ส่งมา ไม่ล้างของเดิม
+  if (isModel && (links.length > 0 || introVideo)) {
+    const talentUpdate: Record<string, unknown> = {};
+    if (links.length > 0) talentUpdate.portfolio_links = links;
+    if (introVideo) talentUpdate.intro_video_url = introVideo;
+    await supabase.from("talents").update(talentUpdate).eq("id", pt.talent_id);
+    revalidatePath(`/admin/talents/${pt.talent_id}`);
+  }
 
   revalidatePath(`/admin/projects/${pt.project_id}`);
   redirect(`/submit/${token}?saved=1`);

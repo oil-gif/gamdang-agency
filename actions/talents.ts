@@ -52,6 +52,28 @@ export async function getTalents(filters: TalentFilters = {}) {
   return data;
 }
 
+// สำหรับหน้า list แบบการ์ด: talent + รูปตัวแทน (gallery แรก, fallback compcard)
+export async function getTalentsWithPhotos(filters: TalentFilters = {}) {
+  const talents = await getTalents(filters);
+  if (talents.length === 0) return [];
+
+  const { data: photos } = await supabase
+    .from("talent_photos")
+    .select("talent_id, kind, storage_path, display_order")
+    .in(
+      "talent_id",
+      talents.map((t) => t.id),
+    )
+    .order("display_order", { ascending: true });
+
+  return talents.map((t) => {
+    const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
+    const gallery = mine.find((p) => p.kind === "gallery")?.storage_path ?? null;
+    const compcard = mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
+    return { ...t, photo_path: gallery ?? compcard };
+  });
+}
+
 export async function getTalent(id: string) {
   const { data, error } = await supabase
     .from("talents")
@@ -100,6 +122,40 @@ export async function getPendingCount() {
     .eq("status", "pending");
   if (error) throw new Error(error.message);
   return count ?? 0;
+}
+
+// Cleanup: talent ที่ไม่มีการอัพเดทเลย (ทั้งฝั่งเราและฝั่ง talent) เกิน 3 ปี
+// — updated_at เด้งอัตโนมัติทุกครั้งที่มีการแก้ไข (trigger ใน schema)
+export async function getStaleTalents() {
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 3);
+  const { data, error } = await supabase
+    .from("talents")
+    .select("id, code, nickname_th, nickname_en, status, updated_at")
+    .lt("updated_at", cutoff.toISOString())
+    .order("updated_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// "เก็บไว้" — bump updated_at ให้เริ่มนับ 3 ปีใหม่
+export async function keepTalent(formData: FormData) {
+  const id = String(formData.get("id"));
+  const { error } = await supabase
+    .from("talents")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+}
+
+// ลบจากหน้า cleanup (ไม่ redirect เหมือน deleteTalent)
+export async function deleteStaleTalent(formData: FormData) {
+  const id = String(formData.get("id"));
+  const { error } = await supabase.from("talents").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  revalidatePath("/admin/talents");
 }
 
 export async function approveTalent(formData: FormData) {
@@ -187,6 +243,14 @@ export async function saveTalent(formData: FormData) {
     // AI Model เป็นของ admin เท่านั้น — saveTalentSelf ไม่มี field นี้โดยตั้งใจ
     is_ai_model: formData.get("is_ai_model") === "on",
     character: str(formData, "character"),
+    // ผลงาน/คลิปแนะนำตัว (admin กรอกเอง — casting form ของ talent ก็ sync มาช่องนี้)
+    portfolio_links: (str(formData, "portfolio_links") ?? "")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((l) => (/^https?:\/\//i.test(l) ? l : `https://${l}`))
+      .slice(0, 5),
+    intro_video_url: str(formData, "intro_video_url"),
     status: str(formData, "status") ?? "pending",
     ig_handle: str(formData, "ig_handle"),
     ig_followers: followers.ig,
@@ -305,4 +369,5 @@ export async function deleteTalent(formData: FormData) {
   const { error } = await supabase.from("talents").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/talents");
+  redirect("/admin/talents");
 }

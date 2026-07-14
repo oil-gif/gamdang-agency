@@ -18,8 +18,13 @@ export async function GET(
   const { path } = await params;
   const storagePath = path.join("/");
 
-  // Only ever serve from the known layout: {talentId}/{kind}/{file}.
-  if (!/^[\w-]+\/(gallery|compcard|casting)\/[\w-]+\.\w+$/.test(storagePath)) {
+  // Only ever serve from the known layouts: {talentId}/{kind}/{file}
+  // หรือ _unassigned/{file} (photo inbox — รูป batch ที่ยังไม่มอบหมาย)
+  if (
+    !/^([\w-]+\/(gallery|compcard|casting)|_unassigned)\/[\w-]+\.\w+$/.test(
+      storagePath,
+    )
+  ) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 

@@ -169,6 +169,13 @@ export default async function ProjectReportPage({
 
             if (isModel) {
               // ===== การ์ด Casting (งาน Model) =====
+              // ผลงาน/คลิปอ่านจาก record ของ talent (แหล่งถาวร) ก่อน แล้วค่อย
+              // fallback ค่าที่ส่งเฉพาะโปรเจกต์
+              const portfolioLinks: string[] =
+                (t.portfolio_links ?? []).length > 0
+                  ? t.portfolio_links
+                  : links;
+              const introVideo = t.intro_video_url ?? pt.intro_video_url ?? null;
               const mainImg = pt.compcard_path ?? pt.gallery_paths[0] ?? null;
               const extraPhotos: string[] = pt.extra_photo_paths ?? [];
               const facts = [
@@ -225,27 +232,29 @@ export default async function ProjectReportPage({
                       </div>
                     )}
 
-                    {pt.intro_video_url && (
+                    {introVideo && (
                       <p className="mt-3 text-sm">
                         <span className="font-semibold text-neutral-700">
                           🎬 คลิปแนะนำตัว:{" "}
                         </span>
                         <a
-                          href={pt.intro_video_url}
+                          href={introVideo}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="break-all text-[#1D4ED8] underline underline-offset-2"
                         >
-                          {pt.intro_video_url}
+                          {introVideo}
                         </a>
                       </p>
                     )}
 
-                    {links.length > 0 && (
+                    {portfolioLinks.length > 0 && (
                       <div className="mt-2">
                         <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
                           ผลงานที่ผ่านมา (Past Work)
                         </p>
                         <ul className="mt-1 space-y-1">
-                          {links.map((link, li) => (
+                          {portfolioLinks.map((link, li) => (
                             <li
                               key={li}
                               className="flex items-baseline gap-1.5 text-sm"
@@ -255,6 +264,8 @@ export default async function ProjectReportPage({
                               </span>
                               <a
                                 href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="break-all text-[#1D4ED8] underline underline-offset-2"
                               >
                                 {link}
@@ -318,6 +329,8 @@ export default async function ProjectReportPage({
                         </span>
                         <a
                           href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="break-all text-[#1D4ED8] underline underline-offset-2"
                         >
                           {link}

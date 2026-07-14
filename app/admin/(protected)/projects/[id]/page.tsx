@@ -358,11 +358,20 @@ export default async function ProjectDetailPage({
                     <input type="hidden" name="pt_id" value={pt.id} />
                     <input type="hidden" name="submit_url" value={submitUrl} />
                     <Button type="submit" size="sm" variant="outline">
-                      📤 ขอส่งงานทาง LINE
+                      {project.project_type === "model"
+                        ? "📸 ขอรูปและลิงก์ผลงานเพิ่ม (LINE)"
+                        : "📤 ขอส่งงานทาง LINE"}
                     </Button>
                   </form>
                 )}
-                <CopyButton text={submitUrl} label="คัดลอกลิงก์ส่งงาน" />
+                <CopyButton
+                  text={submitUrl}
+                  label={
+                    project.project_type === "model"
+                      ? "คัดลอกลิงก์ขอรูป/ผลงาน"
+                      : "คัดลอกลิงก์ส่งงาน"
+                  }
+                />
               </div>
               </div>
             );

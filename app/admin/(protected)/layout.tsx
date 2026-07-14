@@ -24,6 +24,7 @@ export default async function AdminProtectedLayout({
     { href: "/admin", label: "Dashboard", badge: 0 },
     { href: "/admin/talents", label: "Talents", badge: 0 },
     { href: "/admin/projects", label: "Projects", badge: 0 },
+    { href: "/admin/photos", label: "รูปภาพ", badge: 0 },
     { href: "/admin/approvals", label: "รออนุมัติ", badge: pendingCount },
   ];
 

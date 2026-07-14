@@ -1,7 +1,8 @@
-import { getTalent } from "@/actions/talents";
+import { deleteTalent, getTalent } from "@/actions/talents";
 import { LineLinkButton } from "@/components/admin/LineLinkButton";
 import { TalentForm } from "@/components/talent/TalentForm";
 import { TalentPhotos } from "@/components/talent/TalentPhotos";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function EditTalentPage({
@@ -17,9 +18,17 @@ export default async function EditTalentPage({
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-800">
-        แก้ไข: {talent.nickname_th}
-      </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-neutral-800">
+          แก้ไข: {talent.nickname_th}
+        </h1>
+        <form action={deleteTalent}>
+          <input type="hidden" name="id" value={id} />
+          <Button type="submit" variant="ghost" size="sm">
+            ลบ Talent
+          </Button>
+        </form>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>บัญชี LINE</CardTitle>

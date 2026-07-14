@@ -38,6 +38,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "ไม่พบรูปนี้" }, { status: 404 });
     }
     await supabase.storage.from("talent-photos").remove([path]);
+    // ลบ row ใน gallery ของ talent ด้วย (อัพโหลดสร้างคู่กันไว้)
+    await supabase.from("talent_photos").delete().eq("storage_path", path);
     await supabase
       .from("project_talents")
       .update({ extra_photo_paths: current.filter((p) => p !== path) })
@@ -86,6 +88,14 @@ export async function POST(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // เก็บเข้า gallery ของ talent ด้วย — รูปอยู่ในระบบถาวร เห็นในหน้า
+  // talent หลังบ้าน (ไฟล์เดียวกัน ไม่ซ้ำ storage)
+  await supabase.from("talent_photos").insert({
+    talent_id: pt.talent_id,
+    kind: "gallery",
+    storage_path: path,
+  });
 
   return NextResponse.json({ ok: true, path });
 }
