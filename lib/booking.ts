@@ -71,7 +71,8 @@ export async function getPublicShootDates() {
     .eq("status", "published")
     .gte("shoot_date", today)
     .order("shoot_date", { ascending: true });
-  if (error) throw new Error(error.message);
+  // กันพังก่อน migration 007 ถูกรัน — โชว์ "ยังไม่เปิดรอบ" แทน 500
+  if (error) return [];
 
   return Promise.all(
     (days ?? []).map(async (d) => {
