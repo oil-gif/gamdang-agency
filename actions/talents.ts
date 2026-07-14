@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import { computeTierAndFollowers } from "@/lib/tier";
-import { CATEGORIES, ETHNICITIES } from "@/lib/constants";
+import { CATEGORIES, ETHNICITIES, TALENTS_PAGE_SIZE } from "@/lib/constants";
 import { yearsAgo } from "@/lib/age";
 import { getTalentSession } from "@/lib/auth/talent-session";
 
@@ -53,9 +53,43 @@ export async function getTalents(filters: TalentFilters = {}) {
 }
 
 // สำหรับหน้า list แบบการ์ด: talent + รูปตัวแทน (gallery แรก, fallback compcard)
-export async function getTalentsWithPhotos(filters: TalentFilters = {}) {
-  const talents = await getTalents(filters);
-  if (talents.length === 0) return [];
+// แบ่งหน้า (60/หน้า) — รองรับข้อมูลหลักหมื่นโดยไม่โหลดทั้งหมด
+// (ไฟล์ "use server" export ได้แค่ async fn — ตัวเลขหน้าอยู่ใน lib/constants)
+export async function getTalentsWithPhotos(
+  filters: TalentFilters = {},
+  page = 1,
+) {
+  let query = supabase
+    .from("talents")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false });
+
+  if (filters.q) {
+    const term = filters.q.replace(/[%,]/g, "");
+    query = query.or(
+      `nickname_th.ilike.%${term}%,nickname_en.ilike.%${term}%,code.ilike.%${term}%`,
+    );
+  }
+  if (filters.role === "model") query = query.eq("is_model", true);
+  if (filters.role === "influencer") query = query.eq("is_influencer", true);
+  if (filters.gender) query = query.eq("gender", filters.gender);
+  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.tier) query = query.eq("tier", filters.tier);
+  if (filters.category) query = query.contains("categories", [filters.category]);
+  if (filters.ethnicity) query = query.contains("ethnicities", [filters.ethnicity]);
+  if (filters.minHeight) query = query.gte("height_cm", filters.minHeight);
+  if (filters.maxHeight) query = query.lte("height_cm", filters.maxHeight);
+  if (filters.minAge) query = query.lte("dob", yearsAgo(filters.minAge));
+  if (filters.maxAge) query = query.gte("dob", yearsAgo(filters.maxAge + 1));
+
+  const from = (page - 1) * TALENTS_PAGE_SIZE;
+  const { data: talents, count, error } = await query.range(
+    from,
+    from + TALENTS_PAGE_SIZE - 1,
+  );
+  if (error) throw new Error(error.message);
+  if (!talents || talents.length === 0)
+    return { talents: [], total: count ?? 0 };
 
   const { data: photos } = await supabase
     .from("talent_photos")
@@ -66,12 +100,16 @@ export async function getTalentsWithPhotos(filters: TalentFilters = {}) {
     )
     .order("display_order", { ascending: true });
 
-  return talents.map((t) => {
-    const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
-    const gallery = mine.find((p) => p.kind === "gallery")?.storage_path ?? null;
-    const compcard = mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
-    return { ...t, photo_path: gallery ?? compcard };
-  });
+  return {
+    total: count ?? 0,
+    talents: talents.map((t) => {
+      const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
+      const gallery = mine.find((p) => p.kind === "gallery")?.storage_path ?? null;
+      const compcard =
+        mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
+      return { ...t, photo_path: gallery ?? compcard };
+    }),
+  };
 }
 
 export async function getTalent(id: string) {
@@ -122,6 +160,25 @@ export async function getPendingCount() {
     .eq("status", "pending");
   if (error) throw new Error(error.message);
   return count ?? 0;
+}
+
+// ค้นหา talent สำหรับ combobox (photo inbox ฯลฯ) — จำกัด 20 ผลลัพธ์
+// รองรับข้อมูลหลักหมื่นคนโดยไม่ต้องโหลดรายชื่อทั้งหมด
+export async function searchTalents(q: string) {
+  const term = q.trim().replace(/[%,]/g, "");
+  let query = supabase
+    .from("talents")
+    .select("id, code, nickname_th, nickname_en")
+    .order("code", { ascending: true })
+    .limit(20);
+  if (term) {
+    query = query.or(
+      `nickname_th.ilike.%${term}%,nickname_en.ilike.%${term}%,code.ilike.%${term}%`,
+    );
+  }
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 // Cleanup: talent ที่ไม่มีการอัพเดทเลย (ทั้งฝั่งเราและฝั่ง talent) เกิน 3 ปี
@@ -269,7 +326,11 @@ export async function saveTalent(formData: FormData) {
 
   if (id) {
     const { error } = await supabase.from("talents").update(payload).eq("id", id);
-    if (error) throw new Error(error.message);
+    // อย่าโยน error ดิบ (จะกลายเป็นหน้าขาว "server error") — เด้งกลับฟอร์ม
+    // พร้อมข้อความแทน
+    if (error) {
+      redirect(`${backTo}?error=${encodeURIComponent(`บันทึกไม่สำเร็จ: ${error.message}`)}`);
+    }
     revalidatePath("/admin/talents");
     redirect("/admin/talents");
   }
@@ -279,7 +340,11 @@ export async function saveTalent(formData: FormData) {
     .insert({ ...payload, source: "admin" })
     .select("id")
     .single();
-  if (error) throw new Error(error.message);
+  if (error || !created) {
+    redirect(
+      `${backTo}?error=${encodeURIComponent(`บันทึกไม่สำเร็จ: ${error?.message ?? "unknown"}`)}`,
+    );
+  }
 
   revalidatePath("/admin/talents");
   // Go straight to the edit page so photos can be added right away.

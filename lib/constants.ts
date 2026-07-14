@@ -60,3 +60,6 @@ export const CONTACT = {
     { label: "www.gamdangagency.com", url: "https://www.gamdangagency.com" },
   ],
 } as const;
+
+// จำนวนการ์ดต่อหน้าของ list หลังบ้าน (pagination)
+export const TALENTS_PAGE_SIZE = 60;

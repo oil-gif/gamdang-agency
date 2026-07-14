@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { TalentGridCard } from "@/components/talent/TalentGridCard";
 import { calculateAge } from "@/lib/age";
 import { CONTACT } from "@/lib/constants";
-import { getPublicTalents, type PublicTalent } from "@/lib/public-talents";
-import { getPhotoProxyUrl } from "@/lib/storage";
+import {
+  getPublicTabCounts,
+  getPublicTalentsPage,
+  PUBLIC_PAGE_SIZE,
+  type PublicTab,
+} from "@/lib/public-talents";
 
 export const metadata: Metadata = {
   title: "GAMDANG AGENCY — Modeling & Influencer Agency",
@@ -13,90 +18,45 @@ export const metadata: Metadata = {
 
 const TABS = [
   {
-    key: "model",
+    key: "model" as PublicTab,
     label: "Model",
     active: "bg-[#1D4ED8] text-white shadow-md shadow-[#1D4ED8]/30",
     dot: "bg-[#1D4ED8]",
   },
   {
-    key: "influencer",
+    key: "influencer" as PublicTab,
     label: "Influencer",
     active: "bg-[#B82233] text-white shadow-md shadow-[#B82233]/30",
     dot: "bg-[#B82233]",
   },
   {
-    key: "ai",
+    key: "ai" as PublicTab,
     label: "AI Model",
     active:
       "bg-gradient-to-r from-[#1D4ED8] to-[#B82233] text-white shadow-md shadow-[#5b2b8f]/30",
     dot: "bg-gradient-to-r from-[#1D4ED8] to-[#B82233]",
   },
-] as const;
-
-type TabKey = (typeof TABS)[number]["key"];
-
-function TalentCard({ talent, tab }: { talent: PublicTalent; tab: TabKey }) {
-  const age = talent.dob ? calculateAge(talent.dob) : null;
-  const characters =
-    tab === "ai" && talent.character
-      ? talent.character
-          .split("/")
-          .map((c) => c.trim())
-          .filter(Boolean)
-      : [];
-
-  return (
-    <div className="group relative aspect-[3/4] overflow-hidden rounded-2xl bg-neutral-200 shadow-sm">
-      {talent.photo_path ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={getPhotoProxyUrl(talent.photo_path)}
-          alt={talent.name}
-          loading="lazy"
-          className="size-full object-cover object-top transition duration-300 group-hover:scale-105"
-        />
-      ) : (
-        <div className="flex size-full items-center justify-center text-sm text-neutral-400">
-          Coming soon
-        </div>
-      )}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-4 pt-14">
-        <p className="text-lg font-bold leading-tight text-white">{talent.name}</p>
-        {age !== null && <p className="text-xs text-white/75">Age {age}</p>}
-        {characters.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {characters.map((c) => (
-              <span
-                key={c}
-                className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm"
-              >
-                {c}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+];
 
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; page?: string }>;
 }) {
-  const { tab: rawTab } = await searchParams;
-  const tab: TabKey = TABS.some((t) => t.key === rawTab)
-    ? (rawTab as TabKey)
+  const { tab: rawTab, page: rawPage } = await searchParams;
+  const tab: PublicTab = TABS.some((t) => t.key === rawTab)
+    ? (rawTab as PublicTab)
     : "model";
+  const page = Math.max(parseInt(rawPage ?? "1", 10) || 1, 1);
 
-  const all = await getPublicTalents();
-  const byTab: Record<TabKey, PublicTalent[]> = {
-    model: all.filter((t) => t.is_model),
-    influencer: all.filter((t) => t.is_influencer),
-    ai: all.filter((t) => t.is_ai_model),
-  };
-  const talents = byTab[tab];
+  const [{ talents, total }, counts] = await Promise.all([
+    getPublicTalentsPage(tab, page),
+    getPublicTabCounts(),
+  ]);
+  const totalPages = Math.max(Math.ceil(total / PUBLIC_PAGE_SIZE), 1);
+
+  const pageHref = (p: number) =>
+    `/?tab=${tab}${p > 1 ? `&page=${p}` : ""}`;
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -118,7 +78,7 @@ export default async function HomePage({
       </header>
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-[#1D4ED8] via-[#5b2b8f] to-[#B82233] px-4 py-16 text-center text-white">
+      <section className="bg-gradient-to-br from-[#1D4ED8] via-[#5b2b8f] to-[#B82233] px-4 py-14 text-center text-white">
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/70">
           Modeling &amp; Influencer Agency
         </p>
@@ -144,14 +104,12 @@ export default async function HomePage({
                   : "bg-white text-neutral-600 ring-1 ring-neutral-200 hover:ring-neutral-300"
               }`}
             >
-              {tab !== t.key && (
-                <span className={`size-2 rounded-full ${t.dot}`} />
-              )}
+              {tab !== t.key && <span className={`size-2 rounded-full ${t.dot}`} />}
               {t.label}
               <span
                 className={`text-xs font-normal ${tab === t.key ? "text-white/75" : "text-neutral-400"}`}
               >
-                {byTab[t.key].length}
+                {counts[t.key]}
               </span>
             </Link>
           ))}
@@ -159,17 +117,62 @@ export default async function HomePage({
       </nav>
 
       {/* Cards */}
-      <main className="mx-auto max-w-6xl px-4 py-10">
+      <main className="mx-auto max-w-6xl px-4 py-8">
         {talents.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {talents.map((t) => (
-              <TalentCard key={t.id} talent={t} tab={tab} />
+              <TalentGridCard
+                key={t.id}
+                photoPath={t.photo_path}
+                name={t.name}
+                nameSub={t.nameSub}
+                gender={t.gender}
+                age={t.dob ? calculateAge(t.dob) : null}
+                roles={{ model: t.is_model, influ: t.is_influencer, ai: t.is_ai_model }}
+                socials={tab === "influencer" ? t.socials : undefined}
+                topFollower={tab === "influencer" ? t.top : undefined}
+                characters={
+                  tab === "ai" && t.character
+                    ? t.character
+                        .split("/")
+                        .map((c) => c.trim())
+                        .filter(Boolean)
+                    : undefined
+                }
+              />
             ))}
           </div>
         ) : (
           <p className="rounded-2xl border border-dashed border-neutral-300 bg-white p-16 text-center text-neutral-400">
             Coming soon — เร็วๆ นี้
           </p>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-3 text-sm">
+            {page > 1 ? (
+              <Link
+                href={pageHref(page - 1)}
+                className="rounded-full border border-neutral-300 bg-white px-4 py-2 font-medium text-neutral-600 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+              >
+                ← ก่อนหน้า
+              </Link>
+            ) : (
+              <span />
+            )}
+            <span className="text-neutral-400">
+              หน้า {page} / {totalPages}
+            </span>
+            {page < totalPages && (
+              <Link
+                href={pageHref(page + 1)}
+                className="rounded-full border border-neutral-300 bg-white px-4 py-2 font-medium text-neutral-600 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+              >
+                ถัดไป →
+              </Link>
+            )}
+          </div>
         )}
       </main>
 

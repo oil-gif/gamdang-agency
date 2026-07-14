@@ -11,12 +11,18 @@ export const runtime = "nodejs";
 // next/image (which also emits WebP) — shows a broken image. Re-encoding
 // to JPEG here fixes it for every browser. Filenames are immutable UUIDs,
 // so the result is safe to cache aggressively.
+// รองรับ ?w=320 → ย่อเป็น thumbnail (สำหรับหน้า grid ที่มีการ์ดเยอะๆ
+// จะได้โหลดเร็วแม้ข้อมูลเป็นหมื่นคน) — ไม่ใส่ = ขนาดเต็ม
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await params;
   const storagePath = path.join("/");
+  const wRaw = new URL(req.url).searchParams.get("w");
+  const width = wRaw
+    ? Math.min(Math.max(parseInt(wRaw, 10) || 0, 64), 1600)
+    : null;
 
   // Only ever serve from the known layouts: {talentId}/{kind}/{file}
   // หรือ _unassigned/{file} (photo inbox — รูป batch ที่ยังไม่มอบหมาย)
@@ -36,7 +42,13 @@ export async function GET(
   const input = Buffer.from(await upstream.arrayBuffer());
   let jpeg: Buffer;
   try {
-    jpeg = await sharp(input).rotate().jpeg({ quality: 82 }).toBuffer();
+    let pipeline = sharp(input).rotate();
+    if (width) {
+      pipeline = pipeline.resize({ width, withoutEnlargement: true });
+    }
+    jpeg = await pipeline
+      .jpeg({ quality: width && width <= 480 ? 72 : 82 })
+      .toBuffer();
   } catch {
     return NextResponse.json({ error: "bad image" }, { status: 422 });
   }

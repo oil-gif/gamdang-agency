@@ -1,19 +1,16 @@
 import {
   assignInboxPhoto,
   deleteInboxPhoto,
-  getAssignableTalents,
   getInboxPhotos,
 } from "@/actions/photo-inbox";
 import { InboxUploader } from "@/components/admin/InboxUploader";
+import { TalentCombobox } from "@/components/admin/TalentCombobox";
 import { Button } from "@/components/ui/button";
 
 // Photo Inbox: อัพรูปเป็น batch แล้วค่อยกดมอบหมายทีละรูปว่าเป็นรูป
-// Gallery/Comp Card ของ talent คนไหน
+// Gallery/Comp Card ของ talent คนไหน (ค้นหาด้วย combobox — รองรับหมื่นคน)
 export default async function PhotosInboxPage() {
-  const [photos, talents] = await Promise.all([
-    getInboxPhotos(),
-    getAssignableTalents(),
-  ]);
+  const photos = await getInboxPhotos();
 
   return (
     <div className="space-y-5">
@@ -51,21 +48,7 @@ export default async function PhotosInboxPage() {
               </div>
               <form action={assignInboxPhoto} className="space-y-2 p-3">
                 <input type="hidden" name="inbox_id" value={p.id} />
-                <select
-                  name="talent_id"
-                  required
-                  defaultValue=""
-                  className="h-9 w-full rounded-md border border-neutral-300 bg-white px-2 text-sm"
-                >
-                  <option value="" disabled>
-                    เลือก Talent...
-                  </option>
-                  {talents.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.code} — {t.nickname_th ?? t.nickname_en ?? "(ไม่มีชื่อ)"}
-                    </option>
-                  ))}
-                </select>
+                <TalentCombobox inputName="talent_id" />
                 <select
                   name="kind"
                   defaultValue="gallery"
