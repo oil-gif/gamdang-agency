@@ -119,7 +119,7 @@ export default async function HomePage({
       {/* Cards */}
       <main className="mx-auto max-w-6xl px-4 py-8">
         {talents.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
             {talents.map((t) => (
               <TalentGridCard
                 key={t.id}

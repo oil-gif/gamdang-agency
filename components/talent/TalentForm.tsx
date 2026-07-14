@@ -178,12 +178,7 @@ export function TalentForm({
                 defaultChecked={talent?.ethnicities?.includes(e.value) ?? false}
                 className="mt-0.5"
               />
-              <span>
-                {e.label}
-                {"hint" in e && e.hint && (
-                  <span className="block text-xs text-neutral-400">{e.hint}</span>
-                )}
-              </span>
+              <span>{e.label}</span>
             </label>
           ))}
         </CardContent>

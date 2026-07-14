@@ -1,24 +1,16 @@
-// Fixed ethnicity list (multi-select — mixed heritage is common in this
-// industry, so a talent can select more than one).
+// Fixed ethnicity list (multi-select — เลือกได้มากกว่า 1)
+// รายการตามที่พี่เจ้าของกำหนด 2026-07-14 (แทนชุดเดิม 10 ตัวเลือก —
+// ข้อมูลเก่าถูก remap เข้าหมวดใหม่แล้ว)
 export const ETHNICITIES = [
-  { value: "central_asian", label: "Central Asian" },
-  { value: "east_asian", label: "East Asian", hint: "China, Japan, Korea, Taiwan" },
+  { value: "asian", label: "Asian (เอเชีย)" },
+  { value: "mixed_race", label: "Mixed Race (ลูกครึ่ง)" },
+  { value: "caucasian", label: "Caucasian / White (ผิวขาว / ตะวันตก)" },
   {
-    value: "south_asian",
-    label: "South Asian",
-    hint: "India, Pakistan, Bangladesh, Nepal, Sri Lanka, Bhutan, Maldives",
+    value: "south_asian_me",
+    label: "South Asian / Indian / Middle Eastern (เอเชียใต้ / อินเดีย / ตะวันออกกลาง)",
   },
-  {
-    value: "southeast_asian",
-    label: "Southeast Asian",
-    hint: "Thailand, Malaysia, Indonesia, Philippines, Singapore",
-  },
-  { value: "black_african", label: "Black African" },
-  { value: "black_caribbean", label: "Black Caribbean" },
-  { value: "hispanic_latino", label: "Hispanic / Latino" },
-  { value: "indigenous", label: "Indigenous" },
-  { value: "middle_eastern", label: "Middle Eastern" },
-  { value: "white", label: "White" },
+  { value: "african_black", label: "African / Black (ผิวสี / แอฟริกัน)" },
+  { value: "hispanic_latino", label: "Hispanic / Latino (ลาตินอเมริกา)" },
 ] as const;
 
 // Fixed influencer "Expertise" categories, carried over from the old system.

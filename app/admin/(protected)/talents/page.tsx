@@ -82,7 +82,7 @@ export default async function TalentsListPage({
 
       <TalentFilterPanel searchParams={params} />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
         {talents.map((t) => {
           const top = t.is_influencer ? topSocial(t) : null;
           return (
