@@ -66,14 +66,22 @@ export default async function HomePage({
           <span className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] bg-clip-text text-base font-extrabold tracking-widest text-transparent">
             GAMDANG AGENCY
           </span>
-          <a
-            href={CONTACT.lineUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full bg-[#06C755] px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
-          >
-            ติดต่อจ้างงาน
-          </a>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/booking"
+              className="rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+            >
+              จองถ่ายโปรไฟล์ ✦
+            </Link>
+            <a
+              href={CONTACT.lineUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full bg-[#06C755] px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+            >
+              ติดต่อจ้างงาน
+            </a>
+          </div>
         </div>
       </header>
 

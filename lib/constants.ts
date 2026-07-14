@@ -58,3 +58,36 @@ export const TALENTS_PAGE_SIZE = 60;
 
 // จำนวนแถวต่อหน้าของ list โปรเจกต์ (pagination)
 export const PROJECTS_PAGE_SIZE = 50;
+
+// ระบบจองถ่ายโปรไฟล์ (ดู supabase/migrations/007_booking.sql)
+// หมายเหตุ: ตามเอกสารแนะนำให้ย้ายเป็น setting แก้ได้เองในอนาคต — ตอนนี้เก็บ
+// รวมที่เดียวตรงนี้ แก้ที่เดียวจบ
+export const BOOKING = {
+  hours: [
+    "09:00", "10:00", "11:00", "12:00", "13:00",
+    "14:00", "15:00", "16:00", "17:00", "18:00",
+  ],
+  photoCap: 15, // ห้องถ่ายภาพ ต่อชั่วโมง
+  videoCap: 12, // ห้องวิดีโอ ต่อชั่วโมง
+  packages: {
+    A: {
+      name: "Package A",
+      subtitle: "Compcard + Photos + VDO",
+      price: 1390,
+      note: "จองห้องถ่ายภาพและห้องวิดีโอในรอบเดียวกันอัตโนมัติ",
+    },
+    B: {
+      name: "Package B",
+      subtitle: "Compcard + Photos",
+      price: 990,
+      note: "จองห้องถ่ายภาพเท่านั้น",
+    },
+  },
+  bank: {
+    bank: "ธนาคารกสิกรไทย (KASIKORNBANK) สาขา Central Bangna (0604)",
+    accountNo: "037-3-98892-8",
+    accountName: "GAMDANG CO.,LTD. (บริษัท แก้มแดง จำกัด)",
+    swift: "KASITHBK",
+  },
+  infoUrl: "https://www.gamdang.com/profile-shooting-info/",
+} as const;

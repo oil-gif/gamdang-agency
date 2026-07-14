@@ -7,15 +7,18 @@ import {
   keepTalent,
 } from "@/actions/talents";
 import { getProjectCounts } from "@/actions/projects";
+import { getBookingPendingCount } from "@/actions/shoots";
 import { Button } from "@/components/ui/button";
 
 export default async function AdminDashboardPage() {
-  const [talentCounts, pendingCount, projectCounts, stale] = await Promise.all([
-    getTalentCounts(),
-    getPendingCount(),
-    getProjectCounts(),
-    getStaleTalents(),
-  ]);
+  const [talentCounts, pendingCount, projectCounts, bookingPending, stale] =
+    await Promise.all([
+      getTalentCounts(),
+      getPendingCount(),
+      getProjectCounts(),
+      getBookingPendingCount(),
+      getStaleTalents(),
+    ]);
 
   const stats = [
     {
@@ -53,6 +56,12 @@ export default async function AdminDashboardPage() {
       value: projectCounts.influencer,
       href: "/admin/projects?type=influencer",
       accent: "text-[#B82233]",
+    },
+    {
+      label: "จองถ่าย — สลิปรอตรวจ",
+      value: bookingPending,
+      href: "/admin/shoots",
+      accent: "text-amber-500",
     },
   ];
 

@@ -1,0 +1,345 @@
+"use client";
+
+import { useMemo, useRef, useState } from "react";
+import { BOOKING } from "@/lib/constants";
+
+// Wizard จองถ่ายโปรไฟล์ 4 step (ตามดีไซน์หน้าบ้าน WP เดิมเป๊ะ):
+// เลือกวัน → แพกเกจ → รอบเวลา → ข้อมูล+สลิป
+// availability เป็น boolean ต่อ (วัน, ชั่วโมง, แพกเกจ) จาก server — ไม่มีจำนวน
+
+export type WizardDate = {
+  id: string;
+  label: string;
+  location: string | null;
+  details: string | null;
+  avail: { A: Record<string, boolean>; B: Record<string, boolean> };
+};
+
+type PkgKey = "A" | "B";
+
+export function BookingWizard({ dates }: { dates: WizardDate[] }) {
+  const [dayId, setDayId] = useState<string | null>(null);
+  const [pkg, setPkg] = useState<PkgKey | null>(null);
+  const [hour, setHour] = useState<string | null>(null);
+  const [slipName, setSlipName] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<"success" | string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const day = useMemo(() => dates.find((d) => d.id === dayId) ?? null, [dates, dayId]);
+
+  function pickDay(id: string) {
+    setDayId(id);
+    setPkg(null);
+    setHour(null);
+  }
+  function pickPkg(k: PkgKey) {
+    setPkg(k);
+    setHour(null);
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!day || !pkg || !hour || submitting) return;
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const file = fileRef.current?.files?.[0];
+    if (!file) {
+      setResult("upload");
+      return;
+    }
+    setSubmitting(true);
+    setResult(null);
+    try {
+      // รูป → บีบก่อนส่ง / PDF → ส่งตรง (จำกัด ~3.5MB)
+      let payloadFile: File | Blob = file;
+      if (file.type.startsWith("image/")) {
+        const { default: imageCompression } = await import("browser-image-compression");
+        payloadFile = await imageCompression(file, {
+          maxWidthOrHeight: 2000,
+          maxSizeMB: 2,
+          useWebWorker: true,
+        });
+      } else if (file.size > 3.5 * 1024 * 1024) {
+        setResult("upload");
+        setSubmitting(false);
+        return;
+      }
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("read failed"));
+        reader.readAsDataURL(payloadFile);
+      });
+
+      const res = await fetch("/api/booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          day_id: day.id,
+          package: pkg,
+          hour,
+          full_name: fd.get("full_name"),
+          nickname: fd.get("nickname"),
+          phone: fd.get("phone"),
+          line_id: fd.get("line_id"),
+          email: fd.get("email"),
+          height: fd.get("height"),
+          weight: fd.get("weight"),
+          talents: fd.get("talents"),
+          website: fd.get("website"), // honeypot
+          slip: dataUrl,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok && body.ok) {
+        setResult("success");
+        form.reset();
+        setSlipName(null);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        setResult(body.code ?? "invalid");
+      }
+    } catch {
+      setResult("invalid");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const ERROR_TEXT: Record<string, string> = {
+    invalid: "ข้อมูลไม่ครบถ้วน กรุณากรอกชื่อ เบอร์โทร และแนบสลิปค่ะ",
+    full: "ขออภัยค่ะ รอบที่เลือกเพิ่งเต็ม/ปิดรับ กรุณาเลือกรอบอื่น",
+    upload: "ไฟล์สลิปไม่ถูกต้อง (รองรับ JPG/PNG/PDF ขนาดไม่เกิน 5 MB)",
+  };
+
+  if (result === "success") {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
+        <p className="text-xl font-bold text-emerald-700">
+          🎉 ส่งข้อมูลการจองเรียบร้อยแล้ว!
+        </p>
+        <p className="mt-2 text-sm leading-6 text-emerald-800">
+          ทีมงานจะตรวจสอบสลิปและยืนยันคิวของคุณทาง LINE/โทรศัพท์ ภายใน 24 ชั่วโมงค่ะ
+        </p>
+        <button
+          type="button"
+          onClick={() => setResult(null)}
+          className="mt-4 rounded-full border border-emerald-300 px-5 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+        >
+          จองเพิ่มอีกคิว
+        </button>
+      </div>
+    );
+  }
+
+  const stepLabel = (n: number, label: string) => (
+    <div className="flex items-center gap-2.5">
+      <span className="flex size-7 items-center justify-center rounded-full bg-[#1D4ED8] text-sm font-bold text-white">
+        {n}
+      </span>
+      <h2 className="text-xl font-bold text-neutral-800">{label}</h2>
+    </div>
+  );
+
+  return (
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
+      {result && result !== "success" && (
+        <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {ERROR_TEXT[result] ?? ERROR_TEXT.invalid}
+        </p>
+      )}
+
+      {/* Step 1: เลือกวัน */}
+      <section className="space-y-3">
+        {stepLabel(1, "เลือกวันที่ถ่าย")}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {dates.map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => pickDay(d.id)}
+              className={`rounded-2xl border p-4 text-left transition ${
+                dayId === d.id
+                  ? "border-[#1D4ED8] bg-[#1D4ED8]/5 ring-2 ring-[#1D4ED8]/30"
+                  : "border-neutral-200 bg-white hover:border-neutral-300"
+              }`}
+            >
+              <p className="font-bold text-neutral-800">{d.label}</p>
+              {d.location && (
+                <p className="mt-0.5 text-sm text-neutral-500">📍 {d.location}</p>
+              )}
+              {d.details && (
+                <p className="mt-0.5 text-xs text-neutral-400">{d.details}</p>
+              )}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Step 2: เลือกแพกเกจ */}
+      {day && (
+        <section className="space-y-3">
+          {stepLabel(2, "เลือกแพกเกจ")}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {(Object.keys(BOOKING.packages) as PkgKey[]).map((k) => {
+              const p = BOOKING.packages[k];
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => pickPkg(k)}
+                  className={`rounded-2xl border p-5 text-left transition ${
+                    pkg === k
+                      ? "border-[#1D4ED8] bg-[#1D4ED8]/5 ring-2 ring-[#1D4ED8]/30"
+                      : "border-neutral-200 bg-white hover:border-neutral-300"
+                  }`}
+                >
+                  <p className="text-lg font-bold text-neutral-800">{p.name}</p>
+                  <p className="text-sm text-neutral-500">{p.subtitle}</p>
+                  <p className="mt-2 text-2xl font-bold text-[#1D4ED8]">
+                    ฿{p.price.toLocaleString()}
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-400">{p.note}</p>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Step 3: เลือกรอบเวลา (ว่าง/เต็มขึ้นกับแพกเกจ) */}
+      {day && pkg && (
+        <section className="space-y-3">
+          {stepLabel(3, "เลือกรอบเวลา")}
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-5">
+            {BOOKING.hours.map((h) => {
+              const open = day.avail[pkg][h] === true;
+              return (
+                <button
+                  key={h}
+                  type="button"
+                  disabled={!open}
+                  onClick={() => setHour(h)}
+                  className={`rounded-xl border px-3 py-3 text-sm font-semibold transition ${
+                    hour === h
+                      ? "border-[#1D4ED8] bg-[#1D4ED8] text-white"
+                      : open
+                        ? "border-neutral-200 bg-white text-neutral-700 hover:border-[#1D4ED8]/50"
+                        : "cursor-not-allowed border-neutral-100 bg-neutral-50 text-neutral-300 line-through"
+                  }`}
+                >
+                  {h} น.
+                </button>
+              );
+            })}
+          </div>
+          <p className="flex items-center gap-3 text-xs text-neutral-400">
+            <span className="flex items-center gap-1">
+              <span className="size-2 rounded-full bg-[#1D4ED8]" /> ว่าง
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="size-2 rounded-full bg-neutral-300" /> เต็ม/ปิดรับจอง
+            </span>
+          </p>
+        </section>
+      )}
+
+      {/* Step 4: ข้อมูล + ชำระเงิน */}
+      {day && pkg && hour && (
+        <section className="space-y-4">
+          {stepLabel(4, "กรอกข้อมูล & แนบสลิป")}
+
+          <div className="grid grid-cols-1 gap-3 rounded-2xl border border-neutral-200 bg-white p-5 sm:grid-cols-2">
+            {/* honeypot กันสแปม — ซ่อนจากคนจริง */}
+            <input
+              type="text"
+              name="website"
+              tabIndex={-1}
+              autoComplete="off"
+              className="hidden"
+              aria-hidden="true"
+            />
+            {(
+              [
+                ["full_name", "ชื่อ-นามสกุล *", "text", true],
+                ["nickname", "ชื่อเล่น", "text", false],
+                ["phone", "เบอร์โทร *", "tel", true],
+                ["line_id", "LINE ID", "text", false],
+                ["email", "Email", "email", false],
+                ["height", "ส่วนสูง (ซม.)", "text", false],
+                ["weight", "น้ำหนัก (กก.)", "text", false],
+              ] as const
+            ).map(([name, label, type, required]) => (
+              <div key={name} className="space-y-1">
+                <label htmlFor={name} className="text-xs font-medium text-neutral-500">
+                  {label}
+                </label>
+                <input
+                  id={name}
+                  name={name}
+                  type={type}
+                  required={required}
+                  className="h-11 w-full rounded-xl border border-neutral-300 px-3 text-sm outline-none transition focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
+                />
+              </div>
+            ))}
+            <div className="space-y-1 sm:col-span-2">
+              <label htmlFor="talents" className="text-xs font-medium text-neutral-500">
+                ความสามารถพิเศษ (ถ้ามี)
+              </label>
+              <textarea
+                id="talents"
+                name="talents"
+                rows={2}
+                className="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm outline-none transition focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
+              />
+            </div>
+          </div>
+
+          {/* ชำระเงิน + แนบสลิป */}
+          <div className="rounded-2xl border border-[#1D4ED8]/20 bg-[#1D4ED8]/5 p-5">
+            <p className="font-semibold text-neutral-800">
+              💳 ชำระเงิน ฿
+              {BOOKING.packages[pkg].price.toLocaleString()} โดยโอนเข้าบัญชี
+            </p>
+            <div className="mt-2 space-y-0.5 text-sm text-neutral-600">
+              <p>{BOOKING.bank.bank}</p>
+              <p>
+                เลขบัญชี: <span className="font-mono font-bold">{BOOKING.bank.accountNo}</span>
+              </p>
+              <p>ชื่อบัญชี: {BOOKING.bank.accountName}</p>
+              <p className="text-xs text-neutral-400">SWIFT: {BOOKING.bank.swift}</p>
+            </div>
+            <div className="mt-4">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                onChange={(e) => setSlipName(e.target.files?.[0]?.name ?? null)}
+                className="hidden"
+                id="slip"
+              />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="w-full rounded-xl border-2 border-dashed border-[#1D4ED8]/40 bg-white px-4 py-4 text-sm font-medium text-[#1D4ED8] transition hover:bg-[#1D4ED8]/5"
+              >
+                {slipName ? `🧾 ${slipName} — กดเพื่อเปลี่ยน` : "📎 แนบสลิปโอนเงิน * (JPG/PNG/PDF ≤ 5MB)"}
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="h-13 w-full rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] py-3.5 text-base font-bold text-white shadow-md transition hover:opacity-95 disabled:opacity-60"
+          >
+            {submitting ? "กำลังส่งข้อมูล..." : "ยืนยันการจอง ✦"}
+          </button>
+        </section>
+      )}
+    </form>
+  );
+}
