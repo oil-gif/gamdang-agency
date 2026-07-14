@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { getProject, getProjectTalents } from "@/actions/projects";
 import { PrintButton } from "@/components/public/PrintButton";
-import { CONTACT, TIER_LABEL } from "@/lib/constants";
+import { calculateAge } from "@/lib/age";
+import { CONTACT, ETHNICITIES, TIER_LABEL } from "@/lib/constants";
 import { formatFollowers, topSocial } from "@/lib/social";
 import { getPhotoProxyUrl } from "@/lib/storage";
 
-// Result Report — รวมลิงก์ผลงานที่ influ ส่งเข้ามา ทำเป็น PDF ส่งลูกค้า
-// (ลิงก์ทั้งหมดกดได้ในไฟล์ PDF เมื่อ Save as PDF จาก Chrome)
+const ETHNICITY_LABEL: Record<string, string> = Object.fromEntries(
+  ETHNICITIES.map((e) => [e.value, e.label]),
+);
+
+// Report ส่งลูกค้า (Save as PDF จาก Chrome — ลิงก์กดได้ทั้งหมด):
+// - งาน influencer: Result Report รวมลิงก์โพสต์ผลงานของทุกคนที่ส่งมา
+// - งาน model: Casting Report การ์ดคนที่ลูกค้าเลือก + รูปเพิ่ม 3 รูป +
+//   ลิงก์ผลงานที่เคยทำ + คลิปแนะนำตัว
 export default async function ProjectReportPage({
   params,
 }: {
@@ -17,9 +24,23 @@ export default async function ProjectReportPage({
     getProject(id),
     getProjectTalents(id),
   ]);
-  const submitted = projectTalents.filter(
-    (pt) => (pt.submission_links ?? []).length > 0,
-  );
+  const isModel = project.project_type === "model";
+
+  const hasContent = (pt: (typeof projectTalents)[number]) =>
+    (pt.submission_links ?? []).length > 0 ||
+    (pt.extra_photo_paths ?? []).length > 0 ||
+    !!pt.intro_video_url;
+
+  // model: เอาคนที่ลูกค้าเลือก (ถ้ายังไม่มีใครถูกเลือก ใช้คนที่ส่งข้อมูลมาแทน)
+  // influ: ทุกคนที่ส่งลิงก์ผลงาน
+  const selected = projectTalents.filter((pt) => pt.client_interested === true);
+  const submitted = isModel
+    ? selected.length > 0
+      ? selected
+      : projectTalents.filter(hasContent)
+    : projectTalents.filter((pt) => (pt.submission_links ?? []).length > 0);
+
+  const reportTitle = isModel ? "Casting Report 📸" : "Result Report 📊";
 
   return (
     <div className="mx-auto max-w-[210mm]">
@@ -41,9 +62,10 @@ export default async function ProjectReportPage({
 
       <div className="no-print mb-4 flex items-center justify-between rounded-lg border bg-white px-4 py-3">
         <p className="text-sm text-neutral-500">
-          Result Report: {submitted.length} คนส่งผลงานแล้ว (จาก{" "}
-          {projectTalents.length} คนในโปรเจกต์) — กดปุ่ม &quot;บันทึกเป็น
-          PDF&quot; แล้ว Save as PDF ใน Chrome ลิงก์ผลงานกดได้ทั้งหมด
+          {reportTitle}: {submitted.length} คน (จาก {projectTalents.length}{" "}
+          คนในโปรเจกต์{isModel ? " — เอาเฉพาะที่ลูกค้าเลือก" : ""}) — กดปุ่ม
+          &quot;บันทึกเป็น PDF&quot; แล้ว Save as PDF ใน Chrome
+          ลิงก์กดได้ทั้งหมด
         </p>
         <Link
           href={`/admin/projects/${id}`}
@@ -63,7 +85,7 @@ export default async function ProjectReportPage({
         </div>
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.35em] text-white/70">
-            Result Report 📊
+            {reportTitle}
           </p>
           <h1 className="mt-4 text-5xl font-bold leading-tight">{project.name}</h1>
           <div className="mt-8 space-y-2 text-sm text-white/85">
@@ -74,19 +96,23 @@ export default async function ProjectReportPage({
               </p>
             )}
             <p>
-              <span className="text-white/55">Influencers:</span>{" "}
+              <span className="text-white/55">
+                {isModel ? "Models:" : "Influencers:"}
+              </span>{" "}
               <span className="font-semibold">{submitted.length} คน</span>
             </p>
-            <p>
-              <span className="text-white/55">Total Posts:</span>{" "}
-              <span className="font-semibold">
-                {submitted.reduce(
-                  (sum, pt) => sum + (pt.submission_links ?? []).length,
-                  0,
-                )}{" "}
-                ลิงก์
-              </span>
-            </p>
+            {!isModel && (
+              <p>
+                <span className="text-white/55">Total Posts:</span>{" "}
+                <span className="font-semibold">
+                  {submitted.reduce(
+                    (sum, pt) => sum + (pt.submission_links ?? []).length,
+                    0,
+                  )}{" "}
+                  ลิงก์
+                </span>
+              </p>
+            )}
           </div>
         </div>
         <div className="border-t border-white/25 pt-4">
@@ -122,15 +148,16 @@ export default async function ProjectReportPage({
               GAMDANG AGENCY
             </p>
             <h2 className="mt-0.5 text-lg font-bold text-neutral-800">
-              {project.name} — Result Report
+              {project.name} — {isModel ? "Casting Report" : "Result Report"}
             </h2>
           </div>
         </header>
 
         {submitted.length === 0 && (
           <p className="rounded-lg border border-dashed p-10 text-center text-neutral-400">
-            ยังไม่มีใครส่งลิงก์ผลงาน — ใช้ปุ่ม &quot;📤 ขอส่งงานทาง LINE&quot;
-            ในหน้าโปรเจกต์ก่อน
+            {isModel
+              ? "ยังไม่มีคนที่ลูกค้าเลือกหรือส่งข้อมูล casting — ใช้ปุ่ม \"📤 ขอส่งงานทาง LINE\" ในหน้าโปรเจกต์ก่อน"
+              : "ยังไม่มีใครส่งลิงก์ผลงาน — ใช้ปุ่ม \"📤 ขอส่งงานทาง LINE\" ในหน้าโปรเจกต์ก่อน"}
           </p>
         )}
 
@@ -138,9 +165,119 @@ export default async function ProjectReportPage({
           {submitted.map((pt) => {
             const t = pt.talent;
             const displayName = t.nickname_en || t.nickname_th || t.code;
+            const links: string[] = pt.submission_links ?? [];
+
+            if (isModel) {
+              // ===== การ์ด Casting (งาน Model) =====
+              const mainImg = pt.compcard_path ?? pt.gallery_paths[0] ?? null;
+              const extraPhotos: string[] = pt.extra_photo_paths ?? [];
+              const facts = [
+                t.dob ? `อายุ ${calculateAge(t.dob)} ปี` : null,
+                t.height_cm ? `สูง ${t.height_cm} ซม.` : null,
+                t.weight_kg ? `หนัก ${t.weight_kg} กก.` : null,
+                (t.ethnicities ?? []).length > 0
+                  ? (t.ethnicities as string[])
+                      .map((e) => ETHNICITY_LABEL[e] ?? e)
+                      .join(" / ")
+                  : null,
+              ].filter(Boolean) as string[];
+
+              return (
+                <div
+                  key={pt.id}
+                  className="report-block overflow-hidden rounded-xl border border-neutral-200"
+                >
+                  {mainImg && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={getPhotoProxyUrl(mainImg)}
+                      alt={displayName}
+                      className="max-h-64 w-full bg-neutral-50 object-contain"
+                    />
+                  )}
+                  <div className="p-4">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <p className="text-lg font-bold text-neutral-800">
+                        {displayName}
+                      </p>
+                      <span className="font-mono text-[10px] text-neutral-400">
+                        {t.code}
+                      </span>
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                        ★ Client Selected
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-neutral-500">
+                      {facts.join(" · ")}
+                    </p>
+
+                    {extraPhotos.length > 0 && (
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        {extraPhotos.map((p) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={p}
+                            src={getPhotoProxyUrl(p)}
+                            alt=""
+                            className="aspect-[3/4] w-full rounded-lg border border-neutral-200 object-cover object-top"
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {pt.intro_video_url && (
+                      <p className="mt-3 text-sm">
+                        <span className="font-semibold text-neutral-700">
+                          🎬 คลิปแนะนำตัว:{" "}
+                        </span>
+                        <a
+                          href={pt.intro_video_url}
+                          className="break-all text-[#1D4ED8] underline underline-offset-2"
+                        >
+                          {pt.intro_video_url}
+                        </a>
+                      </p>
+                    )}
+
+                    {links.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                          ผลงานที่ผ่านมา (Past Work)
+                        </p>
+                        <ul className="mt-1 space-y-1">
+                          {links.map((link, li) => (
+                            <li
+                              key={li}
+                              className="flex items-baseline gap-1.5 text-sm"
+                            >
+                              <span className="text-[11px] text-neutral-400">
+                                {li + 1}.
+                              </span>
+                              <a
+                                href={link}
+                                className="break-all text-[#1D4ED8] underline underline-offset-2"
+                              >
+                                {link}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {pt.submission_note && (
+                      <p className="mt-2 text-xs text-neutral-500">
+                        หมายเหตุ: {pt.submission_note}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            // ===== บล็อกผลงาน (งาน Influencer) =====
             const img = pt.gallery_paths[0] ?? pt.compcard_path ?? null;
             const top = topSocial(t);
-            const links: string[] = pt.submission_links ?? [];
             return (
               <div
                 key={pt.id}

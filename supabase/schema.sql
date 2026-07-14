@@ -111,9 +111,13 @@ create table if not exists project_talents (
   client_interested boolean,
   talent_response text check (talent_response in ('pending', 'accepted', 'declined')),
   -- Influ ส่งลิงก์ผลงาน (สูงสุด 5 — บังคับในโค้ด) เพื่อ Gen Report ให้ลูกค้า
+  -- งาน Model ใช้ช่องเดียวกันเป็น "ลิงก์ผลงานที่เคยทำ"
   submission_links text[] not null default '{}',
   submission_note text,
   submitted_at timestamptz,
+  -- งาน Model (casting): รูปเพิ่มสูงสุด 3 รูป + ลิงก์คลิปแนะนำตัว
+  extra_photo_paths text[] not null default '{}',
+  intro_video_url text,
   added_at timestamptz not null default now(),
   unique (project_id, talent_id)
 );

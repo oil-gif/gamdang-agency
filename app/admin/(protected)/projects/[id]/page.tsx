@@ -326,6 +326,21 @@ export default async function ProjectDetailPage({
                     ยังไม่ส่งผลงาน
                   </span>
                 )}
+                {(pt.extra_photo_paths ?? []).length > 0 && (
+                  <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-semibold text-neutral-600">
+                    🖼 {(pt.extra_photo_paths ?? []).length} รูป
+                  </span>
+                )}
+                {pt.intro_video_url && (
+                  <a
+                    href={pt.intro_video_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full border border-neutral-200 px-2.5 py-0.5 text-[11px] text-neutral-500 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+                  >
+                    🎬 คลิปแนะนำตัว
+                  </a>
+                )}
                 {submissionLinks.map((link, li) => (
                   <a
                     key={li}

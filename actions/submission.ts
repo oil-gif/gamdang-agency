@@ -9,41 +9,64 @@ import { supabase } from "@/lib/supabase/server";
 const MAX_LINKS = 5;
 const BASE_URL = "https://gamdang-app.vercel.app";
 
-// influ กด "บันทึกผลงาน" ใน /submit/[token] — auth ด้วย submit token
+// talent กด "บันทึก" ใน /submit/[token] — auth ด้วย submit token
+// (งาน influ = ลิงก์โพสต์ผลงาน · งาน model = casting: ลิงก์ผลงานเก่า + คลิปแนะนำตัว)
 export async function saveSubmission(formData: FormData) {
   const token = String(formData.get("token"));
   const verified = await verifySubmitToken(token);
   if (!verified) redirect("/submit/expired");
 
-  // เก็บเฉพาะลิงก์ http(s) ที่ไม่ว่าง สูงสุด 5 ลิงก์
+  const normalize = (value: string) =>
+    /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+  // เก็บเฉพาะลิงก์ที่ไม่ว่าง สูงสุด 5 ลิงก์
   const links: string[] = [];
   for (let i = 0; i < MAX_LINKS; i++) {
     const raw = formData.get(`link_${i}`);
     const value = typeof raw === "string" ? raw.trim() : "";
     if (!value) continue;
-    links.push(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+    links.push(normalize(value));
   }
-  if (links.length === 0) {
-    redirect(
-      `/submit/${token}?error=${encodeURIComponent("กรุณาใส่ลิงก์ผลงานอย่างน้อย 1 ลิงก์")}`,
-    );
-  }
+
+  const introRaw = formData.get("intro_video");
+  const introVideo =
+    typeof introRaw === "string" && introRaw.trim() !== ""
+      ? normalize(introRaw.trim())
+      : null;
 
   const noteRaw = formData.get("note");
   const note = typeof noteRaw === "string" && noteRaw.trim() !== "" ? noteRaw.trim() : null;
 
   const { data: pt } = await supabase
     .from("project_talents")
-    .select("id, project_id")
+    .select("id, project_id, extra_photo_paths, project:projects(project_type)")
     .eq("id", verified.projectTalentId)
     .maybeSingle();
   if (!pt) redirect("/submit/expired");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isModel = (pt.project as any)?.project_type === "model";
+  const hasPhotos = (pt.extra_photo_paths ?? []).length > 0;
+
+  // influ ต้องมีลิงก์อย่างน้อย 1 · model ขอให้มีอย่างใดอย่างหนึ่ง
+  // (รูป/ลิงก์/คลิป) ก็บันทึกได้
+  if (!isModel && links.length === 0) {
+    redirect(
+      `/submit/${token}?error=${encodeURIComponent("กรุณาใส่ลิงก์ผลงานอย่างน้อย 1 ลิงก์")}`,
+    );
+  }
+  if (isModel && links.length === 0 && !introVideo && !hasPhotos && !note) {
+    redirect(
+      `/submit/${token}?error=${encodeURIComponent("กรุณาใส่รูป ลิงก์ผลงาน หรือคลิปแนะนำตัว อย่างน้อย 1 อย่าง")}`,
+    );
+  }
 
   const { error } = await supabase
     .from("project_talents")
     .update({
       submission_links: links,
       submission_note: note,
+      intro_video_url: introVideo,
       submitted_at: new Date().toISOString(),
     })
     .eq("id", pt.id);
@@ -60,7 +83,7 @@ export async function requestSubmissionViaLine(formData: FormData) {
 
   const { data: pt } = await supabase
     .from("project_talents")
-    .select("id, project_id, talent:talents(line_user_id), project:projects(name)")
+    .select("id, project_id, talent:talents(line_user_id), project:projects(name, project_type)")
     .eq("id", ptId)
     .maybeSingle();
   if (!pt) throw new Error("ไม่พบแถวนี้");
@@ -77,9 +100,18 @@ export async function requestSubmissionViaLine(formData: FormData) {
     throw new Error("ลิงก์ส่งงานไม่ถูกต้อง");
   }
 
+  const isModel = project.project_type === "model";
+  const subtitle = isModel
+    ? "ขอข้อมูลเพิ่มเพื่อเสนอลูกค้า 📸"
+    : "ถึงเวลาส่งผลงานแล้ว 📤";
+  const description = isModel
+    ? "รบกวนส่ง รูปเพิ่ม 3 รูป, ลิงก์ผลงานที่เคยทำ และคลิปแนะนำตัว เพื่อทีมงานเสนอลูกค้าค่ะ"
+    : "แนบลิงก์โพสต์ผลงานของคุณ (สูงสุด 5 ลิงก์) เพื่อทีมงานจะรวบรวมส่งรายงานให้ลูกค้าค่ะ";
+  const buttonLabel = isModel ? "ส่งข้อมูล Casting 📸" : "ส่งลิงก์ผลงาน 📤";
+
   const flex = {
     type: "flex",
-    altText: `📤 ส่งลิงก์ผลงานของงาน ${project.name} ได้เลย`,
+    altText: `📤 ${subtitle} — ${project.name}`,
     contents: {
       type: "bubble",
       header: {
@@ -89,7 +121,7 @@ export async function requestSubmissionViaLine(formData: FormData) {
         paddingAll: "16px",
         contents: [
           { type: "text", text: "GAMDANG AGENCY", color: "#ffffff", weight: "bold", size: "sm" },
-          { type: "text", text: "ถึงเวลาส่งผลงานแล้ว 📤", color: "#9fb3c8", size: "xs", margin: "sm" },
+          { type: "text", text: subtitle, color: "#9fb3c8", size: "xs", margin: "sm" },
         ],
       },
       body: {
@@ -100,7 +132,7 @@ export async function requestSubmissionViaLine(formData: FormData) {
           { type: "text", text: project.name, weight: "bold", size: "lg", wrap: true, color: "#1D4ED8" },
           {
             type: "text",
-            text: "แนบลิงก์โพสต์ผลงานของคุณ (สูงสุด 5 ลิงก์) เพื่อทีมงานจะรวบรวมส่งรายงานให้ลูกค้าค่ะ",
+            text: description,
             size: "sm",
             color: "#555555",
             wrap: true,
@@ -122,11 +154,11 @@ export async function requestSubmissionViaLine(formData: FormData) {
               startColor: "#1D4ED8",
               endColor: "#B82233",
             },
-            action: { type: "uri", label: "ส่งลิงก์ผลงาน", uri: submitUrl },
+            action: { type: "uri", label: buttonLabel.slice(0, 20), uri: submitUrl },
             contents: [
               {
                 type: "text",
-                text: "ส่งลิงก์ผลงาน 📤",
+                text: buttonLabel,
                 color: "#ffffff",
                 align: "center",
                 weight: "bold",

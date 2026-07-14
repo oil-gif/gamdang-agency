@@ -19,7 +19,7 @@ export async function GET(
   const storagePath = path.join("/");
 
   // Only ever serve from the known layout: {talentId}/{kind}/{file}.
-  if (!/^[\w-]+\/(gallery|compcard)\/[\w-]+\.\w+$/.test(storagePath)) {
+  if (!/^[\w-]+\/(gallery|compcard|casting)\/[\w-]+\.\w+$/.test(storagePath)) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
