@@ -1,7 +1,20 @@
 # Gamdang App — Progress / Handoff
 
-> อ่านไฟล์นี้ก่อนเริ่ม session ใหม่ — สรุปว่าทำอะไรไปแล้ว ทำอะไรค้างอยู่ และต้องทำอะไรต่อ
-> Full architecture plan: `.claude/plans/snuggly-drifting-fiddle.md` (ในเครื่อง ไม่ได้ commit ขึ้น git)
+> อ่านไฟล์นี้ก่อนเริ่มทำงานเสมอ — สรุปว่าทำอะไรไปแล้ว ทำอะไรค้างอยู่ และต้องทำอะไรต่อ
+
+## 📌 TODO ถัดไป (เรียงตามลำดับ — อัพเดต 2026-07-14)
+
+**รอพี่เจ้าของทำ (ผู้ช่วยทำแทนไม่ได้):**
+- [ ] **รัน migration 003** ใน Supabase SQL Editor (https://supabase.com/dashboard/project/xwhubbybwfrdepipszoy/sql/new): เนื้อหาอยู่ที่ `supabase/migrations/003_ai_model.sql` — จำเป็นก่อนสร้าง AI Model (ถ้าไม่รัน กดบันทึกฟอร์ม talent ฝั่ง admin จะ error เพราะ insert คอลัมน์ `is_ai_model` ที่ยังไม่มี)
+- [ ] สร้าง AI Model ตัวแรก: /admin/talents/new → ติ๊ก "เป็น AI Model" → กรอก Character (เช่น `Energetic / Fun`) → อัพรูป → ตั้งสถานะ active → เช็คว่าขึ้น tab AI Model หน้าแรก
+- [ ] ทดสอบ flow เชื่อม record เก่ากับ LINE จริงในแอป LINE (ปุ่ม "สร้างลิงก์เชื่อม LINE" ในหน้าแก้ไข talent ที่ยังไม่ผูก LINE → ส่งลิงก์เข้า LINE ตัวเอง → เปิด → ต้องผูกเข้า record เดิมไม่สร้างใหม่)
+
+**งานพัฒนา (ตกลงกันแล้วว่า "ทำหลังบ้านให้จบก่อน แล้วค่อยรวม WordPress"):**
+- [ ] Polish ความปลอดภัย: เปลี่ยนรหัสแอดมิน (ตอนนี้ `gamdang2026`), พิจารณาลบหน้า `/style-guide`, (optional) เพิ่มเช็ค admin จริงใน `/api/upload`+`deletePhoto` (ดูหมายเหตุใน Milestone 8)
+- [ ] **รวมกับเว็บ WordPress หน้าบ้าน** (ดูหัวข้อ "การรวมกับเว็บ WordPress" ด้านล่าง — เว็บ WP ยังอยู่ Local by Flywheel รอขึ้นโฮสต์จริงก่อน): (1) ปุ่มสมัครบน WP → LIFF URL (2) API `/api/public/talents` + shortcode ใน WP child theme (3) ผูกโดเมนจริง
+- [ ] (ตอนรวม WP เสร็จ) ตัดสินใจว่าจะเก็บหรือถอดหน้า 3 tab บน Vercel (`/`)
+
+**ลิงก์/ค่าที่ใช้บ่อย:** Production https://gamdang-app.vercel.app · LIFF `https://liff.line.me/2010689219-wGKbITGb` · LINE Official `@gamdangmodeling` · เว็บ `www.gamdang.com`, `www.gamdangagency.com`
 
 ## Stack & โครงสร้าง
 - Next.js 16 (App Router, TypeScript, Tailwind v4, Turbopack) + Supabase (Postgres + Storage) + shadcn/ui
@@ -12,7 +25,7 @@
 - Admin login: `admin@gamdangagency.com` / `gamdang2026` (ควรเปลี่ยนก่อนขึ้นระบบจริง)
 
 ## สถาปัตยกรรมหลัก (สรุปจาก plan file)
-- **Auth 2 ระบบแยกกัน**: Admin ใช้ Supabase Auth (email/password จริง) ผ่าน `lib/supabase/auth-server.ts` + `proxy.ts` (Next 16 เปลี่ยนชื่อจาก middleware.ts). Talent (model/influ) ใช้ LINE LIFF ID token verify เอง ไม่ผ่าน Supabase Auth เลย — เก็บ session เป็น JWT cookie ของเราเอง (ยังไม่ได้เขียนไฟล์นี้ — ดูหัวข้อ "ค้างอยู่" ด้านล่าง)
+- **Auth 2 ระบบแยกกัน**: Admin ใช้ Supabase Auth (email/password จริง) ผ่าน `lib/supabase/auth-server.ts` + `proxy.ts` (Next 16 เปลี่ยนชื่อจาก middleware.ts). Talent (model/influ) ใช้ LINE LIFF ID token verify เอง ไม่ผ่าน Supabase Auth เลย — เก็บ session เป็น JWT cookie ของเราเอง (`lib/auth/talent-session.ts`, cookie `talent_session`)
 - **DB เข้าถึงได้ทางเดียว**: browser ไม่คุย Supabase ตรงเลย ทุกอย่างผ่าน Server Actions/Route Handlers ที่ใช้ service-role key เท่านั้น (`lib/supabase/server.ts`, มี `server-only` guard กันพลาด). RLS เปิดทุกตารางแต่ไม่มี policy ให้ anon/authenticated
 - **รูปภาพ**: client-side pre-resize (`browser-image-compression`) → server resize จริงด้วย `sharp` → เก็บ Supabase Storage bucket `talent-photos` (public bucket, path `{talent_id}/{gallery|compcard}/{uuid}.webp`)
 
@@ -68,10 +81,16 @@
   - การ์ด Influencer หน้า `/p/[token]` เป็นแบบ compact ตามตัวอย่างระบบเก่า (รูปวงกลม, tier pill, แถว Max Followers/Age, expertise chips, ปุ่ม social วงกลมสีแบรนด์กดได้) จัด grid 2-3 คอลัมน์ — การ์ดกลางใช้ `components/public/TalentCards.tsx` (ModelCard/InfluCard/PrintMiniCard ใช้ร่วม 3 ที่)
   - ใช้ code จริง (GD-xxxx) แทนเลขลำดับ 01/02
   - T&C เพิ่มข้อห้ามติดต่อ Model/Influencer โดยตรง (รวม DM) ไทย+อังกฤษ + ย้ำใน footer
-  - **PDF ฝั่ง admin**: `/admin/projects/[id]/print` — A4 แนวตั้ง 8 การ์ด/หน้า (2×4 mini card แนวนอน) header GAMDANG + ชื่อ project ทุกหน้า, ปุ่ม "🖨 สร้าง PDF" ในหน้าโปรเจกต์, admin กด print → Save as PDF (ลิงก์ social ใน PDF กดได้)
+  - **PDF ฝั่ง admin**: `/admin/projects/[id]/print` — ปุ่ม "🖨 สร้าง PDF" ในหน้าโปรเจกต์ → preview → Save as PDF จาก Chrome (ต้อง Chrome ลิงก์ถึงติดไปในไฟล์)
   - Picker เพิ่ม talent โชว์ รูปเล็ก/tier/max follower/expertise/จุด social ครบ
   - ปุ่มเลือก card type เปลี่ยนจาก toggle ⇄ เป็น segmented [Comp Card | Influ Card] — **บั๊ก "social ของ Tammy ไม่ขึ้น" เกิดจาก row เธอค้างเป็น compcard** (layout compcard ไม่โชว์ social โดยดีไซน์) แก้ข้อมูลเป็น influcard แล้ว
   - Admin shell ใหม่: header navy + เส้นแดง, nav pill มี active state (`components/admin/AdminNav.tsx`), เนื้อหา max-w-6xl, ซ่อน chrome ตอน print
+- **รอบ polish PDF ที่ 2 (commits `82cb286`,`e52c060`,`82aae4c` — สเปคสุดท้ายที่พี่คอนเฟิร์มแล้ว):**
+  - PDF = **หน้าปก Report เต็ม A4** (gradient แบรนด์, ชื่อ project, ลูกค้า, shooting date, จำนวน talent, วันที่จัดทำ) + หน้าการ์ด **10 ใบ/หน้า (2 คอลัมน์ × 5 แถว)**
+  - การ์ด influ ใน PDF: รูปกรอบแนวตั้ง 3:4 object-top (เห็นหน้าชัด) + ไอคอน social วงกลมสีแบรนด์เรียงแถวพร้อมยอด follower · การ์ด model: กรอบรูปแนวนอนกว้าง **object-contain เห็นคอมการ์ดเต็มใบ** + ไอคอน+ยอดช่องที่ follower เยอะสุด
+  - CTA footer ทุกหน้า PDF + หน้าปก: LINE Official `@gamdangmodeling` + `www.gamdang.com` + `www.gamdangagency.com` — เป็นลิงก์กดได้ใน PDF (Interactive PDF)
+  - ข้อมูลติดต่อรวมศูนย์ที่ `CONTACT` ใน `lib/constants.ts` (มี lineUrl แบบ add-friend `line.me/R/ti/p/%40gamdangmodeling`)
+  - หน้าลิงก์ลูกค้า `/p/[token]`: **เอาปุ่ม print ออกแล้ว** (PDF เป็นของ admin เท่านั้น) + เพิ่ม **CTA gradient ท้ายหน้า** (ปุ่ม LINE เขียว + เว็บไซต์ 2 ปุ่ม) + ไอคอน social การ์ด influ โชว์ยอด follower ข้างไอคอนเหมือน PDF
 
 ## หน้าบ้านสาธารณะ 3 Tab + AI Model — โค้ดเสร็จ deploy แล้ว (commit `e21d2a5`)
 - หน้าแรก `/`: nav ติดบน + ปุ่ม LINE, hero gradient, **3 tab pills: Model (น้ำเงิน) / Influencer (แดง) / AI Model (gradient)** พร้อมจำนวนต่อ tab, การ์ดรูป 3:4 grid 2-4 คอลัมน์ (ชื่อ+อายุ overlay ล่าง, tab AI มี character chips), CTA ติดต่อ + footer — เลือก tab ผ่าน `?tab=` (server-rendered)
