@@ -74,3 +74,27 @@ export async function verifyTalentLinkToken(token: string) {
     return null;
   }
 }
+
+// Job-offer token: sent to a talent (LINE Flex or copied message) so they
+// can open /job/[token] and accept/decline without logging in. Scoped to
+// one project_talents row; same purpose-pinning rationale as above.
+const JOB_MAX_AGE_SECONDS = 60 * 60 * 24 * 14; // 14 days
+
+export async function createJobToken(projectTalentId: string) {
+  return new SignJWT({ projectTalentId, purpose: "job" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${JOB_MAX_AGE_SECONDS}s`)
+    .sign(encodedSecret);
+}
+
+export async function verifyJobToken(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, encodedSecret);
+    return payload.purpose === "job" && typeof payload.projectTalentId === "string"
+      ? { projectTalentId: payload.projectTalentId }
+      : null;
+  } catch {
+    return null;
+  }
+}

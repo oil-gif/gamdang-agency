@@ -15,17 +15,44 @@ import {
   renewProjectLink,
   revokeProjectLink,
 } from "@/actions/project-links";
+import { notifyTalentViaLine } from "@/actions/job-notify";
 import { CopyButton } from "@/components/admin/CopyButton";
+import { JobCopyButton } from "@/components/admin/JobCopyButton";
 import { ProjectForm } from "@/components/admin/ProjectForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { calculateAge } from "@/lib/age";
+import { createJobToken } from "@/lib/auth/talent-session";
 import { TIER_LABEL } from "@/lib/constants";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
 import { getPhotoProxyUrl } from "@/lib/storage";
 
 const BASE_URL = "https://gamdang-app.vercel.app";
+
+const RESPONSE_CHIP: Record<string, { label: string; className: string }> = {
+  accepted: { label: "รับงานแล้ว ✓", className: "bg-emerald-100 text-emerald-700" },
+  declined: { label: "ปฏิเสธงาน", className: "bg-rose-100 text-rose-700" },
+  pending: { label: "แจ้งแล้ว · รอตอบ", className: "bg-amber-100 text-amber-700" },
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildJobMessage(project: any, jobUrl: string) {
+  return [
+    "มีงานใหม่จาก GAMDANG AGENCY 🎬",
+    `งาน: ${project.name}`,
+    project.client_name ? `ลูกค้า: ${project.client_name}` : null,
+    project.shooting_date
+      ? `วันถ่าย: ${new Date(project.shooting_date).toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })}`
+      : null,
+    project.budget ? `Budget: ${project.budget}` : null,
+    "",
+    "ดูรายละเอียดและกดตอบรับงานได้ที่ลิงก์นี้ (ใช้ได้ 14 วัน):",
+    jobUrl,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+}
 
 function CardTypeSwitch({
   ptId,
@@ -89,6 +116,12 @@ export default async function ProjectDetailPage({
     ),
   ]);
 
+  // job token ต่อแถว (สำหรับข้อความแจ้งงานแบบ copy) — stateless JWT สร้างใหม่
+  // ทุก render ได้ ของเก่ายังใช้ได้จนหมดอายุ 14 วัน
+  const jobTokens = await Promise.all(
+    projectTalents.map((pt) => createJobToken(pt.id)),
+  );
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -136,11 +169,16 @@ export default async function ProjectDetailPage({
         <div className="space-y-2">
           {projectTalents.map((pt, i) => {
             const t = pt.talent;
+            const jobUrl = `${BASE_URL}/job/${jobTokens[i]}`;
+            const responseChip = pt.talent_response
+              ? RESPONSE_CHIP[pt.talent_response]
+              : null;
             return (
               <div
                 key={pt.id}
-                className="flex items-center gap-3 rounded-xl border bg-white p-3 shadow-sm"
+                className="space-y-2.5 rounded-xl border bg-white p-3 shadow-sm"
               >
+              <div className="flex items-center gap-3">
                 <span className="w-6 text-center font-mono text-sm text-neutral-400">
                   {i + 1}
                 </span>
@@ -223,6 +261,37 @@ export default async function ProjectDetailPage({
                     เอาออก
                   </Button>
                 </form>
+              </div>
+
+              {/* แถบแจ้งงาน + สถานะตอบรับ */}
+              <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-2.5">
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                    responseChip
+                      ? responseChip.className
+                      : "bg-neutral-100 text-neutral-500"
+                  }`}
+                >
+                  {responseChip ? responseChip.label : "ยังไม่แจ้งงาน"}
+                </span>
+                <span className="flex-1" />
+                {t.line_user_id && (
+                  <form action={notifyTalentViaLine}>
+                    <input type="hidden" name="pt_id" value={pt.id} />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      className="bg-[#06C755] text-white hover:bg-[#05b04c]"
+                    >
+                      📨 แจ้งงานทาง LINE
+                    </Button>
+                  </form>
+                )}
+                <JobCopyButton
+                  text={buildJobMessage(project, jobUrl)}
+                  ptId={pt.id}
+                />
+              </div>
               </div>
             );
           })}
