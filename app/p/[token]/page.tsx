@@ -116,6 +116,9 @@ export default async function ClientPortfolioPage({
 
   const influTalents = projectTalents.filter((pt) => pt.card_type === "influcard");
   const modelTalents = projectTalents.filter((pt) => pt.card_type === "compcard");
+  const selectedCount = projectTalents.filter(
+    (pt) => pt.client_interested === true,
+  ).length;
 
   return (
     <div className="min-h-screen bg-neutral-100 pb-16">
@@ -171,16 +174,25 @@ export default async function ClientPortfolioPage({
           </p>
         </section>
 
+        {/* คำแนะนำการเลือก */}
+        {projectTalents.length > 0 && (
+          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-800">
+            กดปุ่ม <span className="font-semibold">&quot;+ สนใจคนนี้&quot;</span>{" "}
+            บนการ์ดเพื่อเลือกคนที่ต้องการ — ตัวเลือกจะถูกส่งถึงทีมงาน GAMDANG
+            อัตโนมัติ (กดซ้ำเพื่อยกเลิก)
+          </p>
+        )}
+
         {/* Model comp cards — full width */}
         {modelTalents.map((pt) => (
-          <ModelCard key={pt.id} pt={pt} />
+          <ModelCard key={pt.id} pt={pt} selectToken={token} />
         ))}
 
         {/* Influencer cards — compact grid */}
         {influTalents.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {influTalents.map((pt) => (
-              <InfluCard key={pt.id} pt={pt} />
+              <InfluCard key={pt.id} pt={pt} selectToken={token} />
             ))}
           </div>
         )}
@@ -231,6 +243,14 @@ export default async function ClientPortfolioPage({
           Influencer Agency
         </footer>
       </main>
+
+      {/* แถบสรุปตัวเลือกของลูกค้า */}
+      {selectedCount > 0 && (
+        <div className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-emerald-600/20 bg-emerald-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg">
+          ✓ เลือกไว้ {selectedCount} คน — ทีมงาน GAMDANG
+          ได้รับตัวเลือกของคุณแล้ว และจะติดต่อกลับโดยเร็ว
+        </div>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { toggleClientInterest } from "@/actions/client-selection";
 import { calculateAge } from "@/lib/age";
 import { ETHNICITIES, TIER_LABEL } from "@/lib/constants";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
@@ -11,11 +12,43 @@ const ETHNICITY_LABEL: Record<string, string> = Object.fromEntries(
 export type ProjectTalentCard = {
   id: string;
   card_type: string;
+  client_interested?: boolean | null;
   compcard_path: string | null;
   gallery_paths: string[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   talent: any;
 };
+
+// ปุ่ม "สนใจ" สำหรับลูกค้าบนหน้า /p/[token] — render เฉพาะเมื่อหน้านั้นส่ง
+// token มาให้ (หน้า admin/print ไม่ส่ง → ไม่มีปุ่ม)
+function InterestButton({
+  token,
+  ptId,
+  interested,
+  className = "",
+}: {
+  token: string;
+  ptId: string;
+  interested: boolean;
+  className?: string;
+}) {
+  return (
+    <form action={toggleClientInterest} className={className}>
+      <input type="hidden" name="token" value={token} />
+      <input type="hidden" name="pt_id" value={ptId} />
+      <button
+        type="submit"
+        className={`w-full rounded-full px-5 py-2 text-sm font-semibold transition ${
+          interested
+            ? "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+            : "border border-neutral-300 bg-white text-neutral-600 hover:border-emerald-500 hover:text-emerald-600"
+        }`}
+      >
+        {interested ? "✓ เลือกแล้ว (Selected)" : "+ สนใจคนนี้ (Select)"}
+      </button>
+    </form>
+  );
+}
 
 export function ethnicityText(t: { ethnicities?: string[] | null }) {
   const list = (t.ethnicities ?? []) as string[];
@@ -26,11 +59,19 @@ export function ethnicityText(t: { ethnicities?: string[] | null }) {
 
 /**
  * งาน Model — full landscape comp card with a fact bar underneath.
+ * ส่ง selectToken มาเมื่ออยากให้มีปุ่ม "สนใจ" สำหรับลูกค้า (เฉพาะ /p/[token])
  */
-export function ModelCard({ pt }: { pt: ProjectTalentCard }) {
+export function ModelCard({
+  pt,
+  selectToken,
+}: {
+  pt: ProjectTalentCard;
+  selectToken?: string;
+}) {
   const t = pt.talent;
   const displayName = t.nickname_en || t.nickname_th || t.code;
   const img = pt.compcard_path ?? pt.gallery_paths[0] ?? null;
+  const interested = pt.client_interested === true;
   const facts = [
     t.dob ? `อายุ ${calculateAge(t.dob)} ปี` : null,
     t.height_cm ? `สูง ${t.height_cm} ซม.` : null,
@@ -39,7 +80,13 @@ export function ModelCard({ pt }: { pt: ProjectTalentCard }) {
   ].filter(Boolean) as string[];
 
   return (
-    <article className="print-break overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+    <article
+      className={`print-break overflow-hidden rounded-2xl border bg-white shadow-sm ${
+        selectToken && interested
+          ? "border-emerald-500 ring-2 ring-emerald-500/40"
+          : "border-neutral-200"
+      }`}
+    >
       {img ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -70,6 +117,14 @@ export function ModelCard({ pt }: { pt: ProjectTalentCard }) {
             {f}
           </span>
         ))}
+        {selectToken && (
+          <InterestButton
+            token={selectToken}
+            ptId={pt.id}
+            interested={interested}
+            className="w-full pt-1 sm:w-auto sm:pt-0"
+          />
+        )}
       </div>
     </article>
   );
@@ -80,16 +135,29 @@ export function ModelCard({ pt }: { pt: ProjectTalentCard }) {
  * circular photo, name, tier pill, Max Followers / Age rows, expertise
  * chips, clickable social icon buttons.
  */
-export function InfluCard({ pt }: { pt: ProjectTalentCard }) {
+export function InfluCard({
+  pt,
+  selectToken,
+}: {
+  pt: ProjectTalentCard;
+  selectToken?: string;
+}) {
   const t = pt.talent;
   const displayName = t.nickname_en || t.nickname_th || t.code;
   const img = pt.gallery_paths[0] ?? pt.compcard_path ?? null;
+  const interested = pt.client_interested === true;
   const top = topSocial(t);
   const socials = talentSocials(t);
   const expertise = (t.categories ?? []) as string[];
 
   return (
-    <article className="print-break flex flex-col items-center rounded-2xl border border-neutral-200 bg-white p-5 text-center shadow-sm">
+    <article
+      className={`print-break flex flex-col items-center rounded-2xl border bg-white p-5 text-center shadow-sm ${
+        selectToken && interested
+          ? "border-emerald-500 ring-2 ring-emerald-500/40"
+          : "border-neutral-200"
+      }`}
+    >
       <div className="size-28 overflow-hidden rounded-full border-2 border-[#1D4ED8]/15 bg-neutral-100">
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -171,6 +239,15 @@ export function InfluCard({ pt }: { pt: ProjectTalentCard }) {
             </a>
           ))}
         </div>
+      )}
+
+      {selectToken && (
+        <InterestButton
+          token={selectToken}
+          ptId={pt.id}
+          interested={interested}
+          className="mt-4 w-full"
+        />
       )}
     </article>
   );

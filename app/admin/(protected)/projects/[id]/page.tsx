@@ -117,9 +117,17 @@ export default async function ProjectDetailPage({
 
       {/* ===== Talents in project ===== */}
       <section className="max-w-3xl space-y-4">
-        <h2 className="text-lg font-semibold text-[#1D4ED8]">
-          Talent ในโปรเจกต์ ({projectTalents.length})
-        </h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-lg font-semibold text-[#1D4ED8]">
+            Talent ในโปรเจกต์ ({projectTalents.length})
+          </h2>
+          {projectTalents.some((pt) => pt.client_interested) && (
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+              ★ ลูกค้าเลือกแล้ว{" "}
+              {projectTalents.filter((pt) => pt.client_interested).length} คน
+            </span>
+          )}
+        </div>
         {projectTalents.length === 0 && (
           <p className="rounded-lg border border-dashed bg-white p-6 text-center text-sm text-neutral-400">
             ยังไม่มี talent — ค้นหาแล้วกด &quot;เพิ่ม&quot; ด้านล่าง
@@ -157,12 +165,19 @@ export default async function ProjectDetailPage({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <Link
-                    href={`/admin/talents/${t.id}`}
-                    className="font-medium text-neutral-800 hover:text-[#1D4ED8]"
-                  >
-                    {t.nickname_th}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/admin/talents/${t.id}`}
+                      className="font-medium text-neutral-800 hover:text-[#1D4ED8]"
+                    >
+                      {t.nickname_th}
+                    </Link>
+                    {pt.client_interested && (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                        ★ ลูกค้าสนใจ
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-neutral-400">
                     {t.code}
                     {t.dob ? ` · ${calculateAge(t.dob)} ปี` : ""}
