@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getProjectTalents } from "@/actions/projects";
 import { acceptProjectLinkTC } from "@/actions/public-link";
-import { PrintButton } from "@/components/public/PrintButton";
 import { InfluCard, ModelCard } from "@/components/public/TalentCards";
 import { bumpViewCount, getLinkWithProject } from "@/lib/public-link";
 
@@ -199,8 +198,6 @@ export default async function ClientPortfolioPage({
           Influencer Agency
         </footer>
       </main>
-
-      <PrintButton />
     </div>
   );
 }

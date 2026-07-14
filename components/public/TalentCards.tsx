@@ -90,13 +90,13 @@ export function InfluCard({ pt }: { pt: ProjectTalentCard }) {
 
   return (
     <article className="print-break flex flex-col items-center rounded-2xl border border-neutral-200 bg-white p-5 text-center shadow-sm">
-      <div className="size-24 overflow-hidden rounded-full border-2 border-[#1D4ED8]/15 bg-neutral-100">
+      <div className="size-28 overflow-hidden rounded-full border-2 border-[#1D4ED8]/15 bg-neutral-100">
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={getPhotoProxyUrl(img)}
             alt={displayName}
-            className="size-full object-cover"
+            className="size-full object-cover object-top"
           />
         ) : (
           <div className="flex size-full items-center justify-center text-xs text-neutral-400">
@@ -168,8 +168,9 @@ export function InfluCard({ pt }: { pt: ProjectTalentCard }) {
 }
 
 /**
- * PDF แนวตั้ง — mini card แนวนอน 8 ใบ/หน้า (2 คอลัมน์ × 4 แถว)
- * ใช้ทั้งงาน model และ influ โดยสลับข้อมูลด้านขวาตาม card_type.
+ * PDF แนวตั้ง — mini card แนวนอน 2 คอลัมน์ × 4 แถว = 8 ใบ/หน้า
+ * รูปเป็นกรอบแนวตั้ง 3:4 (เห็นหน้าชัด, object-top) · social เป็นไอคอนวงกลม
+ * สีแบรนด์เรียงแถวพร้อมยอด follower · ใช้ทั้งงาน model และ influ.
  */
 export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
   const t = pt.talent;
@@ -184,19 +185,25 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
 
   return (
     <div className="flex gap-3 overflow-hidden rounded-xl border border-neutral-200 bg-white p-3">
-      <div className="size-[72px] shrink-0 overflow-hidden rounded-full border border-neutral-200 bg-neutral-100">
+      <div className="aspect-[3/4] w-24 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={getPhotoProxyUrl(img)}
             alt={displayName}
-            className="size-full object-cover"
+            className="size-full object-cover object-top"
           />
-        ) : null}
+        ) : (
+          <div className="flex size-full items-center justify-center text-[9px] text-neutral-400">
+            ไม่มีรูป
+          </div>
+        )}
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-baseline gap-1.5">
-          <p className="truncate text-sm font-bold text-neutral-800">{displayName}</p>
+          <p className="truncate text-base font-bold text-neutral-800">
+            {displayName}
+          </p>
           <span className="font-mono text-[9px] text-neutral-400">{t.code}</span>
         </div>
 
@@ -218,24 +225,37 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
               {t.dob && ` · อายุ ${calculateAge(t.dob)}`}
             </p>
             {expertise.length > 0 && (
-              <p className="mt-0.5 truncate text-[10px] text-[#B82233]">
+              <p className="mt-1 truncate text-[10px] font-medium text-[#B82233]">
                 {expertise.join(" · ")}
               </p>
             )}
             {socials.length > 0 && (
-              <p className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] leading-3">
+              <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-1.5">
                 {socials.map((s) => (
                   <a
                     key={s.key}
                     href={s.url}
-                    className="font-semibold underline-offset-1"
-                    style={{ color: s.color }}
+                    className="flex items-center gap-1"
+                    title={s.label}
                   >
-                    {s.label}
-                    {s.followers > 0 ? ` ${formatFollowers(s.followers)}` : ""}
+                    <span
+                      className="flex size-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
+                      style={{
+                        backgroundColor: s.color,
+                        WebkitPrintColorAdjust: "exact",
+                        printColorAdjust: "exact",
+                      }}
+                    >
+                      {s.short}
+                    </span>
+                    {s.followers > 0 && (
+                      <span className="text-[10px] font-semibold text-neutral-600">
+                        {formatFollowers(s.followers)}
+                      </span>
+                    )}
                   </a>
                 ))}
-              </p>
+              </div>
             )}
           </>
         ) : (
