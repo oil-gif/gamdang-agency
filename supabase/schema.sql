@@ -110,6 +110,10 @@ create table if not exists project_talents (
   notes text,
   client_interested boolean,
   talent_response text check (talent_response in ('pending', 'accepted', 'declined')),
+  -- Influ ส่งลิงก์ผลงาน (สูงสุด 5 — บังคับในโค้ด) เพื่อ Gen Report ให้ลูกค้า
+  submission_links text[] not null default '{}',
+  submission_note text,
+  submitted_at timestamptz,
   added_at timestamptz not null default now(),
   unique (project_id, talent_id)
 );

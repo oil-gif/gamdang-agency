@@ -98,3 +98,27 @@ export async function verifyJobToken(token: string) {
     return null;
   }
 }
+
+// Submission token: ให้ influ เปิดฟอร์มส่งลิงก์ผลงาน (/submit/[token])
+// อายุยาวกว่า job token เพราะงานโพสต์จริงอาจห่างจากวันแจ้งงานเป็นเดือน
+const SUBMIT_MAX_AGE_SECONDS = 60 * 60 * 24 * 60; // 60 days
+
+export async function createSubmitToken(projectTalentId: string) {
+  return new SignJWT({ projectTalentId, purpose: "submit" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${SUBMIT_MAX_AGE_SECONDS}s`)
+    .sign(encodedSecret);
+}
+
+export async function verifySubmitToken(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, encodedSecret);
+    return payload.purpose === "submit" &&
+      typeof payload.projectTalentId === "string"
+      ? { projectTalentId: payload.projectTalentId }
+      : null;
+  } catch {
+    return null;
+  }
+}

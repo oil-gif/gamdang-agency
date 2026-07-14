@@ -1,0 +1,143 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { verifySubmitToken } from "@/lib/auth/talent-session";
+import { pushLineMessage } from "@/lib/line-messaging";
+import { supabase } from "@/lib/supabase/server";
+
+const MAX_LINKS = 5;
+const BASE_URL = "https://gamdang-app.vercel.app";
+
+// influ กด "บันทึกผลงาน" ใน /submit/[token] — auth ด้วย submit token
+export async function saveSubmission(formData: FormData) {
+  const token = String(formData.get("token"));
+  const verified = await verifySubmitToken(token);
+  if (!verified) redirect("/submit/expired");
+
+  // เก็บเฉพาะลิงก์ http(s) ที่ไม่ว่าง สูงสุด 5 ลิงก์
+  const links: string[] = [];
+  for (let i = 0; i < MAX_LINKS; i++) {
+    const raw = formData.get(`link_${i}`);
+    const value = typeof raw === "string" ? raw.trim() : "";
+    if (!value) continue;
+    links.push(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+  }
+  if (links.length === 0) {
+    redirect(
+      `/submit/${token}?error=${encodeURIComponent("กรุณาใส่ลิงก์ผลงานอย่างน้อย 1 ลิงก์")}`,
+    );
+  }
+
+  const noteRaw = formData.get("note");
+  const note = typeof noteRaw === "string" && noteRaw.trim() !== "" ? noteRaw.trim() : null;
+
+  const { data: pt } = await supabase
+    .from("project_talents")
+    .select("id, project_id")
+    .eq("id", verified.projectTalentId)
+    .maybeSingle();
+  if (!pt) redirect("/submit/expired");
+
+  const { error } = await supabase
+    .from("project_talents")
+    .update({
+      submission_links: links,
+      submission_note: note,
+      submitted_at: new Date().toISOString(),
+    })
+    .eq("id", pt.id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/projects/${pt.project_id}`);
+  redirect(`/submit/${token}?saved=1`);
+}
+
+// แอดมินกด "ขอส่งงานทาง LINE" — push Flex พร้อมปุ่มเปิดฟอร์มส่งงาน
+export async function requestSubmissionViaLine(formData: FormData) {
+  const ptId = String(formData.get("pt_id"));
+  const submitUrl = String(formData.get("submit_url"));
+
+  const { data: pt } = await supabase
+    .from("project_talents")
+    .select("id, project_id, talent:talents(line_user_id), project:projects(name)")
+    .eq("id", ptId)
+    .maybeSingle();
+  if (!pt) throw new Error("ไม่พบแถวนี้");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const talent = pt.talent as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const project = pt.project as any;
+  if (!talent?.line_user_id) {
+    throw new Error("talent คนนี้ยังไม่ได้ผูก LINE — ใช้ปุ่มคัดลอกลิงก์แทน");
+  }
+  // กัน URL แปลกปลอม: ต้องเป็นลิงก์ /submit/ ของโดเมนเราเท่านั้น
+  if (!submitUrl.startsWith(`${BASE_URL}/submit/`)) {
+    throw new Error("ลิงก์ส่งงานไม่ถูกต้อง");
+  }
+
+  const flex = {
+    type: "flex",
+    altText: `📤 ส่งลิงก์ผลงานของงาน ${project.name} ได้เลย`,
+    contents: {
+      type: "bubble",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#0d1b2a",
+        paddingAll: "16px",
+        contents: [
+          { type: "text", text: "GAMDANG AGENCY", color: "#ffffff", weight: "bold", size: "sm" },
+          { type: "text", text: "ถึงเวลาส่งผลงานแล้ว 📤", color: "#9fb3c8", size: "xs", margin: "sm" },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          { type: "text", text: project.name, weight: "bold", size: "lg", wrap: true, color: "#1D4ED8" },
+          {
+            type: "text",
+            text: "แนบลิงก์โพสต์ผลงานของคุณ (สูงสุด 5 ลิงก์) เพื่อทีมงานจะรวบรวมส่งรายงานให้ลูกค้าค่ะ",
+            size: "sm",
+            color: "#555555",
+            wrap: true,
+          },
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "box",
+            layout: "vertical",
+            cornerRadius: "28px",
+            paddingAll: "12px",
+            background: {
+              type: "linearGradient",
+              angle: "90deg",
+              startColor: "#1D4ED8",
+              endColor: "#B82233",
+            },
+            action: { type: "uri", label: "ส่งลิงก์ผลงาน", uri: submitUrl },
+            contents: [
+              {
+                type: "text",
+                text: "ส่งลิงก์ผลงาน 📤",
+                color: "#ffffff",
+                align: "center",
+                weight: "bold",
+                size: "md",
+              },
+            ],
+          },
+        ],
+      },
+    },
+  };
+  await pushLineMessage(talent.line_user_id, [flex]);
+  revalidatePath(`/admin/projects/${pt.project_id}`);
+}

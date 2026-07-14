@@ -16,6 +16,7 @@ import {
   revokeProjectLink,
 } from "@/actions/project-links";
 import { notifyTalentViaLine, sendJobConfirmed } from "@/actions/job-notify";
+import { requestSubmissionViaLine } from "@/actions/submission";
 import { CopyButton } from "@/components/admin/CopyButton";
 import { JobCopyButton } from "@/components/admin/JobCopyButton";
 import { ProjectForm } from "@/components/admin/ProjectForm";
@@ -23,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { calculateAge } from "@/lib/age";
-import { createJobToken } from "@/lib/auth/talent-session";
+import { createJobToken, createSubmitToken } from "@/lib/auth/talent-session";
 import { TIER_LABEL } from "@/lib/constants";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
 import { getPhotoProxyUrl } from "@/lib/storage";
@@ -119,11 +120,12 @@ export default async function ProjectDetailPage({
     ),
   ]);
 
-  // job token ต่อแถว (สำหรับข้อความแจ้งงานแบบ copy) — stateless JWT สร้างใหม่
-  // ทุก render ได้ ของเก่ายังใช้ได้จนหมดอายุ 14 วัน
-  const jobTokens = await Promise.all(
-    projectTalents.map((pt) => createJobToken(pt.id)),
-  );
+  // token ต่อแถว (แจ้งงาน 14 วัน / ส่งงาน 60 วัน) — stateless JWT สร้างใหม่
+  // ทุก render ได้ ของเก่ายังใช้ได้จนหมดอายุ
+  const [jobTokens, submitTokens] = await Promise.all([
+    Promise.all(projectTalents.map((pt) => createJobToken(pt.id))),
+    Promise.all(projectTalents.map((pt) => createSubmitToken(pt.id))),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -139,6 +141,9 @@ export default async function ProjectDetailPage({
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" size="sm">
             <Link href={`/admin/projects/${id}/print`}>🖨 สร้าง PDF</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/admin/projects/${id}/report`}>📊 Report ผลงาน</Link>
           </Button>
           <form action={deleteProject}>
             <input type="hidden" name="id" value={id} />
@@ -173,6 +178,8 @@ export default async function ProjectDetailPage({
           {projectTalents.map((pt, i) => {
             const t = pt.talent;
             const jobUrl = `${BASE_URL}/job/${jobTokens[i]}`;
+            const submitUrl = `${BASE_URL}/submit/${submitTokens[i]}`;
+            const submissionLinks: string[] = pt.submission_links ?? [];
             const responseChip = pt.talent_response
               ? RESPONSE_CHIP[pt.talent_response]
               : null;
@@ -306,6 +313,41 @@ export default async function ProjectDetailPage({
                   text={buildJobMessage(project, jobUrl)}
                   ptId={pt.id}
                 />
+              </div>
+
+              {/* แถบส่งงาน (สำหรับรวบรวมผลงานทำ Report) */}
+              <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-2.5">
+                {pt.submitted_at ? (
+                  <span className="rounded-full bg-[#1D4ED8]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#1D4ED8]">
+                    📤 ส่งงานแล้ว {submissionLinks.length} ลิงก์
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-semibold text-neutral-500">
+                    ยังไม่ส่งผลงาน
+                  </span>
+                )}
+                {submissionLinks.map((link, li) => (
+                  <a
+                    key={li}
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="max-w-40 truncate rounded-full border border-neutral-200 px-2.5 py-0.5 text-[11px] text-neutral-500 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+                  >
+                    🔗 {link.replace(/^https?:\/\/(www\.)?/, "")}
+                  </a>
+                ))}
+                <span className="flex-1" />
+                {t.line_user_id && (
+                  <form action={requestSubmissionViaLine}>
+                    <input type="hidden" name="pt_id" value={pt.id} />
+                    <input type="hidden" name="submit_url" value={submitUrl} />
+                    <Button type="submit" size="sm" variant="outline">
+                      📤 ขอส่งงานทาง LINE
+                    </Button>
+                  </form>
+                )}
+                <CopyButton text={submitUrl} label="คัดลอกลิงก์ส่งงาน" />
               </div>
               </div>
             );
