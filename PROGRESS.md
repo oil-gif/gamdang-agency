@@ -64,6 +64,14 @@
 - หลังบ้าน `/admin/projects` (มีเมนูใน nav): สร้าง/แก้ project (ประเภทงาน model/influencer, ลูกค้า, shooting date, budget, สถานะ) + จัดการ talent ในโปรเจกต์ (ค้นหา/filter เฉพาะ active, เพิ่ม/เอาออก, สลับ compcard⇄influcard ต่อคน, เรียง ▲▼) + จัดการลิงก์ลูกค้า (token 30 วัน, copy/ยกเลิก/ต่ออายุ, เห็น view count + สถานะ T&C)
 - หน้าลูกค้า `/p/[token]`: T&C gate เก็บ IP+เวลา → หน้าปก gradient + header GAMDANG AGENCY. การ์ด Model = compcard เต็ม (fallback รูป) + อายุ/สูง/หนัก/ethnicity. การ์ด Influencer = รูป gallery + tier + ยอด follower ช่องที่เยอะสุด + expertise + ไอคอน social กดได้ (รองรับ handle หรือ URL เต็ม). ปุ่มลอย print → PDF ลิงก์กดได้
 - ไฟล์สำคัญ: `actions/projects.ts`, `actions/project-links.ts`, `actions/public-link.ts`, `lib/social.ts` (topSocial/talentSocials), `lib/public-link.ts`, `app/p/[token]/page.tsx`, `components/admin/ProjectForm.tsx`
+- **รอบ polish ตามฟีดแบ็กพี่ (commit `f0a651d`, ตรวจ live แล้ว):**
+  - การ์ด Influencer หน้า `/p/[token]` เป็นแบบ compact ตามตัวอย่างระบบเก่า (รูปวงกลม, tier pill, แถว Max Followers/Age, expertise chips, ปุ่ม social วงกลมสีแบรนด์กดได้) จัด grid 2-3 คอลัมน์ — การ์ดกลางใช้ `components/public/TalentCards.tsx` (ModelCard/InfluCard/PrintMiniCard ใช้ร่วม 3 ที่)
+  - ใช้ code จริง (GD-xxxx) แทนเลขลำดับ 01/02
+  - T&C เพิ่มข้อห้ามติดต่อ Model/Influencer โดยตรง (รวม DM) ไทย+อังกฤษ + ย้ำใน footer
+  - **PDF ฝั่ง admin**: `/admin/projects/[id]/print` — A4 แนวตั้ง 8 การ์ด/หน้า (2×4 mini card แนวนอน) header GAMDANG + ชื่อ project ทุกหน้า, ปุ่ม "🖨 สร้าง PDF" ในหน้าโปรเจกต์, admin กด print → Save as PDF (ลิงก์ social ใน PDF กดได้)
+  - Picker เพิ่ม talent โชว์ รูปเล็ก/tier/max follower/expertise/จุด social ครบ
+  - ปุ่มเลือก card type เปลี่ยนจาก toggle ⇄ เป็น segmented [Comp Card | Influ Card] — **บั๊ก "social ของ Tammy ไม่ขึ้น" เกิดจาก row เธอค้างเป็น compcard** (layout compcard ไม่โชว์ social โดยดีไซน์) แก้ข้อมูลเป็น influcard แล้ว
+  - Admin shell ใหม่: header navy + เส้นแดง, nav pill มี active state (`components/admin/AdminNav.tsx`), เนื้อหา max-w-6xl, ซ่อน chrome ตอน print
 
 ## ค้างอยู่ (เฟสถัดไป): หน้าบ้านสาธารณะ 3 Tab + AI Model
 สเปคจากพี่เจ้าของ (ยังไม่เริ่ม):
