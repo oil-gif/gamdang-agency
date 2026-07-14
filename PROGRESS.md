@@ -10,7 +10,7 @@
 - [ ] ทดสอบ flow เชื่อม record เก่ากับ LINE จริงในแอป LINE (ปุ่ม "สร้างลิงก์เชื่อม LINE" ในหน้าแก้ไข talent ที่ยังไม่ผูก LINE → ส่งลิงก์เข้า LINE ตัวเอง → เปิด → ต้องผูกเข้า record เดิมไม่สร้างใหม่)
 
 **งานพัฒนา (ตกลงกันแล้วว่า "ทำหลังบ้านให้จบก่อน แล้วค่อยรวม WordPress"):**
-- [ ] **Milestone 12 — ลูกค้ากดเลือกจาก Port**: ปุ่ม "สนใจ" บนการ์ดใน `/p/[token]` → บันทึกลง `project_talents.client_interested` (คอลัมน์มีอยู่แล้ว) + ปุ่มส่งรายชื่อที่เลือกให้ agency → หลังบ้านโชว์ว่าลูกค้าเลือกใคร
+- [x] **Milestone 12 — ลูกค้ากดเลือกจาก Port — เสร็จแล้ว (commit `1f78c21`, ตรวจ live แล้ว)**: ปุ่ม "+ สนใจคนนี้ / ✓ เลือกแล้ว" toggle บนการ์ดใน `/p/[token]` → `project_talents.client_interested` (action `actions/client-selection.ts` ตรวจ token+ownership), การ์ดที่เลือกมี ring เขียว + แถบ sticky "เลือกไว้ N คน", banner อธิบายวิธีเลือก, หลังบ้านโชว์ badge "★ ลูกค้าสนใจ" ต่อแถว + chip นับรวม — ปุ่มไม่ render ในหน้า admin/print (ไม่ส่ง selectToken)
 - [ ] **Milestone 13 — แจ้งงานหา talent + รับคำตอบ**: Flex Message push หา talent ที่ผูก LINE (⚠️ ต้องขอ **Channel Access Token ของ Messaging API จาก OA @gamdangmodeling** จากพี่ก่อน — คนละ channel กับ LIFF) / คนไม่ผูก LINE ใช้ปุ่ม Copy ข้อความ+ลิงก์ให้แอดมินส่งเองทาง LINE/WhatsApp → talent เปิดลิงก์ตอบ รับงาน/ปฏิเสธ → `project_talents.talent_response` (คอลัมน์มีอยู่แล้ว)
 - [ ] **Milestone 14 — Form ส่งงาน Influ + Report**: migration 004 ตาราง submissions (ลิงก์ผลงานสูงสุด 5 ช่องทาง/คน) → ฟอร์มส่งงานผ่าน LIFF หรือ token link → แอดมิน Gen Report (โครง PDF เดิม) รวมลิงก์ผลงานส่งลูกค้า
 - [ ] Polish ความปลอดภัย: เปลี่ยนรหัสแอดมิน (ตอนนี้ `gamdang2026`), พิจารณาลบหน้า `/style-guide`, (optional) เพิ่มเช็ค admin จริงใน `/api/upload`+`deletePhoto` (ดูหมายเหตุใน Milestone 8)
