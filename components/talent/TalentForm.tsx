@@ -34,6 +34,8 @@ type Talent = {
   note?: string | null;
   is_model?: boolean;
   is_influencer?: boolean;
+  is_ai_model?: boolean;
+  character?: string | null;
   status?: string;
   ig_handle?: string | null;
   ig_followers?: number;
@@ -58,6 +60,7 @@ export function TalentForm({
   mode?: "admin" | "self";
 }) {
   const [isInfluencer, setIsInfluencer] = useState(talent?.is_influencer ?? false);
+  const [isAiModel, setIsAiModel] = useState(talent?.is_ai_model ?? false);
   const action = mode === "self" ? saveTalentSelf : saveTalent;
 
   return (
@@ -248,7 +251,30 @@ export function TalentForm({
               />
               เป็น Influencer
             </label>
+            {mode === "admin" && (
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  name="is_ai_model"
+                  checked={isAiModel}
+                  onCheckedChange={(v) => setIsAiModel(v === true)}
+                />
+                เป็น AI Model
+              </label>
+            )}
           </div>
+          {mode === "admin" && isAiModel && (
+            <div className="space-y-1.5">
+              <Label htmlFor="character">
+                Character (คั่นด้วย / เช่น Energetic / Fun)
+              </Label>
+              <Input
+                id="character"
+                name="character"
+                placeholder="Energetic / Fun"
+                defaultValue={talent?.character ?? ""}
+              />
+            </div>
+          )}
           {mode === "admin" && (
             <div className="max-w-xs space-y-1.5">
               <Label htmlFor="status">สถานะ</Label>

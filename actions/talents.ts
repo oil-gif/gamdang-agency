@@ -184,6 +184,9 @@ export async function saveTalent(formData: FormData) {
     note: str(formData, "note"),
     is_model: formData.get("is_model") === "on",
     is_influencer: formData.get("is_influencer") === "on",
+    // AI Model เป็นของ admin เท่านั้น — saveTalentSelf ไม่มี field นี้โดยตั้งใจ
+    is_ai_model: formData.get("is_ai_model") === "on",
+    character: str(formData, "character"),
     status: str(formData, "status") ?? "pending",
     ig_handle: str(formData, "ig_handle"),
     ig_followers: followers.ig,

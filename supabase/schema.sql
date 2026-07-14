@@ -34,6 +34,9 @@ create table if not exists talents (
 
   is_model boolean not null default false,
   is_influencer boolean not null default false,
+  -- AI Model: ตัวละครที่ admin สร้างเอง (ไม่มี LINE/followers) โชว์ใน tab แยกหน้าบ้าน
+  is_ai_model boolean not null default false,
+  character text,
 
   status text not null default 'pending' check (status in ('pending', 'active', 'rejected', 'inactive')),
   source text not null default 'self' check (source in ('admin', 'self')),
