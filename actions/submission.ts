@@ -13,6 +13,7 @@ const BASE_URL = "https://gamdang-app.vercel.app";
 // (งาน influ = ลิงก์โพสต์ผลงาน · งาน model = casting: ลิงก์ผลงานเก่า + คลิปแนะนำตัว)
 export async function saveSubmission(formData: FormData) {
   const token = String(formData.get("token"));
+  const fromAdminQS = formData.get("from") === "admin" ? "&from=admin" : "";
   const verified = await verifySubmitToken(token);
   if (!verified) redirect("/submit/expired");
 
@@ -52,12 +53,12 @@ export async function saveSubmission(formData: FormData) {
   // (รูป/ลิงก์/คลิป) ก็บันทึกได้
   if (!isModel && links.length === 0) {
     redirect(
-      `/submit/${token}?error=${encodeURIComponent("กรุณาใส่ลิงก์ผลงานอย่างน้อย 1 ลิงก์")}`,
+      `/submit/${token}?error=${encodeURIComponent("กรุณาใส่ลิงก์ผลงานอย่างน้อย 1 ลิงก์")}${fromAdminQS}`,
     );
   }
   if (isModel && links.length === 0 && !introVideo && !hasPhotos && !note) {
     redirect(
-      `/submit/${token}?error=${encodeURIComponent("กรุณาใส่รูป ลิงก์ผลงาน หรือคลิปแนะนำตัว อย่างน้อย 1 อย่าง")}`,
+      `/submit/${token}?error=${encodeURIComponent("กรุณาใส่รูป ลิงก์ผลงาน หรือคลิปแนะนำตัว อย่างน้อย 1 อย่าง")}${fromAdminQS}`,
     );
   }
 
@@ -83,7 +84,8 @@ export async function saveSubmission(formData: FormData) {
   }
 
   revalidatePath(`/admin/projects/${pt.project_id}`);
-  redirect(`/submit/${token}?saved=1`);
+  // คงโหมด "แอดมินกรอกแทน" ไว้หลัง save เพื่อให้ยังเห็นปุ่มกลับหลังบ้าน
+  redirect(`/submit/${token}?saved=1${fromAdminQS}`);
 }
 
 // แอดมินกด "ขอส่งงานทาง LINE" — push Flex พร้อมปุ่มเปิดฟอร์มส่งงาน

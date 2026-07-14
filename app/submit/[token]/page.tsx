@@ -36,10 +36,11 @@ export default async function SubmitWorkPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ error?: string; saved?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string; from?: string }>;
 }) {
   const { token } = await params;
-  const { error, saved } = await searchParams;
+  const { error, saved, from } = await searchParams;
+  const fromAdmin = from === "admin";
   const verified = await verifySubmitToken(token);
 
   if (!verified) {
@@ -58,7 +59,7 @@ export default async function SubmitWorkPage({
   const { data: pt } = await supabase
     .from("project_talents")
     .select(
-      "id, submission_links, submission_note, submitted_at, extra_photo_paths, intro_video_url, talent:talents(nickname_th, nickname_en), project:projects(name, client_name, project_type)",
+      "id, project_id, submission_links, submission_note, submitted_at, extra_photo_paths, intro_video_url, talent:talents(nickname_th, nickname_en), project:projects(name, client_name, project_type)",
     )
     .eq("id", verified.projectTalentId)
     .maybeSingle();
@@ -89,6 +90,15 @@ export default async function SubmitWorkPage({
         isModel ? "ส่งข้อมูล Casting (Model Profile)" : "ส่งลิงก์ผลงาน (Work Submission)"
       }
     >
+      {/* แอดมินเปิดจากปุ่ม "กรอกแทน" — มีทางกลับหลังบ้าน */}
+      {fromAdmin && (
+        <a
+          href={`/admin/projects/${pt.project_id}`}
+          className="mb-3 block rounded-lg bg-[#1D4ED8]/5 px-3 py-2 text-sm font-medium text-[#1D4ED8] hover:bg-[#1D4ED8]/10"
+        >
+          ← กลับหน้าโปรเจกต์ (โหมดแอดมินกรอกแทน)
+        </a>
+      )}
       <p className="text-sm text-neutral-500">สวัสดีค่ะ คุณ{name} 👋</p>
       <h1 className="mt-1 text-xl font-bold text-[#1D4ED8]">{project.name}</h1>
       <p className="mt-1 text-sm text-neutral-500">
@@ -120,6 +130,7 @@ export default async function SubmitWorkPage({
 
       <form action={saveSubmission} className="mt-5 space-y-3">
         <input type="hidden" name="token" value={token} />
+        {fromAdmin && <input type="hidden" name="from" value="admin" />}
 
         {isModel && (
           <div className="space-y-1">

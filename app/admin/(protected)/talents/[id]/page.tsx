@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { deleteTalent, getTalent } from "@/actions/talents";
 import { LineLinkButton } from "@/components/admin/LineLinkButton";
 import { TalentForm } from "@/components/talent/TalentForm";
@@ -18,6 +19,12 @@ export default async function EditTalentPage({
 
   return (
     <div className="max-w-3xl space-y-6">
+      <Link
+        href="/admin/talents"
+        className="inline-block text-sm font-medium text-[#1D4ED8] hover:underline"
+      >
+        ← กลับรายการ Talent
+      </Link>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-neutral-800">
           แก้ไข: {talent.nickname_th}

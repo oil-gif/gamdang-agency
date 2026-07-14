@@ -131,6 +131,12 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="space-y-8">
+      <Link
+        href="/admin/projects"
+        className="inline-block text-sm font-medium text-[#1D4ED8] hover:underline"
+      >
+        ← กลับรายการโปรเจกต์
+      </Link>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-neutral-800">{project.name}</h1>
@@ -415,9 +421,14 @@ export default async function ProjectDetailPage({
                     </Button>
                   </form>
                 )}
-                {/* แอดมินเปิดฟอร์มเดียวกับ talent เพื่อกรอกแทนได้เลย */}
+                {/* แอดมินเปิดฟอร์มเดียวกับ talent เพื่อกรอกแทนได้เลย
+                    (?from=admin → ฟอร์มมีปุ่มกลับหน้าโปรเจกต์) */}
                 <Button asChild size="sm" variant="ghost">
-                  <a href={submitUrl} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={`${submitUrl}?from=admin`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     ✏️ กรอกแทน
                   </a>
                 </Button>
