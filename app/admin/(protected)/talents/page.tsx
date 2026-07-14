@@ -3,11 +3,7 @@ import { getTalentsWithPhotos, type TalentFilters } from "@/actions/talents";
 import { Button } from "@/components/ui/button";
 import { TalentFilterPanel } from "@/components/admin/TalentFilterPanel";
 import { TalentGridCard } from "@/components/talent/TalentGridCard";
-import {
-  STATUS_LABEL_TH,
-  TALENTS_PAGE_SIZE,
-  TIER_LABEL,
-} from "@/lib/constants";
+import { STATUS_LABEL_TH, TALENTS_PAGE_SIZE } from "@/lib/constants";
 import { calculateAge } from "@/lib/age";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
 

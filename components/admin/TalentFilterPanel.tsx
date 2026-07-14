@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,47 +120,70 @@ export function TalentFilterPanel({ searchParams }: { searchParams: Params }) {
         </Select>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="min_height">ส่วนสูง ต่ำสุด</Label>
-        <Input
-          id="min_height"
-          name="min_height"
-          type="number"
-          defaultValue={searchParams.min_height ?? ""}
-        />
+      {/* ช่วงส่วนสูง/อายุ เป็นชุดเดียว: [ต่ำสุด] ถึง [สูงสุด] + หน่วย */}
+      <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
+        <Label htmlFor="min_height">ส่วนสูง (Height)</Label>
+        <div className="flex h-9 items-center overflow-hidden rounded-md border border-input bg-white shadow-xs focus-within:border-[#1D4ED8] focus-within:ring-2 focus-within:ring-[#1D4ED8]/20">
+          <input
+            id="min_height"
+            name="min_height"
+            type="number"
+            min={0}
+            placeholder="ต่ำสุด"
+            defaultValue={searchParams.min_height ?? ""}
+            className="h-full w-full min-w-0 flex-1 bg-transparent px-3 text-center text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+          <span className="shrink-0 select-none px-1 text-xs text-neutral-400">
+            ถึง
+          </span>
+          <input
+            id="max_height"
+            name="max_height"
+            type="number"
+            min={0}
+            placeholder="สูงสุด"
+            defaultValue={searchParams.max_height ?? ""}
+            className="h-full w-full min-w-0 flex-1 bg-transparent px-3 text-center text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+          <span className="shrink-0 select-none border-l border-input bg-neutral-50 px-2.5 text-xs font-medium text-neutral-500">
+            ซม.
+          </span>
+        </div>
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="max_height">ส่วนสูง สูงสุด</Label>
-        <Input
-          id="max_height"
-          name="max_height"
-          type="number"
-          defaultValue={searchParams.max_height ?? ""}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="min_age">อายุ ต่ำสุด</Label>
-        <Input
-          id="min_age"
-          name="min_age"
-          type="number"
-          defaultValue={searchParams.min_age ?? ""}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="max_age">อายุ สูงสุด</Label>
-        <Input
-          id="max_age"
-          name="max_age"
-          type="number"
-          defaultValue={searchParams.max_age ?? ""}
-        />
+      <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
+        <Label htmlFor="min_age">อายุ (Age)</Label>
+        <div className="flex h-9 items-center overflow-hidden rounded-md border border-input bg-white shadow-xs focus-within:border-[#1D4ED8] focus-within:ring-2 focus-within:ring-[#1D4ED8]/20">
+          <input
+            id="min_age"
+            name="min_age"
+            type="number"
+            min={0}
+            placeholder="ต่ำสุด"
+            defaultValue={searchParams.min_age ?? ""}
+            className="h-full w-full min-w-0 flex-1 bg-transparent px-3 text-center text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+          <span className="shrink-0 select-none px-1 text-xs text-neutral-400">
+            ถึง
+          </span>
+          <input
+            id="max_age"
+            name="max_age"
+            type="number"
+            min={0}
+            placeholder="สูงสุด"
+            defaultValue={searchParams.max_age ?? ""}
+            className="h-full w-full min-w-0 flex-1 bg-transparent px-3 text-center text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+          <span className="shrink-0 select-none border-l border-input bg-neutral-50 px-2.5 text-xs font-medium text-neutral-500">
+            ปี
+          </span>
+        </div>
       </div>
 
       <div className="flex items-end gap-2 sm:col-span-2">
         <Button type="submit">กรอง</Button>
         <Button asChild variant="outline" type="button">
-          <a href="/admin/talents">ล้างตัวกรอง</a>
+          <Link href="/admin/talents">ล้างตัวกรอง</Link>
         </Button>
       </div>
     </form>
