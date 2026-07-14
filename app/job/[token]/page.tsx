@@ -68,20 +68,20 @@ export default async function JobOfferPage({
   const project = pt.project as any;
   const name = talent?.nickname_th || talent?.nickname_en || "";
 
-  const rows = [
-    project.client_name ? ["ลูกค้า", project.client_name] : null,
-    project.shooting_date
-      ? [
-          "วันถ่าย",
-          new Date(project.shooting_date).toLocaleDateString("th-TH", {
+  const rows: [string, string][] = [
+    ["Client", project.client_name || "To Be Confirmed"],
+    [
+      "Shooting Date",
+      project.shooting_date
+        ? new Date(project.shooting_date).toLocaleDateString("en-GB", {
             day: "numeric",
-            month: "long",
+            month: "short",
             year: "numeric",
-          }),
-        ]
-      : null,
-    project.budget ? ["Budget", project.budget] : null,
-  ].filter(Boolean) as [string, string][];
+          })
+        : "To Be Confirmed",
+    ],
+    ["Budget", project.budget || "To Be Confirmed"],
+  ];
 
   return (
     <Shell>
@@ -106,24 +106,25 @@ export default async function JobOfferPage({
 
       {pt.talent_response === "accepted" && (
         <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-700">
-          ✓ คุณตอบรับงานนี้แล้ว — ทีมงานจะติดต่อกลับเรื่องรายละเอียดค่ะ
+          ✓ รับทราบความสนใจแล้ว — รบกวนล็อกคิววันถ่ายไว้ก่อนนะคะ ทีมงานจะส่ง
+          &quot;Job Confirmed 🎉&quot; ยืนยันอีกครั้งเมื่อลูกค้าคอนเฟิร์มค่ะ
         </div>
       )}
       {pt.talent_response === "declined" && (
         <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm font-semibold text-rose-700">
-          คุณปฏิเสธงานนี้แล้ว — เปลี่ยนใจสามารถกดรับงานด้านล่างได้ค่ะ
+          คุณแจ้งไม่สะดวกไว้ — เปลี่ยนใจสามารถกด &quot;สนใจ&quot; ด้านล่างได้ค่ะ
         </div>
       )}
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="mt-5 space-y-3">
         <form action={respondToJob}>
           <input type="hidden" name="token" value={token} />
           <input type="hidden" name="response" value="accepted" />
           <button
             type="submit"
-            className="h-12 w-full rounded-xl bg-emerald-600 font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+            className="h-12 w-full rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] font-semibold text-white shadow-sm transition hover:opacity-95"
           >
-            ✓ รับงานนี้
+            สนใจ (Interested)
           </button>
         </form>
         <form action={respondToJob}>
@@ -131,16 +132,16 @@ export default async function JobOfferPage({
           <input type="hidden" name="response" value="declined" />
           <button
             type="submit"
-            className="h-12 w-full rounded-xl border border-neutral-300 bg-white font-semibold text-neutral-600 transition hover:border-rose-400 hover:text-rose-600"
+            className="h-12 w-full rounded-full bg-neutral-200 font-semibold text-neutral-600 transition hover:bg-neutral-300"
           >
-            ปฏิเสธ
+            ไม่สะดวก
           </button>
         </form>
       </div>
 
       <p className="mt-4 text-center text-xs text-neutral-400">
-        ตอบรับหรือสอบถามเพิ่มเติม ติดต่อทีมงาน GAMDANG AGENCY ได้ทาง LINE OA
-        เดิมที่ได้รับข้อความนี้ค่ะ
+        ปุ่มนี้เป็นการเช็คคิวเบื้องต้น — งานจะยืนยันอีกครั้งด้วยข้อความ
+        &quot;Job Confirmed 🎉&quot; จากทีมงาน GAMDANG AGENCY ค่ะ
       </p>
     </Shell>
   );

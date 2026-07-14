@@ -1,13 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createJobToken } from "@/lib/auth/talent-session";
-import { buildJobOfferFlex, pushLineMessage } from "@/lib/line-messaging";
+import {
+  buildJobConfirmedFlex,
+  buildJobOfferFlex,
+  pushLineMessage,
+} from "@/lib/line-messaging";
 import { supabase } from "@/lib/supabase/server";
 
-const BASE_URL = "https://gamdang-app.vercel.app";
-
 // แอดมินกด "แจ้งงานทาง LINE" — push Flex ไปหา talent ที่ผูก LINE แล้ว
+// (ปุ่มในการ์ดเป็น postback ตอบกลับผ่าน /api/line/webhook)
 export async function notifyTalentViaLine(formData: FormData) {
   const ptId = String(formData.get("pt_id"));
 
@@ -27,13 +29,12 @@ export async function notifyTalentViaLine(formData: FormData) {
     throw new Error("talent คนนี้ยังไม่ได้ผูก LINE — ใช้ปุ่มคัดลอกข้อความแทน");
   }
 
-  const token = await createJobToken(pt.id);
   const flex = buildJobOfferFlex({
+    projectTalentId: pt.id,
     projectName: project.name,
     clientName: project.client_name,
     shootingDate: project.shooting_date,
     budget: project.budget,
-    jobUrl: `${BASE_URL}/job/${token}`,
   });
   await pushLineMessage(talent.line_user_id, [flex]);
 
@@ -44,6 +45,35 @@ export async function notifyTalentViaLine(formData: FormData) {
       .update({ talent_response: "pending" })
       .eq("id", pt.id);
   }
+  revalidatePath(`/admin/projects/${pt.project_id}`);
+}
+
+// แอดมินกด "🎉 ส่ง Job Confirmed" (หลังลูกค้าคอนเฟิร์ม) — push Flex ยืนยันงาน
+export async function sendJobConfirmed(formData: FormData) {
+  const ptId = String(formData.get("pt_id"));
+
+  const { data: pt } = await supabase
+    .from("project_talents")
+    .select("id, project_id, talent:talents(line_user_id), project:projects(name, client_name, shooting_date, budget)")
+    .eq("id", ptId)
+    .maybeSingle();
+  if (!pt) throw new Error("ไม่พบแถวนี้");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const talent = pt.talent as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const project = pt.project as any;
+  if (!talent?.line_user_id) {
+    throw new Error("talent คนนี้ยังไม่ได้ผูก LINE");
+  }
+
+  const flex = buildJobConfirmedFlex({
+    projectName: project.name,
+    clientName: project.client_name,
+    shootingDate: project.shooting_date,
+    budget: project.budget,
+  });
+  await pushLineMessage(talent.line_user_id, [flex]);
   revalidatePath(`/admin/projects/${pt.project_id}`);
 }
 

@@ -15,7 +15,7 @@ import {
   renewProjectLink,
   revokeProjectLink,
 } from "@/actions/project-links";
-import { notifyTalentViaLine } from "@/actions/job-notify";
+import { notifyTalentViaLine, sendJobConfirmed } from "@/actions/job-notify";
 import { CopyButton } from "@/components/admin/CopyButton";
 import { JobCopyButton } from "@/components/admin/JobCopyButton";
 import { ProjectForm } from "@/components/admin/ProjectForm";
@@ -38,20 +38,23 @@ const RESPONSE_CHIP: Record<string, { label: string; className: string }> = {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildJobMessage(project: any, jobUrl: string) {
+  const dateEN = project.shooting_date
+    ? new Date(project.shooting_date).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "To Be Confirmed";
   return [
     "มีงานใหม่จาก GAMDANG AGENCY 🎬",
     `งาน: ${project.name}`,
-    project.client_name ? `ลูกค้า: ${project.client_name}` : null,
-    project.shooting_date
-      ? `วันถ่าย: ${new Date(project.shooting_date).toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })}`
-      : null,
-    project.budget ? `Budget: ${project.budget}` : null,
+    `Client: ${project.client_name || "To Be Confirmed"}`,
+    `Shooting Date: ${dateEN}`,
+    `Budget: ${project.budget || "To Be Confirmed"}`,
     "",
-    "ดูรายละเอียดและกดตอบรับงานได้ที่ลิงก์นี้ (ใช้ได้ 14 วัน):",
+    "เช็คคิวและกดตอบรับได้ที่ลิงก์นี้ (ใช้ได้ 14 วัน):",
     jobUrl,
-  ]
-    .filter((line) => line !== null)
-    .join("\n");
+  ].join("\n");
 }
 
 function CardTypeSwitch({
@@ -284,6 +287,18 @@ export default async function ProjectDetailPage({
                       className="bg-[#06C755] text-white hover:bg-[#05b04c]"
                     >
                       📨 แจ้งงานทาง LINE
+                    </Button>
+                  </form>
+                )}
+                {t.line_user_id && pt.talent_response === "accepted" && (
+                  <form action={sendJobConfirmed}>
+                    <input type="hidden" name="pt_id" value={pt.id} />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] text-white hover:opacity-90"
+                    >
+                      🎉 ส่ง Job Confirmed
                     </Button>
                   </form>
                 )}
