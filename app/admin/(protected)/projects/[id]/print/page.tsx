@@ -9,7 +9,7 @@ const CARDS_PER_PAGE = 10;
 
 const CONTACT = {
   line: "@gamdangmodeling",
-  websites: ["www.gamang.com", "www.gamdangagency.com"],
+  websites: ["www.gamdang.com", "www.gamdangagency.com"],
 };
 
 function chunk<T>(arr: T[], size: number) {
