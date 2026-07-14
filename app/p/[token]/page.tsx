@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getProjectTalents } from "@/actions/projects";
 import { acceptProjectLinkTC } from "@/actions/public-link";
 import { InfluCard, ModelCard } from "@/components/public/TalentCards";
+import { CONTACT } from "@/lib/constants";
 import { bumpViewCount, getLinkWithProject } from "@/lib/public-link";
 
 export const metadata: Metadata = {
@@ -189,6 +190,38 @@ export default async function ClientPortfolioPage({
             ยังไม่มี talent ในโปรเจกต์นี้
           </p>
         )}
+
+        {/* CTA ติดต่อ agency */}
+        <section className="print-break overflow-hidden rounded-3xl bg-gradient-to-br from-[#1D4ED8] via-[#5b2b8f] to-[#B82233] px-8 py-10 text-center text-white shadow-md">
+          <h2 className="text-2xl font-bold">สนใจจองคิว / สอบถามรายละเอียด</h2>
+          <p className="mt-2 text-sm text-white/75">
+            การติดต่อและจ้างงานทุกกรณี ดำเนินการผ่าน GAMDANG AGENCY เท่านั้น
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <a
+              href={CONTACT.lineUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-full bg-[#06C755] px-6 py-3 font-semibold text-white shadow-sm transition hover:opacity-90"
+            >
+              <span className="flex size-6 items-center justify-center rounded-full bg-white text-[9px] font-extrabold text-[#06C755]">
+                LINE
+              </span>
+              {CONTACT.lineId}
+            </a>
+            {CONTACT.websites.map((w) => (
+              <a
+                key={w.url}
+                href={w.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full border border-white/40 bg-white/10 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/20"
+              >
+                {w.label}
+              </a>
+            ))}
+          </div>
+        </section>
 
         <footer className="pt-4 text-center text-xs leading-5 text-neutral-400">
           เอกสารนี้เป็นความลับ จัดทำเพื่อการพิจารณาคัดเลือกในโปรเจกต์นี้เท่านั้น

@@ -49,3 +49,14 @@ export const TIER_LABEL: Record<string, string> = {
   macro: "MACRO",
   celeb: "MEGA",
 };
+
+// ข้อมูลติดต่อ agency — ใช้ทั้ง CTA ท้ายหน้าลิงก์ลูกค้าและ PDF report
+export const CONTACT = {
+  lineId: "@gamdangmodeling",
+  // ลิงก์ add friend มาตรฐานของ LINE (@ ต้อง encode เป็น %40)
+  lineUrl: "https://line.me/R/ti/p/%40gamdangmodeling",
+  websites: [
+    { label: "www.gamdang.com", url: "https://www.gamdang.com" },
+    { label: "www.gamdangagency.com", url: "https://www.gamdangagency.com" },
+  ],
+} as const;

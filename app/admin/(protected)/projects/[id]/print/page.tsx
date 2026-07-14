@@ -3,14 +3,11 @@ import { getProject, getProjectTalents } from "@/actions/projects";
 import { PrintButton } from "@/components/public/PrintButton";
 import { PrintMiniCard } from "@/components/public/TalentCards";
 
+import { CONTACT } from "@/lib/constants";
+
 // การ์ดสูง ~40มม. → A4 แนวตั้ง (พื้นที่ใช้งาน ~277มม.) ใส่ได้เต็มที่ 5 แถว
 // = 10 ใบ/หน้า (ยืนยันกับพี่เจ้าของแล้ว 2026-07-14)
 const CARDS_PER_PAGE = 10;
-
-const CONTACT = {
-  line: "@gamdangmodeling",
-  websites: ["www.gamdang.com", "www.gamdangagency.com"],
-};
 
 function chunk<T>(arr: T[], size: number) {
   const out: T[][] = [];
@@ -50,7 +47,9 @@ export default async function ProjectPrintPage({
       <div className="no-print mb-4 flex items-center justify-between rounded-lg border bg-white px-4 py-3">
         <p className="text-sm text-neutral-500">
           ตัวอย่าง PDF: หน้าปก + {projectTalents.length} การ์ด ({pages.length}{" "}
-          หน้า, 10 ใบ/หน้า) — กดปุ่ม &quot;บันทึกเป็น PDF&quot; แล้วเลือก Save as PDF
+          หน้า, 10 ใบ/หน้า) — กดปุ่ม &quot;บันทึกเป็น PDF&quot; แล้วเลือก{" "}
+          <strong>Save as PDF ใน Chrome</strong> ไฟล์ที่ได้จะเป็น Interactive
+          PDF: ไอคอน Social, LINE และเว็บไซต์กดได้ทั้งหมด
         </p>
         <Link
           href={`/admin/projects/${id}`}
@@ -106,10 +105,17 @@ export default async function ProjectPrintPage({
 
         <div className="border-t border-white/25 pt-4">
           <p className="text-sm font-semibold">
-            สนใจจองคิว / สอบถามรายละเอียด — LINE Official: {CONTACT.line}
+            สนใจจองคิว / สอบถามรายละเอียด — LINE Official:{" "}
+            <a href={CONTACT.lineUrl} className="underline underline-offset-2">
+              {CONTACT.lineId}
+            </a>
           </p>
-          <p className="mt-0.5 text-xs text-white/80">
-            {CONTACT.websites.join(" · ")}
+          <p className="mt-0.5 space-x-3 text-xs text-white/80">
+            {CONTACT.websites.map((w) => (
+              <a key={w.url} href={w.url} className="underline underline-offset-2">
+                {w.label}
+              </a>
+            ))}
           </p>
           <p className="mt-3 text-[11px] leading-5 text-white/60">
             จัดทำเมื่อ{" "}
@@ -165,11 +171,17 @@ export default async function ProjectPrintPage({
               }}
             >
               สนใจจองคิว / สอบถาม — LINE Official:{" "}
-              <span className="text-[#06C755]">{CONTACT.line}</span>
-              {" · "}
-              <span className="text-[#1D4ED8]">
-                {CONTACT.websites.join(" · ")}
-              </span>
+              <a href={CONTACT.lineUrl} className="text-[#06C755]">
+                {CONTACT.lineId}
+              </a>
+              {CONTACT.websites.map((w) => (
+                <span key={w.url}>
+                  {" · "}
+                  <a href={w.url} className="text-[#1D4ED8]">
+                    {w.label}
+                  </a>
+                </span>
+              ))}
             </p>
             <p className="text-[9px] leading-4 text-neutral-400">
               เอกสารนี้เป็นความลับ ห้ามเผยแพร่ · ห้ามติดต่อ Model / Influencer โดยตรง —
