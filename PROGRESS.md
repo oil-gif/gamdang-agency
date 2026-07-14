@@ -79,6 +79,11 @@
 - **AI Model**: migration `003_ai_model.sql` เพิ่ม `talents.is_ai_model` + `character` — checkbox "เป็น AI Model" + ช่อง Character (คั่นด้วย /) ใน TalentForm เฉพาะ admin mode, self-service ตั้งไม่ได้โดยตั้งใจ. โค้ดอ่านแบบ migration-tolerant (deploy ก่อนรัน SQL ได้ tab AI แค่ว่าง)
 - **ค้าง**: (1) พี่ต้องรัน migration 003 ใน Supabase SQL Editor (2) สร้าง AI Model ตัวแรกผ่าน /admin/talents/new (ติ๊ก AI Model + กรอก Character + อัพรูป + ตั้ง active) (3) เว็บไซต์จริง www.gamdang.com ยังไม่ได้ผูกโดเมนกับ Vercel — ถ้าจะใช้เป็นหน้าเว็บหลักต้องตั้ง custom domain
 
+## การรวมกับเว็บ WordPress หน้าบ้าน (แผนใหม่ 2026-07-14, ยังไม่เริ่ม)
+- **พี่มีเว็บหน้าบ้าน WordPress+Elementor อยู่แล้ว** (โดเมน gamdangagency, ดีไซน์เสร็จ: tab ทั้งหมด/Model/Influencer/AI Model + การ์ด talent + TH/EN + ปุ่ม "สมัคร Model/Influencer" + "Admin Login" + "จองถ่ายโปรไฟล์") — WP จะเป็นหน้าบ้านหลัก, แอป Next.js เป็นระบบหลังบ้าน/LIFF/Port ลูกค้า
+- แผนรวมที่ตกลงกัน: (1) ปุ่มสมัครบน WP → LIFF URL, ปุ่ม Admin Login → gamdang-app.vercel.app/admin (2) เปิด JSON API สาธารณะ `/api/public/talents` จากแอป แล้วเขียน shortcode ใน WP child theme ดึงมา render การ์ดอัตโนมัติ (single source of truth = Supabase, แอดมินอนุมัติแล้วขึ้นเว็บเอง)
+- หน้า 3 tab บน Vercel (`/`) เก็บไว้เป็น preview ได้ หรือถอดทีหลังเมื่อ WP เป็นหน้าหลัก
+
 ## Polish รอบสุดท้าย (ยังไม่เริ่ม)
 - เปลี่ยนรหัส admin, ลบหน้า /style-guide ถ้าไม่ใช้, ฯลฯ
 
