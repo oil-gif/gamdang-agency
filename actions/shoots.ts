@@ -186,3 +186,69 @@ export async function getSlipUrl(path: string) {
     .createSignedUrl(path, 3600);
   return data?.signedUrl ?? null;
 }
+
+// ===== เช็คชื่อหน้างานวันถ่าย (Photoshoot Overview) =====
+export async function setBookingArrival(formData: FormData) {
+  const id = String(formData.get("id"));
+  const dayId = String(formData.get("day_id"));
+  const arrived = formData.get("arrived") === "1";
+  const { error } = await supabase
+    .from("shoot_bookings")
+    .update({ arrived_at: arrived ? new Date().toISOString() : null })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/shoots/${dayId}`);
+}
+
+// ดึงคนจองเข้าระบบสมัครสมาชิก: สร้าง talent จากข้อมูลการจอง (prefill
+// ชื่อ/ชื่อเล่น/เบอร์/ส่วนสูง/น้ำหนัก) แล้วผูก booking → talent
+// จากนั้นแอดมินใช้ปุ่ม "สร้างลิงก์เชื่อม LINE" ในหน้า talent ต่อได้เลย
+export async function createTalentFromBooking(formData: FormData) {
+  const id = String(formData.get("id"));
+  const dayId = String(formData.get("day_id"));
+
+  const { data: b } = await supabase
+    .from("shoot_bookings")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (!b) return;
+  if (b.talent_id) return; // ผูกแล้ว ไม่สร้างซ้ำ
+
+  const num = (v: string | null) => {
+    const n = parseInt(String(v ?? "").replace(/[^0-9]/g, ""), 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+
+  const { data: talent, error } = await supabase
+    .from("talents")
+    .insert({
+      full_name: b.full_name,
+      nickname_th: b.nickname || b.full_name,
+      phone: b.phone,
+      email: b.email,
+      contact_line_or_whatsapp: b.line_id,
+      height_cm: num(b.height),
+      weight_kg: num(b.weight),
+      note: [
+        `มาจากระบบจองถ่ายโปรไฟล์ (Package ${b.package})`,
+        b.talents_note ? `ความสามารถพิเศษ: ${b.talents_note}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      is_model: true,
+      source: "admin",
+      status: "pending",
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+
+  await supabase
+    .from("shoot_bookings")
+    .update({ talent_id: talent.id })
+    .eq("id", id);
+
+  revalidatePath(`/admin/shoots/${dayId}`);
+  revalidatePath("/admin/talents");
+}

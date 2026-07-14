@@ -1,10 +1,12 @@
 import Link from "next/link";
 import {
+  createTalentFromBooking,
   deleteShootDay,
   getShootBookings,
   getShootDay,
   getSlipUrl,
   saveShootDay,
+  setBookingArrival,
   setBookingStatus,
   toggleShootSlot,
 } from "@/actions/shoots";
@@ -115,6 +117,90 @@ export default async function ShootDayDetailPage({
         </div>
       </form>
 
+      {/* ===== Photoshoot Overview: ทุกคิวเป็นช่อง คลิกดูข้อมูล/เช็คชื่อ =====
+          Package A โผล่ทั้ง 2 ห้อง (กินที่นั่งทั้ง Photo และ Video) */}
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold text-[#1D4ED8]">
+          Photoshoot Overview — {thaiDateLabel(day.shoot_date)}
+        </h2>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-500">
+          <span className="flex items-center gap-1.5">
+            <span className="size-3.5 rounded-sm bg-sky-400" /> มาถึงแล้ว
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-3.5 rounded-sm bg-neutral-400" /> อนุมัติแล้ว ยังไม่มา
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-3.5 rounded-sm bg-amber-300" /> รอตรวจสลิป
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-3.5 rounded-sm bg-neutral-100 ring-1 ring-neutral-200" /> ที่ว่าง
+          </span>
+          <span className="text-neutral-400">· คลิกช่องเพื่อดูข้อมูลคนจอง</span>
+        </div>
+
+        {(
+          [
+            ["photo", "📷 ห้องถ่ายภาพ", BOOKING.photoCap],
+            ["video", "🎬 ห้องวิดีโอ (Package A)", BOOKING.videoCap],
+          ] as const
+        ).map(([room, roomLabel, cap]) => (
+          <div key={room} className="overflow-x-auto rounded-lg border bg-white p-4">
+            <p className="mb-3 text-sm font-semibold text-neutral-700">
+              {roomLabel} — เต็ม {cap}/ชม.
+            </p>
+            <div className="space-y-1.5">
+              {BOOKING.hours.map((hour) => {
+                const roomBookings = bookings
+                  .filter(
+                    (b) =>
+                      b.hour === hour &&
+                      b.status !== "rejected" &&
+                      (room === "photo" || b.package === "A"),
+                  )
+                  .sort((a, b) => a.created_at.localeCompare(b.created_at));
+                const open = slotOpen(day.slots ?? {}, hour)[room];
+                return (
+                  <div key={hour} className="flex items-center gap-2">
+                    <span
+                      className={`w-14 shrink-0 font-mono text-xs ${open ? "text-neutral-600" : "text-neutral-300 line-through"}`}
+                    >
+                      {hour}
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {Array.from({ length: cap }).map((_, i) => {
+                        const b = roomBookings[i];
+                        if (!b) {
+                          return (
+                            <span
+                              key={i}
+                              className={`size-6 rounded-sm ${open ? "bg-neutral-100 ring-1 ring-neutral-200" : "bg-neutral-50"}`}
+                            />
+                          );
+                        }
+                        const color = b.arrived_at
+                          ? "bg-sky-400 hover:bg-sky-500"
+                          : b.status === "pending"
+                            ? "bg-amber-300 hover:bg-amber-400"
+                            : "bg-neutral-400 hover:bg-neutral-500";
+                        return (
+                          <a
+                            key={b.id}
+                            href={`#b-${b.id}`}
+                            title={`${b.full_name}${b.nickname ? ` (${b.nickname})` : ""} · Package ${b.package}${b.arrived_at ? " · มาถึงแล้ว" : ""}`}
+                            className={`size-6 rounded-sm transition ${color}`}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </section>
+
       {/* ตารางเวลา + เปิด/ปิดห้อง (จำนวนจอง admin เห็นคนเดียว) */}
       <section className="max-w-3xl space-y-3">
         <h2 className="text-lg font-semibold text-[#1D4ED8]">
@@ -192,11 +278,24 @@ export default async function ShootDayDetailPage({
           {bookings.map((b, i) => {
             const chip = STATUS_CHIP[b.status] ?? STATUS_CHIP.pending;
             return (
-              <div key={b.id} className="rounded-xl border bg-white p-4 shadow-sm">
+              <div
+                key={b.id}
+                id={`b-${b.id}`}
+                className="scroll-mt-24 rounded-xl border bg-white p-4 shadow-sm target:border-[#1D4ED8] target:ring-2 target:ring-[#1D4ED8]/30"
+              >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${chip.className}`}>
                     {chip.label}
                   </span>
+                  {b.arrived_at && (
+                    <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-700">
+                      🏁 มาถึงแล้ว{" "}
+                      {new Date(b.arrived_at).toLocaleTimeString("th-TH", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  )}
                   <span className="font-semibold text-neutral-800">
                     {b.full_name}
                     {b.nickname ? ` (${b.nickname})` : ""}
@@ -238,6 +337,41 @@ export default async function ShootDayDetailPage({
                     </Button>
                   ) : (
                     <span className="text-xs text-neutral-400">ไม่มีสลิป</span>
+                  )}
+
+                  {/* เช็คชื่อหน้างาน */}
+                  <form action={setBookingArrival}>
+                    <input type="hidden" name="id" value={b.id} />
+                    <input type="hidden" name="day_id" value={id} />
+                    <input type="hidden" name="arrived" value={b.arrived_at ? "0" : "1"} />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      className={
+                        b.arrived_at
+                          ? "bg-neutral-200 text-neutral-600 hover:bg-neutral-300"
+                          : "bg-sky-500 text-white hover:bg-sky-600"
+                      }
+                    >
+                      {b.arrived_at ? "↩︎ ยกเลิกเช็คชื่อ" : "🏁 มาถึงแล้ว"}
+                    </Button>
+                  </form>
+
+                  {/* ดึงเข้าระบบสมัครสมาชิก (talent) */}
+                  {b.talent_id ? (
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/admin/talents/${b.talent_id}`}>
+                        👤 ดูโปรไฟล์ Talent
+                      </Link>
+                    </Button>
+                  ) : (
+                    <form action={createTalentFromBooking}>
+                      <input type="hidden" name="id" value={b.id} />
+                      <input type="hidden" name="day_id" value={id} />
+                      <Button type="submit" size="sm" variant="outline">
+                        ➕ เพิ่มเข้าระบบ Talent
+                      </Button>
+                    </form>
                   )}
                   <span className="flex-1" />
                   {b.status !== "approved" && (
