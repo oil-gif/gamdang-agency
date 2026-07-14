@@ -3,44 +3,72 @@ import {
   deleteStaleTalent,
   getPendingCount,
   getStaleTalents,
-  getTalents,
+  getTalentCounts,
   keepTalent,
 } from "@/actions/talents";
-import { getProjects } from "@/actions/projects";
+import { getProjectCounts } from "@/actions/projects";
 import { Button } from "@/components/ui/button";
 
 export default async function AdminDashboardPage() {
-  const [talents, pendingCount, projects, stale] = await Promise.all([
-    getTalents(),
+  const [talentCounts, pendingCount, projectCounts, stale] = await Promise.all([
+    getTalentCounts(),
     getPendingCount(),
-    getProjects(),
+    getProjectCounts(),
     getStaleTalents(),
   ]);
 
   const stats = [
-    { label: "Talent ทั้งหมด", value: talents.length, href: "/admin/talents" },
+    {
+      label: "Talent ทั้งหมด",
+      value: talentCounts.total,
+      href: "/admin/talents",
+      accent: "text-[#1D4ED8]",
+    },
     {
       label: "อนุมัติแล้ว (Active)",
-      value: talents.filter((t) => t.status === "active").length,
+      value: talentCounts.active,
       href: "/admin/talents?status=active",
+      accent: "text-emerald-600",
     },
-    { label: "รออนุมัติ", value: pendingCount, href: "/admin/approvals" },
-    { label: "โปรเจกต์", value: projects.length, href: "/admin/projects" },
+    {
+      label: "รออนุมัติ",
+      value: pendingCount,
+      href: "/admin/approvals",
+      accent: "text-amber-500",
+    },
+    {
+      label: "โปรเจกต์ทั้งหมด",
+      value: projectCounts.total,
+      href: "/admin/projects",
+      accent: "text-neutral-800",
+    },
+    {
+      label: "งาน Model",
+      value: projectCounts.model,
+      href: "/admin/projects?type=model",
+      accent: "text-[#1D4ED8]",
+    },
+    {
+      label: "งาน Influencer",
+      value: projectCounts.influencer,
+      href: "/admin/projects?type=influencer",
+      accent: "text-[#B82233]",
+    },
   ];
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-neutral-800">Dashboard</h1>
 
-      {/* สถิติรวม */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {/* สถิติรวม (count-only queries — เร็วแม้ข้อมูลหลักหมื่น) */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         {stats.map((s) => (
           <Link
             key={s.label}
             href={s.href}
             className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:border-[#1D4ED8]/40 hover:shadow-md"
           >
-            <p className="text-3xl font-bold text-[#1D4ED8]">{s.value}</p>
+            <p className={`text-3xl font-bold ${s.accent}`}>{s.value}</p>
             <p className="mt-1 text-sm text-neutral-500">{s.label}</p>
           </Link>
         ))}

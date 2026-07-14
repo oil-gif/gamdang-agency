@@ -13,6 +13,58 @@ export async function getProjects() {
   return data;
 }
 
+export type ProjectFilters = {
+  q?: string; // ชื่องาน / ชื่อลูกค้า
+  type?: "model" | "influencer";
+  year?: number; // ปีของงาน (ยึด shooting date — ไม่มีก็ใช้วันที่สร้าง)
+};
+
+// list โปรเจกต์แบบแบ่งหน้า + ค้นหา — รองรับเป็นร้อยเป็นพันโปรเจกต์
+export async function getProjectsPage(filters: ProjectFilters = {}, page = 1) {
+  const { PROJECTS_PAGE_SIZE } = await import("@/lib/constants");
+  let query = supabase
+    .from("projects")
+    .select("*, project_talents(count)", { count: "exact" })
+    .order("created_at", { ascending: false });
+
+  if (filters.q) {
+    const term = filters.q.replace(/[%,]/g, "");
+    query = query.or(`name.ilike.%${term}%,client_name.ilike.%${term}%`);
+  }
+  if (filters.type) query = query.eq("project_type", filters.type);
+  if (filters.year) {
+    const y = filters.year;
+    // ปีของงาน = ปีวันถ่าย ถ้าไม่มีวันถ่ายใช้ปีที่สร้างโปรเจกต์แทน
+    query = query.or(
+      `and(shooting_date.gte.${y}-01-01,shooting_date.lte.${y}-12-31),and(shooting_date.is.null,created_at.gte.${y}-01-01,created_at.lte.${y}-12-31)`,
+    );
+  }
+
+  const from = (page - 1) * PROJECTS_PAGE_SIZE;
+  const { data, count, error } = await query.range(
+    from,
+    from + PROJECTS_PAGE_SIZE - 1,
+  );
+  if (error) throw new Error(error.message);
+  return { projects: data ?? [], total: count ?? 0 };
+}
+
+// จำนวนโปรเจกต์แยกตามประเภท (count-only query — เร็วแม้มีเป็นพัน)
+export async function getProjectCounts() {
+  const count = async (type?: string) => {
+    let q = supabase.from("projects").select("id", { count: "exact", head: true });
+    if (type) q = q.eq("project_type", type);
+    const { count: n } = await q;
+    return n ?? 0;
+  };
+  const [total, model, influencer] = await Promise.all([
+    count(),
+    count("model"),
+    count("influencer"),
+  ]);
+  return { total, model, influencer };
+}
+
 export async function getProject(id: string) {
   const { data, error } = await supabase
     .from("projects")

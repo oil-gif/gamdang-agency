@@ -55,3 +55,6 @@ export const CONTACT = {
 
 // จำนวนการ์ดต่อหน้าของ list หลังบ้าน (pagination)
 export const TALENTS_PAGE_SIZE = 60;
+
+// จำนวนแถวต่อหน้าของ list โปรเจกต์ (pagination)
+export const PROJECTS_PAGE_SIZE = 50;

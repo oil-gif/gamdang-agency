@@ -153,6 +153,18 @@ export async function getPendingTalents() {
   }));
 }
 
+// สถิติ dashboard แบบ count-only (ไม่ดึงข้อมูลทั้งตาราง — เร็วแม้หมื่น record)
+export async function getTalentCounts() {
+  const count = async (status?: string) => {
+    let q = supabase.from("talents").select("id", { count: "exact", head: true });
+    if (status) q = q.eq("status", status);
+    const { count: n } = await q;
+    return n ?? 0;
+  };
+  const [total, active] = await Promise.all([count(), count("active")]);
+  return { total, active };
+}
+
 export async function getPendingCount() {
   const { count, error } = await supabase
     .from("talents")
