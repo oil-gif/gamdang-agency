@@ -212,6 +212,40 @@ export async function setProjectTalentCardType(formData: FormData) {
   revalidatePath(`/admin/projects/${projectId}`);
 }
 
+// ===== Admin ทำแทนลูกค้า/talent ได้ (เผื่อคุยกันนอกระบบ ทางโทร/แชท) =====
+
+// ติ๊ก "ลูกค้าสนใจ" แทนลูกค้า
+export async function toggleClientInterestAdmin(formData: FormData) {
+  const ptId = String(formData.get("pt_id"));
+  const projectId = String(formData.get("project_id"));
+  const { data: pt } = await supabase
+    .from("project_talents")
+    .select("id, client_interested")
+    .eq("id", ptId)
+    .maybeSingle();
+  if (!pt) return;
+  const { error } = await supabase
+    .from("project_talents")
+    .update({ client_interested: !pt.client_interested })
+    .eq("id", pt.id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/projects/${projectId}`);
+}
+
+// บันทึกคำตอบ รับงาน/ปฏิเสธ แทน talent
+export async function setTalentResponseAdmin(formData: FormData) {
+  const ptId = String(formData.get("pt_id"));
+  const projectId = String(formData.get("project_id"));
+  const response = String(formData.get("response"));
+  if (!["accepted", "declined", "pending"].includes(response)) return;
+  const { error } = await supabase
+    .from("project_talents")
+    .update({ talent_response: response })
+    .eq("id", ptId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/projects/${projectId}`);
+}
+
 // Swap display_order with the neighbour in the given direction. Simple and
 // robust for the modest list sizes here (no drag-and-drop dependency).
 export async function moveProjectTalent(formData: FormData) {

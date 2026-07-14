@@ -8,6 +8,8 @@ import {
   moveProjectTalent,
   removeTalentFromProject,
   setProjectTalentCardType,
+  setTalentResponseAdmin,
+  toggleClientInterestAdmin,
 } from "@/actions/projects";
 import {
   createProjectLink,
@@ -179,7 +181,14 @@ export default async function ProjectDetailPage({
             const t = pt.talent;
             const jobUrl = `${BASE_URL}/job/${jobTokens[i]}`;
             const submitUrl = `${BASE_URL}/submit/${submitTokens[i]}`;
+            // ลิงก์ที่ talent ส่งในโปรเจกต์นี้ก่อน — ถ้าไม่มี ใช้ portfolio
+            // ถาวรที่หน้า talent (แอดมินกรอกเองได้) มาโชว์แทน
             const submissionLinks: string[] = pt.submission_links ?? [];
+            const portfolioLinks: string[] = (t.portfolio_links ?? []) as string[];
+            const showLinks =
+              submissionLinks.length > 0 ? submissionLinks : portfolioLinks;
+            const linksFromProfile = submissionLinks.length === 0;
+            const introVideo = t.intro_video_url ?? pt.intro_video_url ?? null;
             const responseChip = pt.talent_response
               ? RESPONSE_CHIP[pt.talent_response]
               : null;
@@ -284,6 +293,27 @@ export default async function ProjectDetailPage({
                 >
                   {responseChip ? responseChip.label : "ยังไม่แจ้งงาน"}
                 </span>
+                {/* แอดมินบันทึกคำตอบแทน talent (คุยกันนอกระบบ) */}
+                {(["accepted", "declined"] as const).map((r) =>
+                  pt.talent_response === r ? null : (
+                    <form key={r} action={setTalentResponseAdmin}>
+                      <input type="hidden" name="pt_id" value={pt.id} />
+                      <input type="hidden" name="project_id" value={id} />
+                      <input type="hidden" name="response" value={r} />
+                      <button
+                        type="submit"
+                        title="บันทึกคำตอบแทน talent"
+                        className={`rounded-full border px-2 py-0.5 text-[10px] font-medium transition ${
+                          r === "accepted"
+                            ? "border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+                            : "border-rose-300 text-rose-500 hover:bg-rose-50"
+                        }`}
+                      >
+                        {r === "accepted" ? "บันทึกว่ารับงาน" : "บันทึกว่าปฏิเสธ"}
+                      </button>
+                    </form>
+                  ),
+                )}
                 <span className="flex-1" />
                 {t.line_user_id && (
                   <form action={notifyTalentViaLine}>
@@ -315,15 +345,35 @@ export default async function ProjectDetailPage({
                 />
               </div>
 
-              {/* แถบส่งงาน (สำหรับรวบรวมผลงานทำ Report) */}
+              {/* แถบส่งงาน/ผลงาน + สถานะลูกค้าเลือก */}
               <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-2.5">
+                {/* แอดมินติ๊ก "ลูกค้าสนใจ" แทนลูกค้าได้ */}
+                <form action={toggleClientInterestAdmin}>
+                  <input type="hidden" name="pt_id" value={pt.id} />
+                  <input type="hidden" name="project_id" value={id} />
+                  <button
+                    type="submit"
+                    title="ติ๊กแทนลูกค้าได้ (กดซ้ำเพื่อยกเลิก)"
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
+                      pt.client_interested
+                        ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                        : "border border-neutral-300 text-neutral-500 hover:border-emerald-500 hover:text-emerald-600"
+                    }`}
+                  >
+                    ★ ลูกค้าสนใจ{pt.client_interested ? " ✓" : ""}
+                  </button>
+                </form>
                 {pt.submitted_at ? (
                   <span className="rounded-full bg-[#1D4ED8]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#1D4ED8]">
                     📤 ส่งงานแล้ว {submissionLinks.length} ลิงก์
                   </span>
+                ) : showLinks.length > 0 ? (
+                  <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-semibold text-neutral-600">
+                    🗂 ลิงก์จากโปรไฟล์ {showLinks.length} ลิงก์
+                  </span>
                 ) : (
                   <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-semibold text-neutral-500">
-                    ยังไม่ส่งผลงาน
+                    ยังไม่มีผลงาน
                   </span>
                 )}
                 {(pt.extra_photo_paths ?? []).length > 0 && (
@@ -331,9 +381,9 @@ export default async function ProjectDetailPage({
                     🖼 {(pt.extra_photo_paths ?? []).length} รูป
                   </span>
                 )}
-                {pt.intro_video_url && (
+                {introVideo && (
                   <a
-                    href={pt.intro_video_url}
+                    href={introVideo}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="rounded-full border border-neutral-200 px-2.5 py-0.5 text-[11px] text-neutral-500 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
@@ -341,12 +391,13 @@ export default async function ProjectDetailPage({
                     🎬 คลิปแนะนำตัว
                   </a>
                 )}
-                {submissionLinks.map((link, li) => (
+                {showLinks.map((link, li) => (
                   <a
                     key={li}
                     href={link}
                     target="_blank"
                     rel="noopener noreferrer"
+                    title={linksFromProfile ? "ลิงก์จากโปรไฟล์ talent" : "ลิงก์ที่ส่งในโปรเจกต์นี้"}
                     className="max-w-40 truncate rounded-full border border-neutral-200 px-2.5 py-0.5 text-[11px] text-neutral-500 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
                   >
                     🔗 {link.replace(/^https?:\/\/(www\.)?/, "")}
@@ -364,6 +415,12 @@ export default async function ProjectDetailPage({
                     </Button>
                   </form>
                 )}
+                {/* แอดมินเปิดฟอร์มเดียวกับ talent เพื่อกรอกแทนได้เลย */}
+                <Button asChild size="sm" variant="ghost">
+                  <a href={submitUrl} target="_blank" rel="noopener noreferrer">
+                    ✏️ กรอกแทน
+                  </a>
+                </Button>
                 <CopyButton
                   text={submitUrl}
                   label={
