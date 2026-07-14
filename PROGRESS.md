@@ -73,12 +73,11 @@
   - ปุ่มเลือก card type เปลี่ยนจาก toggle ⇄ เป็น segmented [Comp Card | Influ Card] — **บั๊ก "social ของ Tammy ไม่ขึ้น" เกิดจาก row เธอค้างเป็น compcard** (layout compcard ไม่โชว์ social โดยดีไซน์) แก้ข้อมูลเป็น influcard แล้ว
   - Admin shell ใหม่: header navy + เส้นแดง, nav pill มี active state (`components/admin/AdminNav.tsx`), เนื้อหา max-w-6xl, ซ่อน chrome ตอน print
 
-## ค้างอยู่ (เฟสถัดไป): หน้าบ้านสาธารณะ 3 Tab + AI Model
-สเปคจากพี่เจ้าของ (ยังไม่เริ่ม):
-- หน้าแรก `/` (ตอนนี้ยังเป็น template Next.js เปล่า) ทำเป็นการ์ดโชว์ talent: ดึงรูปเดี่ยว + ชื่อ + อายุ
-- แบ่ง 3 Tab: **Model (สีน้ำเงิน #1D4ED8) / Influencer (สีแดง #B82233) / AI Model (gradient)** — ถ้า talent เป็นทั้ง model+influ ขึ้นทั้ง 2 tab
-- **AI Model = ประเภทใหม่** ต้องเพิ่ม schema `is_ai_model boolean` + `character text` (เช่น "Energetic / Fun") ในตาราง talents + ช่องกรอกใน TalentForm (เฉพาะ admin) — AI model ไม่มี LINE/followers เป็นตัวละครที่ admin สร้าง
-- ออกแบบให้สวย ดู pro
+## หน้าบ้านสาธารณะ 3 Tab + AI Model — โค้ดเสร็จ deploy แล้ว (commit `e21d2a5`)
+- หน้าแรก `/`: nav ติดบน + ปุ่ม LINE, hero gradient, **3 tab pills: Model (น้ำเงิน) / Influencer (แดง) / AI Model (gradient)** พร้อมจำนวนต่อ tab, การ์ดรูป 3:4 grid 2-4 คอลัมน์ (ชื่อ+อายุ overlay ล่าง, tab AI มี character chips), CTA ติดต่อ + footer — เลือก tab ผ่าน `?tab=` (server-rendered)
+- โชว์เฉพาะ `status='active'`, คนที่เป็นทั้ง model+influ ขึ้น 2 tab, ข้อมูล public ถูก map เป็น minimal shape ใน `lib/public-talents.ts` (กัน phone/LINE id หลุดใน HTML)
+- **AI Model**: migration `003_ai_model.sql` เพิ่ม `talents.is_ai_model` + `character` — checkbox "เป็น AI Model" + ช่อง Character (คั่นด้วย /) ใน TalentForm เฉพาะ admin mode, self-service ตั้งไม่ได้โดยตั้งใจ. โค้ดอ่านแบบ migration-tolerant (deploy ก่อนรัน SQL ได้ tab AI แค่ว่าง)
+- **ค้าง**: (1) พี่ต้องรัน migration 003 ใน Supabase SQL Editor (2) สร้าง AI Model ตัวแรกผ่าน /admin/talents/new (ติ๊ก AI Model + กรอก Character + อัพรูป + ตั้ง active) (3) เว็บไซต์จริง www.gamdang.com ยังไม่ได้ผูกโดเมนกับ Vercel — ถ้าจะใช้เป็นหน้าเว็บหลักต้องตั้ง custom domain
 
 ## Polish รอบสุดท้าย (ยังไม่เริ่ม)
 - เปลี่ยนรหัส admin, ลบหน้า /style-guide ถ้าไม่ใช้, ฯลฯ
