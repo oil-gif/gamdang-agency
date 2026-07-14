@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RangeStepper } from "@/components/admin/RangeStepper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -120,64 +121,27 @@ export function TalentFilterPanel({ searchParams }: { searchParams: Params }) {
         </Select>
       </div>
 
-      {/* ช่วงส่วนสูง/อายุ เป็นชุดเดียว: [ต่ำสุด] ถึง [สูงสุด] + หน่วย */}
+      {/* ช่วงส่วนสูง/อายุ เป็นชุดเดียว: [ต่ำสุด] ถึง [สูงสุด] + หน่วย
+          เลื่อนตัวเลขได้ด้วยปุ่ม ▲▼ หรือหมุน scroll (RangeStepper) */}
       <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
-        <Label htmlFor="min_height">ส่วนสูง (Height)</Label>
-        <div className="flex h-9 items-center overflow-hidden rounded-md border border-input bg-white shadow-xs focus-within:border-[#1D4ED8] focus-within:ring-2 focus-within:ring-[#1D4ED8]/20">
-          <input
-            id="min_height"
-            name="min_height"
-            type="number"
-            min={0}
-            placeholder="ต่ำสุด"
-            defaultValue={searchParams.min_height ?? ""}
-            className="h-full w-full min-w-0 flex-1 bg-transparent px-3 text-center text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          />
-          <span className="shrink-0 select-none px-1 text-xs text-neutral-400">
-            ถึง
-          </span>
-          <input
-            id="max_height"
-            name="max_height"
-            type="number"
-            min={0}
-            placeholder="สูงสุด"
-            defaultValue={searchParams.max_height ?? ""}
-            className="h-full w-full min-w-0 flex-1 bg-transparent px-3 text-center text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          />
-          <span className="shrink-0 select-none border-l border-input bg-neutral-50 px-2.5 text-xs font-medium text-neutral-500">
-            ซม.
-          </span>
-        </div>
+        <Label>ส่วนสูง (Height)</Label>
+        <RangeStepper
+          minName="min_height"
+          maxName="max_height"
+          minDefault={searchParams.min_height}
+          maxDefault={searchParams.max_height}
+          unit="ซม."
+        />
       </div>
       <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
-        <Label htmlFor="min_age">อายุ (Age)</Label>
-        <div className="flex h-9 items-center overflow-hidden rounded-md border border-input bg-white shadow-xs focus-within:border-[#1D4ED8] focus-within:ring-2 focus-within:ring-[#1D4ED8]/20">
-          <input
-            id="min_age"
-            name="min_age"
-            type="number"
-            min={0}
-            placeholder="ต่ำสุด"
-            defaultValue={searchParams.min_age ?? ""}
-            className="h-full w-full min-w-0 flex-1 bg-transparent px-3 text-center text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          />
-          <span className="shrink-0 select-none px-1 text-xs text-neutral-400">
-            ถึง
-          </span>
-          <input
-            id="max_age"
-            name="max_age"
-            type="number"
-            min={0}
-            placeholder="สูงสุด"
-            defaultValue={searchParams.max_age ?? ""}
-            className="h-full w-full min-w-0 flex-1 bg-transparent px-3 text-center text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          />
-          <span className="shrink-0 select-none border-l border-input bg-neutral-50 px-2.5 text-xs font-medium text-neutral-500">
-            ปี
-          </span>
-        </div>
+        <Label>อายุ (Age)</Label>
+        <RangeStepper
+          minName="min_age"
+          maxName="max_age"
+          minDefault={searchParams.min_age}
+          maxDefault={searchParams.max_age}
+          unit="ปี"
+        />
       </div>
 
       <div className="flex items-end gap-2 sm:col-span-2">
