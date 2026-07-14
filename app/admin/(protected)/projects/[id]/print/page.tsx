@@ -4,8 +4,13 @@ import { PrintButton } from "@/components/public/PrintButton";
 import { PrintMiniCard } from "@/components/public/TalentCards";
 
 // การ์ดสูง ~40มม. → A4 แนวตั้ง (พื้นที่ใช้งาน ~277มม.) ใส่ได้เต็มที่ 5 แถว
-// (10 ใบ/หน้า) แต่ตั้งไว้ 4 แถว = 8 ใบ/หน้า เพื่อให้มีระยะหายใจสวยงาม
-const CARDS_PER_PAGE = 8;
+// = 10 ใบ/หน้า (ยืนยันกับพี่เจ้าของแล้ว 2026-07-14)
+const CARDS_PER_PAGE = 10;
+
+const CONTACT = {
+  line: "@gamdangmodeling",
+  websites: ["www.gamang.com", "www.gamdangagency.com"],
+};
 
 function chunk<T>(arr: T[], size: number) {
   const out: T[][] = [];
@@ -45,7 +50,7 @@ export default async function ProjectPrintPage({
       <div className="no-print mb-4 flex items-center justify-between rounded-lg border bg-white px-4 py-3">
         <p className="text-sm text-neutral-500">
           ตัวอย่าง PDF: หน้าปก + {projectTalents.length} การ์ด ({pages.length}{" "}
-          หน้า, 8 ใบ/หน้า) — กดปุ่ม &quot;บันทึกเป็น PDF&quot; แล้วเลือก Save as PDF
+          หน้า, 10 ใบ/หน้า) — กดปุ่ม &quot;บันทึกเป็น PDF&quot; แล้วเลือก Save as PDF
         </p>
         <Link
           href={`/admin/projects/${id}`}
@@ -99,19 +104,22 @@ export default async function ProjectPrintPage({
           </div>
         </div>
 
-        <div className="border-t border-white/25 pt-4 text-[11px] leading-5 text-white/60">
-          <p>
+        <div className="border-t border-white/25 pt-4">
+          <p className="text-sm font-semibold">
+            สนใจจองคิว / สอบถามรายละเอียด — LINE Official: {CONTACT.line}
+          </p>
+          <p className="mt-0.5 text-xs text-white/80">
+            {CONTACT.websites.join(" · ")}
+          </p>
+          <p className="mt-3 text-[11px] leading-5 text-white/60">
             จัดทำเมื่อ{" "}
             {new Date().toLocaleDateString("th-TH", {
               day: "numeric",
               month: "long",
               year: "numeric",
             })}{" "}
-            · เอกสารนี้เป็นความลับ ห้ามเผยแพร่
-          </p>
-          <p>
-            ห้ามติดต่อ Model / Influencer โดยตรง — การจ้างงานทุกกรณีติดต่อผ่าน
-            GAMDANG AGENCY เท่านั้น
+            · เอกสารนี้เป็นความลับ ห้ามเผยแพร่ · ห้ามติดต่อ Model / Influencer
+            โดยตรง — การจ้างงานทุกกรณีติดต่อผ่าน GAMDANG AGENCY เท่านั้น
           </p>
         </div>
       </section>
@@ -148,9 +156,25 @@ export default async function ProjectPrintPage({
             ))}
           </div>
 
-          <footer className="mt-4 border-t border-neutral-200 pt-2 text-center text-[9px] leading-4 text-neutral-400">
-            เอกสารนี้เป็นความลับ ห้ามเผยแพร่ · ห้ามติดต่อ Model / Influencer โดยตรง —
-            การจ้างงานทุกกรณีติดต่อผ่าน GAMDANG AGENCY เท่านั้น
+          <footer className="mt-4 space-y-1.5 border-t border-neutral-200 pt-2.5 text-center">
+            <p
+              className="text-[11px] font-semibold text-neutral-700"
+              style={{
+                WebkitPrintColorAdjust: "exact",
+                printColorAdjust: "exact",
+              }}
+            >
+              สนใจจองคิว / สอบถาม — LINE Official:{" "}
+              <span className="text-[#06C755]">{CONTACT.line}</span>
+              {" · "}
+              <span className="text-[#1D4ED8]">
+                {CONTACT.websites.join(" · ")}
+              </span>
+            </p>
+            <p className="text-[9px] leading-4 text-neutral-400">
+              เอกสารนี้เป็นความลับ ห้ามเผยแพร่ · ห้ามติดต่อ Model / Influencer โดยตรง —
+              การจ้างงานทุกกรณีติดต่อผ่าน GAMDANG AGENCY เท่านั้น
+            </p>
           </footer>
         </section>
       ))}

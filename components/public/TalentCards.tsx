@@ -147,18 +147,27 @@ export function InfluCard({ pt }: { pt: ProjectTalentCard }) {
       )}
 
       {socials.length > 0 && (
-        <div className="mt-4 flex w-full flex-wrap justify-center gap-2 border-t border-neutral-100 pt-3.5">
+        <div className="mt-4 flex w-full flex-wrap justify-center gap-x-3.5 gap-y-2 border-t border-neutral-100 pt-3.5">
           {socials.map((s) => (
             <a
               key={s.key}
               href={s.url}
               target="_blank"
               rel="noopener noreferrer"
-              title={`${s.label}${s.followers > 0 ? ` · ${formatFollowers(s.followers)}` : ""}`}
-              className="flex size-9 items-center justify-center rounded-full text-[11px] font-bold text-white shadow-sm transition hover:scale-105"
-              style={{ backgroundColor: s.color }}
+              title={s.label}
+              className="flex items-center gap-1.5 transition hover:scale-105"
             >
-              {s.short}
+              <span
+                className="flex size-8 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm"
+                style={{ backgroundColor: s.color }}
+              >
+                {s.short}
+              </span>
+              {s.followers > 0 && (
+                <span className="text-xs font-semibold text-neutral-600">
+                  {formatFollowers(s.followers)}
+                </span>
+              )}
             </a>
           ))}
         </div>
@@ -185,13 +194,19 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
 
   return (
     <div className="flex gap-3 overflow-hidden rounded-xl border border-neutral-200 bg-white p-3">
-      <div className="aspect-[3/4] w-24 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
+      {/* งาน influ = กรอบแนวตั้ง 3:4 เห็นหน้าชัด · งาน model = กรอบแนวนอนกว้าง
+          object-contain เห็นคอมการ์ดเต็มใบไม่โดน crop */}
+      <div
+        className={`shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 ${
+          isInflu ? "aspect-[3/4] w-24" : "h-28 w-44"
+        }`}
+      >
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={getPhotoProxyUrl(img)}
             alt={displayName}
-            className="size-full object-cover object-top"
+            className={`size-full ${isInflu ? "object-cover object-top" : "object-contain"}`}
           />
         ) : (
           <div className="flex size-full items-center justify-center text-[9px] text-neutral-400">
@@ -259,20 +274,39 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
             )}
           </>
         ) : (
-          <p className="mt-0.5 text-[11px] leading-4 text-neutral-500">
-            {[
-              t.dob ? `อายุ ${calculateAge(t.dob)} ปี` : null,
-              t.height_cm ? `สูง ${t.height_cm} ซม.` : null,
-              t.weight_kg ? `หนัก ${t.weight_kg} กก.` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-            {ethnicityText(t) && (
-              <span className="block text-[10px] text-neutral-400">
-                {ethnicityText(t)}
-              </span>
+          <>
+            <p className="mt-0.5 text-[11px] leading-4 text-neutral-500">
+              {[
+                t.dob ? `อายุ ${calculateAge(t.dob)} ปี` : null,
+                t.height_cm ? `สูง ${t.height_cm} ซม.` : null,
+                t.weight_kg ? `หนัก ${t.weight_kg} กก.` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              {ethnicityText(t) && (
+                <span className="block text-[10px] text-neutral-400">
+                  {ethnicityText(t)}
+                </span>
+              )}
+            </p>
+            {top && (
+              <div className="mt-auto flex items-center gap-1.5 pt-1.5">
+                <span
+                  className="flex size-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
+                  style={{
+                    backgroundColor: top.color,
+                    WebkitPrintColorAdjust: "exact",
+                    printColorAdjust: "exact",
+                  }}
+                >
+                  {top.short}
+                </span>
+                <span className="text-[10px] font-semibold text-neutral-600">
+                  {formatFollowers(top.followers)} on {top.label}
+                </span>
+              </div>
             )}
-          </p>
+          </>
         )}
       </div>
     </div>
