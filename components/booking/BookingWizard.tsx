@@ -51,28 +51,52 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
     }
     setSubmitting(true);
     setResult(null);
+
+    // ===== เตรียมไฟล์สลิป (แยก try — ถ้าพังให้ฟ้องเรื่อง "ไฟล์" ตรงๆ
+    // ไม่ใช่ "ข้อมูลไม่ครบ") =====
+    let dataUrl: string;
     try {
-      // รูป → บีบก่อนส่ง / PDF → ส่งตรง (จำกัด ~3.5MB)
       let payloadFile: File | Blob = file;
       if (file.type.startsWith("image/")) {
-        const { default: imageCompression } = await import("browser-image-compression");
-        payloadFile = await imageCompression(file, {
-          maxWidthOrHeight: 2000,
-          maxSizeMB: 2,
-          useWebWorker: true,
-        });
+        try {
+          const { default: imageCompression } = await import("browser-image-compression");
+          // fileType บังคับผลลัพธ์เป็น JPEG — รูป HEIC จาก iPhone จะถูกแปลง
+          // ให้เมื่อ browser อ่านได้ (Safari อ่าน HEIC ได้)
+          payloadFile = await imageCompression(file, {
+            maxWidthOrHeight: 2000,
+            maxSizeMB: 2,
+            useWebWorker: true,
+            fileType: "image/jpeg",
+          });
+        } catch {
+          // browser บีบไม่ได้ (เช่น HEIC บน Chrome) — ส่งไฟล์เดิมถ้าเป็น
+          // ชนิดที่ server รับและไม่ใหญ่เกิน ไม่งั้นฟ้องเรื่องไฟล์
+          const okTypes = ["image/jpeg", "image/png", "image/webp"];
+          if (!okTypes.includes(file.type) || file.size > 3.5 * 1024 * 1024) {
+            setResult("upload");
+            setSubmitting(false);
+            return;
+          }
+          payloadFile = file;
+        }
       } else if (file.size > 3.5 * 1024 * 1024) {
         setResult("upload");
         setSubmitting(false);
         return;
       }
-      const dataUrl: string = await new Promise((resolve, reject) => {
+      dataUrl = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = () => reject(new Error("read failed"));
         reader.readAsDataURL(payloadFile);
       });
+    } catch {
+      setResult("upload");
+      setSubmitting(false);
+      return;
+    }
 
+    try {
       const res = await fetch("/api/booking", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -102,7 +126,8 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
         setResult(body.code ?? "invalid");
       }
     } catch {
-      setResult("invalid");
+      // มาถึงตรงนี้ = ส่งไม่ถึง server (เน็ตหลุด/timeout) — ไม่ใช่ข้อมูลไม่ครบ
+      setResult("network");
     } finally {
       setSubmitting(false);
     }
@@ -111,7 +136,9 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
   const ERROR_TEXT: Record<string, string> = {
     invalid: "ข้อมูลไม่ครบถ้วน กรุณากรอกชื่อ เบอร์โทร และแนบสลิปค่ะ",
     full: "ขออภัยค่ะ รอบที่เลือกเพิ่งเต็ม/ปิดรับ กรุณาเลือกรอบอื่น",
-    upload: "ไฟล์สลิปไม่ถูกต้อง (รองรับ JPG/PNG/PDF ขนาดไม่เกิน 5 MB)",
+    upload:
+      "ไฟล์สลิปใช้ไม่ได้ค่ะ — กรุณาใช้รูป JPG/PNG หรือ PDF ขนาดไม่เกิน 5 MB (ถ้าเป็นรูปจาก iPhone ลองแคปหน้าจอสลิปแล้วแนบใหม่)",
+    network: "ส่งข้อมูลไม่สำเร็จ กรุณาเช็คอินเทอร์เน็ตแล้วลองใหม่อีกครั้งค่ะ",
   };
 
   if (result === "success") {
@@ -316,7 +343,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp,application/pdf"
+                accept="image/*,application/pdf"
                 onChange={(e) => setSlipName(e.target.files?.[0]?.name ?? null)}
                 className="hidden"
                 id="slip"

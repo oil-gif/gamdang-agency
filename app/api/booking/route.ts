@@ -49,6 +49,10 @@ export async function POST(req: NextRequest) {
   const phone = str(body.phone);
   const slip = typeof body.slip === "string" ? body.slip : "";
   if (!dayId || !pkg || !hour || !fullName || !phone || !slip) {
+    console.error("booking invalid:", {
+      dayId: !!dayId, pkg: !!pkg, hour: !!hour,
+      fullName: !!fullName, phone: !!phone, slip: !!slip,
+    });
     return err("invalid");
   }
 
@@ -111,6 +115,7 @@ export async function POST(req: NextRequest) {
     // ที่เต็ม/ปิดพอดี — ลบสลิปที่เพิ่งอัพทิ้ง
     await supabase.storage.from("booking-slips").remove([slipPath]);
     const code = error.message.includes("full") ? "full" : "invalid";
+    if (code === "invalid") console.error("booking rpc error:", error.message);
     return err(code, 409);
   }
 
