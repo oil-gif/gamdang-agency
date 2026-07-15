@@ -325,6 +325,7 @@ export default async function ShootDayDetailPage({
                     ? ` · ${b.gender === "male" ? "ชาย" : b.gender === "female" ? "หญิง" : "อื่นๆ"}`
                     : ""}
                   {b.dob ? ` · อายุ ${ageLabel(b.dob)}` : ""}
+                  {b.nationality ? ` · ${b.nationality}` : ""}
                   {b.height ? ` · สูง ${b.height} ซม.` : ""}
                   {b.weight ? ` · หนัก ${b.weight} กก.` : ""}
                 </p>

@@ -258,9 +258,13 @@ export async function createTalentFromBooking(formData: FormData) {
     .from("talents")
     .insert({
       full_name: b.full_name,
+      // ชื่อเล่นจากฟอร์มจองเป็นภาษาอังกฤษ → ลงช่อง nickname_en ให้ตรง
+      // nickname_th ใส่ค่าเดียวกันไว้ก่อน (แอดมินแก้เป็นชื่อไทยทีหลังได้)
+      nickname_en: b.nickname,
       nickname_th: b.nickname || b.full_name,
       gender: b.gender ?? null,
       dob: b.dob ?? null,
+      nationality: b.nationality ?? null,
       phone: b.phone,
       email: b.email,
       contact_line_or_whatsapp: b.line_id,

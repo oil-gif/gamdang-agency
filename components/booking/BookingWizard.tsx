@@ -114,6 +114,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
           talents: fd.get("talents"),
           gender: fd.get("gender"),
           dob: fd.get("dob"),
+          nationality: fd.get("nationality"),
           website: fd.get("website"), // honeypot
           slip: dataUrl,
         }),
@@ -292,11 +293,12 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
             />
             {(
               [
-                ["full_name", "ชื่อ-นามสกุล (Full Name) *", "text", true, "เช่น สมชาย ใจดี"],
-                ["nickname", "ชื่อเล่น (Nickname)", "text", false, "ชื่อเล่นภาษาอังกฤษ เช่น Tammy"],
+                ["nickname", "ชื่อเล่น (Nickname — English) *", "text", true, "ชื่อเล่นภาษาอังกฤษ เช่น Som, Tammy"],
+                ["full_name", "ชื่อ-นามสกุลจริง (Full Name)", "text", false, "เช่น สมชาย ใจดี"],
                 ["phone", "เบอร์โทร (Phone) *", "tel", true, "08x-xxx-xxxx"],
                 ["line_id", "LINE ID", "text", false, "เช่น @tammy หรือเบอร์ที่ผูก LINE"],
-                ["email", "อีเมล (Email)", "email", false, "example@email.com"],
+                ["email", "อีเมล (Email) *", "email", true, "example@email.com"],
+                ["nationality", "สัญชาติ (Nationality) *", "text", true, "เช่น Thai, Thai/American"],
               ] as const
             ).map(([name, label, type, required, placeholder]) => (
               <div key={name} className="space-y-1">

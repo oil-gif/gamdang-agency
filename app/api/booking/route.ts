@@ -45,20 +45,26 @@ export async function POST(req: NextRequest) {
   const hour = (BOOKING.hours as readonly string[]).includes(body.hour)
     ? (body.hour as string)
     : null;
-  const fullName = str(body.full_name);
+  // บังคับ: ชื่อเล่น(อังกฤษ) + เบอร์ + อีเมล + สัญชาติ · ชื่อจริงไม่บังคับ
+  const nickname = str(body.nickname);
+  const fullNameRaw = str(body.full_name);
   const phone = str(body.phone);
+  const email = str(body.email);
+  const nationality = str(body.nationality);
   const gender = ["male", "female", "other"].includes(body.gender)
     ? (body.gender as string)
     : null;
   const dob = /^\d{4}-\d{2}-\d{2}$/.test(String(body.dob ?? "")) ? body.dob : null;
   const slip = typeof body.slip === "string" ? body.slip : "";
-  if (!dayId || !pkg || !hour || !fullName || !phone || !slip) {
+  if (!dayId || !pkg || !hour || !nickname || !phone || !email || !slip) {
     console.error("booking invalid:", {
       dayId: !!dayId, pkg: !!pkg, hour: !!hour,
-      fullName: !!fullName, phone: !!phone, slip: !!slip,
+      nickname: !!nickname, phone: !!phone, email: !!email, slip: !!slip,
     });
     return err("invalid");
   }
+  // ตาราง shoot_bookings มี full_name NOT NULL — ไม่มีชื่อจริงใช้ชื่อเล่นแทน
+  const fullName = fullNameRaw ?? nickname;
 
   // ===== สลิป: รูป (บีบเป็น jpg) หรือ PDF ≤ ~3.5MB =====
   const match = slip.match(/^data:([\w/+.-]+);base64,(.+)$/);
@@ -104,10 +110,10 @@ export async function POST(req: NextRequest) {
     p_package: pkg,
     p_hour: hour,
     p_full_name: fullName,
-    p_nickname: str(body.nickname),
+    p_nickname: nickname,
     p_phone: phone,
     p_line_id: str(body.line_id),
-    p_email: str(body.email),
+    p_email: email,
     p_height: str(body.height),
     p_weight: str(body.weight),
     p_talents: str(body.talents),
@@ -125,10 +131,10 @@ export async function POST(req: NextRequest) {
     return err(code, 409);
   }
 
-  if (gender || dob) {
+  if (gender || dob || nationality) {
     await supabase
       .from("shoot_bookings")
-      .update({ gender, dob })
+      .update({ gender, dob, nationality })
       .eq("id", bookingId);
   }
 
