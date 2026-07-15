@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { BOOKING } from "@/lib/constants";
+import { BOOKING, CONTACT } from "@/lib/constants";
 
 // Wizard จองถ่ายโปรไฟล์ 4 step (ตามดีไซน์หน้าบ้าน WP เดิมเป๊ะ):
 // เลือกวัน → แพกเกจ → รอบเวลา → ข้อมูล+สลิป
@@ -22,6 +22,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
   const [pkg, setPkg] = useState<PkgKey | null>(null);
   const [hour, setHour] = useState<string | null>(null);
   const [slipName, setSlipName] = useState<string | null>(null);
+  const [copiedAcct, setCopiedAcct] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<"success" | string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -148,17 +149,24 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
         <p className="text-xl font-bold text-emerald-700">
-          🎉 ส่งข้อมูลการจองเรียบร้อยแล้ว!
+          🎉 ส่งข้อมูลการจองเรียบร้อยแล้ว! (Booking Submitted)
+        </p>
+        <p className="mt-3 text-sm leading-6 text-emerald-800">
+          ทีมงานจะตรวจสอบสลิป และยืนยันทาง LINE / Email ภายใน 24 ชั่วโมง (within 24
+          hrs)
         </p>
         <p className="mt-2 text-sm leading-6 text-emerald-800">
-          ทีมงานจะตรวจสอบสลิปและยืนยันคิวของคุณทาง LINE/โทรศัพท์ ภายใน 24 ชั่วโมงค่ะ
+          หากมีข้อสงสัย ติดต่อ Official LINE:{" "}
+          <a href={CONTACT.lineUrl} className="font-semibold underline">
+            {CONTACT.lineId}
+          </a>
         </p>
         <button
           type="button"
           onClick={() => setResult(null)}
           className="mt-4 rounded-full border border-emerald-300 px-5 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
         >
-          จองเพิ่มอีกคิว
+          จองเพิ่มอีกคิว (Book Again)
         </button>
       </div>
     );
@@ -183,7 +191,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
 
       {/* Step 1: เลือกวัน */}
       <section className="space-y-3">
-        {stepLabel(1, "เลือกวันที่ถ่าย")}
+        {stepLabel(1, "เลือกวันที่ถ่าย (Select Date)")}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {dates.map((d) => (
             <button
@@ -211,7 +219,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
       {/* Step 2: เลือกแพกเกจ */}
       {day && (
         <section className="space-y-3">
-          {stepLabel(2, "เลือกแพกเกจ")}
+          {stepLabel(2, "เลือกแพกเกจ (Select Package)")}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {(Object.keys(BOOKING.packages) as PkgKey[]).map((k) => {
               const p = BOOKING.packages[k];
@@ -242,7 +250,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
       {/* Step 3: เลือกรอบเวลา (ว่าง/เต็มขึ้นกับแพกเกจ) */}
       {day && pkg && (
         <section className="space-y-3">
-          {stepLabel(3, "เลือกรอบเวลา")}
+          {stepLabel(3, "เลือกรอบเวลา (Select Time)")}
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-5">
             {BOOKING.hours.map((h) => {
               const open = day.avail[pkg][h] === true;
@@ -279,7 +287,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
       {/* Step 4: ข้อมูล + ชำระเงิน */}
       {day && pkg && hour && (
         <section className="space-y-4">
-          {stepLabel(4, "กรอกข้อมูล & แนบสลิป")}
+          {stepLabel(4, "กรอกข้อมูล & แนบสลิป (Your Info & Payment)")}
 
           <div className="grid grid-cols-1 gap-3 rounded-2xl border border-neutral-200 bg-white p-5 sm:grid-cols-2">
             {/* honeypot กันสแปม — ซ่อนจากคนจริง */}
@@ -386,17 +394,47 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
           {/* ชำระเงิน + แนบสลิป */}
           <div className="rounded-2xl border border-[#1D4ED8]/20 bg-[#1D4ED8]/5 p-5">
             <p className="font-semibold text-neutral-800">
-              💳 ชำระเงิน ฿
+              💳 ชำระเงิน (Payment) ฿
               {BOOKING.packages[pkg].price.toLocaleString()} โดยโอนเข้าบัญชี
             </p>
-            <div className="mt-2 space-y-0.5 text-sm text-neutral-600">
-              <p>{BOOKING.bank.bank}</p>
-              <p>
-                เลขบัญชี: <span className="font-mono font-bold">{BOOKING.bank.accountNo}</span>
-              </p>
-              <p>ชื่อบัญชี: {BOOKING.bank.accountName}</p>
-              <p className="text-xs text-neutral-400">SWIFT: {BOOKING.bank.swift}</p>
-            </div>
+            <dl className="mt-3 space-y-2 text-sm text-neutral-600">
+              <div>
+                <dt className="text-xs font-medium text-neutral-400">Bank Name</dt>
+                <dd className="text-neutral-700">{BOOKING.bank.bank}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-neutral-400">
+                  Bank Account No.
+                </dt>
+                <dd className="flex items-center gap-2">
+                  <span className="font-mono text-base font-bold text-neutral-800">
+                    {BOOKING.bank.accountNo}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      // copy เฉพาะตัวเลข (ไม่มีขีด) → วางโอนได้เลย ไม่ผิด
+                      await navigator.clipboard.writeText(
+                        BOOKING.bank.accountNo.replace(/\D/g, ""),
+                      );
+                      setCopiedAcct(true);
+                      setTimeout(() => setCopiedAcct(false), 2000);
+                    }}
+                    className="rounded-full border border-[#1D4ED8]/40 bg-white px-3 py-1 text-xs font-semibold text-[#1D4ED8] transition hover:bg-[#1D4ED8]/10"
+                  >
+                    {copiedAcct ? "คัดลอกแล้ว ✓" : "📋 คัดลอกเลขบัญชี"}
+                  </button>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-neutral-400">Account Name</dt>
+                <dd className="text-neutral-700">{BOOKING.bank.accountName}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-neutral-400">SWIFT</dt>
+                <dd className="text-neutral-500">{BOOKING.bank.swift}</dd>
+              </div>
+            </dl>
             <div className="mt-4">
               <input
                 ref={fileRef}
@@ -421,7 +459,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
             disabled={submitting}
             className="h-13 w-full rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] py-3.5 text-base font-bold text-white shadow-md transition hover:opacity-95 disabled:opacity-60"
           >
-            {submitting ? "กำลังส่งข้อมูล..." : "ยืนยันการจอง ✦"}
+            {submitting ? "กำลังส่งข้อมูล..." : "ยืนยันการจอง (Confirm Booking) ✦"}
           </button>
         </section>
       )}

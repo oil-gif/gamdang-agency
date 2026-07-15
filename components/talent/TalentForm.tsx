@@ -243,7 +243,7 @@ export function TalentForm({
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="note">โน้ต (ภายใน)</Label>
+            <Label htmlFor="note">โน้ต ภายใน (Internal Note)</Label>
             <Textarea id="note" name="note" defaultValue={talent?.note ?? ""} />
           </div>
         </CardContent>
@@ -334,7 +334,7 @@ export function TalentForm({
           )}
           {mode === "admin" && (
             <div className="max-w-xs space-y-1.5">
-              <Label htmlFor="status">สถานะ</Label>
+              <Label htmlFor="status">สถานะ (Status)</Label>
               <Select name="status" defaultValue={talent?.status ?? "pending"}>
                 <SelectTrigger id="status" className="w-full">
                   <SelectValue />
