@@ -112,6 +112,8 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
           height: fd.get("height"),
           weight: fd.get("weight"),
           talents: fd.get("talents"),
+          gender: fd.get("gender"),
+          dob: fd.get("dob"),
           website: fd.get("website"), // honeypot
           slip: dataUrl,
         }),
@@ -290,15 +292,13 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
             />
             {(
               [
-                ["full_name", "ชื่อ-นามสกุล *", "text", true],
-                ["nickname", "ชื่อเล่น", "text", false],
-                ["phone", "เบอร์โทร *", "tel", true],
-                ["line_id", "LINE ID", "text", false],
-                ["email", "Email", "email", false],
-                ["height", "ส่วนสูง (ซม.)", "text", false],
-                ["weight", "น้ำหนัก (กก.)", "text", false],
+                ["full_name", "ชื่อ-นามสกุล (Full Name) *", "text", true, "เช่น สมชาย ใจดี"],
+                ["nickname", "ชื่อเล่น (Nickname)", "text", false, "ชื่อเล่นภาษาอังกฤษ เช่น Tammy"],
+                ["phone", "เบอร์โทร (Phone) *", "tel", true, "08x-xxx-xxxx"],
+                ["line_id", "LINE ID", "text", false, "เช่น @tammy หรือเบอร์ที่ผูก LINE"],
+                ["email", "อีเมล (Email)", "email", false, "example@email.com"],
               ] as const
-            ).map(([name, label, type, required]) => (
+            ).map(([name, label, type, required, placeholder]) => (
               <div key={name} className="space-y-1">
                 <label htmlFor={name} className="text-xs font-medium text-neutral-500">
                   {label}
@@ -308,13 +308,69 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
                   name={name}
                   type={type}
                   required={required}
-                  className="h-11 w-full rounded-xl border border-neutral-300 px-3 text-sm outline-none transition focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
+                  placeholder={placeholder}
+                  className="h-11 w-full rounded-xl border border-neutral-300 px-3 text-sm outline-none transition placeholder:text-neutral-300 focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
+                />
+              </div>
+            ))}
+
+            <div className="space-y-1">
+              <label htmlFor="gender" className="text-xs font-medium text-neutral-500">
+                เพศ (Gender) *
+              </label>
+              <select
+                id="gender"
+                name="gender"
+                required
+                defaultValue=""
+                className="h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm outline-none transition focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
+              >
+                <option value="" disabled>
+                  เลือกเพศ...
+                </option>
+                <option value="male">ชาย (Male)</option>
+                <option value="female">หญิง (Female)</option>
+                <option value="other">อื่นๆ / LGBTQ+ (Other)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="dob" className="text-xs font-medium text-neutral-500">
+                วัน/เดือน/ปีเกิด (Date of Birth) * — ระบบคำนวณอายุให้อัตโนมัติ
+              </label>
+              <input
+                id="dob"
+                name="dob"
+                type="date"
+                required
+                max={new Date().toISOString().slice(0, 10)}
+                className="h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm outline-none transition focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
+              />
+            </div>
+
+            {(
+              [
+                ["height", "ส่วนสูง (Height, ซม.)", "เช่น 120"],
+                ["weight", "น้ำหนัก (Weight, กก.)", "เช่น 25"],
+              ] as const
+            ).map(([name, label, placeholder]) => (
+              <div key={name} className="space-y-1">
+                <label htmlFor={name} className="text-xs font-medium text-neutral-500">
+                  {label}
+                </label>
+                <input
+                  id={name}
+                  name={name}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder={placeholder}
+                  className="h-11 w-full rounded-xl border border-neutral-300 px-3 text-sm outline-none transition placeholder:text-neutral-300 focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
                 />
               </div>
             ))}
             <div className="space-y-1 sm:col-span-2">
               <label htmlFor="talents" className="text-xs font-medium text-neutral-500">
-                ความสามารถพิเศษ (ถ้ามี)
+                ความสามารถพิเศษ (Special Talents — ถ้ามี)
               </label>
               <textarea
                 id="talents"

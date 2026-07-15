@@ -187,6 +187,40 @@ export async function getSlipUrl(path: string) {
   return data?.signedUrl ?? null;
 }
 
+// ค้นหาการจองข้ามทุกรอบ: ชื่อ / ชื่อเล่น / เบอร์โทร / รหัส talent ที่ผูกไว้
+// — ไว้ตามหาคิวตอนแก้ไขหรือเช็คอินหน้างาน (จำกัด 20 รายการ)
+export async function searchBookings(q: string) {
+  const term = q.trim().replace(/[%,]/g, "");
+  if (!term) return [];
+
+  // รหัส talent (เช่น FF979D / GD-0009) → หา booking ที่ผูกกับคนนั้น
+  const { data: codeTalents } = await supabase
+    .from("talents")
+    .select("id")
+    .ilike("code", `%${term}%`)
+    .limit(5);
+  const talentIds = (codeTalents ?? []).map((t) => t.id);
+
+  let query = supabase
+    .from("shoot_bookings")
+    .select("*, shoot_day:shoot_days(id, shoot_date, location)")
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const ors = [
+    `full_name.ilike.%${term}%`,
+    `nickname.ilike.%${term}%`,
+    `phone.ilike.%${term}%`,
+  ];
+  if (talentIds.length > 0) {
+    ors.push(`talent_id.in.(${talentIds.join(",")})`);
+  }
+  query = query.or(ors.join(","));
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 // ===== เช็คชื่อหน้างานวันถ่าย (Photoshoot Overview) =====
 export async function setBookingArrival(formData: FormData) {
   const id = String(formData.get("id"));
@@ -225,6 +259,8 @@ export async function createTalentFromBooking(formData: FormData) {
     .insert({
       full_name: b.full_name,
       nickname_th: b.nickname || b.full_name,
+      gender: b.gender ?? null,
+      dob: b.dob ?? null,
       phone: b.phone,
       email: b.email,
       contact_line_or_whatsapp: b.line_id,

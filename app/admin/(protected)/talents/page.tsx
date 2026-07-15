@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { TalentFilterPanel } from "@/components/admin/TalentFilterPanel";
 import { TalentGridCard } from "@/components/talent/TalentGridCard";
 import { STATUS_LABEL_TH, TALENTS_PAGE_SIZE } from "@/lib/constants";
-import { calculateAge } from "@/lib/age";
+import { ageLabel } from "@/lib/age";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
 
 type RawParams = Record<string, string | undefined>;
@@ -90,7 +90,10 @@ export default async function TalentsListPage({
               nameSub={t.nickname_en && t.nickname_th ? t.nickname_en : null}
               code={t.code}
               gender={t.gender}
-              age={t.dob ? calculateAge(t.dob) : null}
+              ageText={t.dob ? ageLabel(t.dob) : null}
+              heightCm={t.height_cm}
+              weightKg={t.weight_kg}
+              nationality={t.nationality ?? null}
               roles={{
                 model: t.is_model,
                 influ: t.is_influencer,

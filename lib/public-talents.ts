@@ -11,6 +11,9 @@ export type PublicTalent = {
   nameSub: string | null;
   gender: string | null;
   dob: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  nationality: string | null;
   is_model: boolean;
   is_influencer: boolean;
   is_ai_model: boolean;
@@ -100,6 +103,9 @@ export async function getPublicTalentsPage(
             : null,
         gender: t.gender ?? null,
         dob: t.dob,
+        height_cm: t.height_cm ?? null,
+        weight_kg: t.weight_kg ?? null,
+        nationality: t.nationality ?? null,
         is_model: t.is_model === true,
         is_influencer: t.is_influencer === true,
         is_ai_model: t.is_ai_model === true,

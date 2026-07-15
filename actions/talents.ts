@@ -320,6 +320,7 @@ export async function saveTalent(formData: FormData) {
       .map((l) => (/^https?:\/\//i.test(l) ? l : `https://${l}`))
       .slice(0, 5),
     intro_video_url: str(formData, "intro_video_url"),
+    nationality: str(formData, "nationality"),
     status: str(formData, "status") ?? "pending",
     ig_handle: str(formData, "ig_handle"),
     ig_followers: followers.ig,
@@ -337,7 +338,23 @@ export async function saveTalent(formData: FormData) {
   };
 
   if (id) {
-    const { error } = await supabase.from("talents").update(payload).eq("id", id);
+    // แอดมินแก้รหัสเองได้ (ไว้โอนรหัสจากระบบเก่า) — เช็คซ้ำก่อน
+    const code = str(formData, "code");
+    if (code) {
+      const { data: dup } = await supabase
+        .from("talents")
+        .select("id")
+        .eq("code", code)
+        .neq("id", id)
+        .maybeSingle();
+      if (dup) {
+        redirect(`${backTo}?error=${encodeURIComponent(`รหัส ${code} ถูกใช้แล้ว กรุณาใช้รหัสอื่น`)}`);
+      }
+    }
+    const { error } = await supabase
+      .from("talents")
+      .update(code ? { ...payload, code } : payload)
+      .eq("id", id);
     // อย่าโยน error ดิบ (จะกลายเป็นหน้าขาว "server error") — เด้งกลับฟอร์ม
     // พร้อมข้อความแทน
     if (error) {
@@ -414,6 +431,7 @@ export async function saveTalentSelf(formData: FormData) {
     email: str(formData, "email"),
     contact_line_or_whatsapp: str(formData, "contact_line_or_whatsapp"),
     note: str(formData, "note"),
+    nationality: str(formData, "nationality"),
     is_model: formData.get("is_model") === "on",
     is_influencer: formData.get("is_influencer") === "on",
     ig_handle: str(formData, "ig_handle"),

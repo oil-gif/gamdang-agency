@@ -21,7 +21,11 @@ export type TalentGridCardProps = {
   nameSub?: string | null;
   code?: string | null;
   gender?: string | null;
-  age?: number | null;
+  // ส่งเป็นข้อความ (เช่น "3 ปี 0 ด." สำหรับเด็ก) — คำนวณจาก dob ที่ฝั่ง page
+  ageText?: string | null;
+  heightCm?: number | null;
+  weightKg?: number | null;
+  nationality?: string | null;
   roles: { model: boolean; influ: boolean; ai: boolean };
   // admin เท่านั้น
   statusChip?: { label: string; className: string } | null;
@@ -41,7 +45,10 @@ const GENDER_SYMBOL: Record<string, string> = {
 export function TalentGridCard(props: TalentGridCardProps) {
   const meta = [
     props.gender ? GENDER_SYMBOL[props.gender] : null,
-    props.age !== null && props.age !== undefined ? `${props.age} ปี` : null,
+    props.ageText ?? null,
+    props.heightCm ? `${props.heightCm}cm` : null,
+    props.weightKg ? `${props.weightKg}kg` : null,
+    props.nationality ?? null,
     props.code ?? null,
   ].filter(Boolean);
 

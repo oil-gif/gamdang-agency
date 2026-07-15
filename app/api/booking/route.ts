@@ -47,6 +47,10 @@ export async function POST(req: NextRequest) {
     : null;
   const fullName = str(body.full_name);
   const phone = str(body.phone);
+  const gender = ["male", "female", "other"].includes(body.gender)
+    ? (body.gender as string)
+    : null;
+  const dob = /^\d{4}-\d{2}-\d{2}$/.test(String(body.dob ?? "")) ? body.dob : null;
   const slip = typeof body.slip === "string" ? body.slip : "";
   if (!dayId || !pkg || !hour || !fullName || !phone || !slip) {
     console.error("booking invalid:", {
@@ -111,12 +115,21 @@ export async function POST(req: NextRequest) {
     p_photo_cap: BOOKING.photoCap,
     p_video_cap: BOOKING.videoCap,
   });
+  // gender/dob ไม่เกี่ยวกับความจุ — อัพเดตแยกหลังจองสำเร็จ
+  // (ไม่ต้องแก้ signature ของ book_shoot_slot)
   if (error) {
     // ที่เต็ม/ปิดพอดี — ลบสลิปที่เพิ่งอัพทิ้ง
     await supabase.storage.from("booking-slips").remove([slipPath]);
     const code = error.message.includes("full") ? "full" : "invalid";
     if (code === "invalid") console.error("booking rpc error:", error.message);
     return err(code, 409);
+  }
+
+  if (gender || dob) {
+    await supabase
+      .from("shoot_bookings")
+      .update({ gender, dob })
+      .eq("id", bookingId);
   }
 
   // แจ้งเตือนแอดมินทาง LINE (best-effort — พังก็ไม่ทำให้การจองล้ม)

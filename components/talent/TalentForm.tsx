@@ -19,6 +19,7 @@ import { CATEGORIES, ETHNICITIES } from "@/lib/constants";
 
 type Talent = {
   id?: string;
+  code?: string;
   nickname_th?: string | null;
   nickname_en?: string | null;
   full_name?: string | null;
@@ -28,6 +29,7 @@ type Talent = {
   height_cm?: number | null;
   weight_kg?: number | null;
   measurements?: string | null;
+  nationality?: string | null;
   phone?: string | null;
   email?: string | null;
   contact_line_or_whatsapp?: string | null;
@@ -84,6 +86,19 @@ export function TalentForm({
           </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {mode === "admin" && talent?.id && (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="code">
+                รหัสประจำตัว (Code) — แก้ได้ เช่นใส่รหัสจากระบบเก่า FF979D
+              </Label>
+              <Input
+                id="code"
+                name="code"
+                defaultValue={talent?.code ?? ""}
+                className="max-w-48 font-mono"
+              />
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="nickname_th">ชื่อเล่น (ไทย) *</Label>
             <Input
@@ -158,6 +173,15 @@ export function TalentForm({
               id="measurements"
               name="measurements"
               defaultValue={talent?.measurements ?? ""}
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="nationality">สัญชาติ (Nationality)</Label>
+            <Input
+              id="nationality"
+              name="nationality"
+              placeholder="เช่น Thai, Thai/American"
+              defaultValue={talent?.nationality ?? ""}
             />
           </div>
         </CardContent>

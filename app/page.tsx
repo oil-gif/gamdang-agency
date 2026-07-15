@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TalentGridCard } from "@/components/talent/TalentGridCard";
-import { calculateAge } from "@/lib/age";
+import { ageLabel } from "@/lib/age";
 import { CONTACT } from "@/lib/constants";
 import {
   getPublicTabCounts,
@@ -135,7 +135,10 @@ export default async function HomePage({
                 name={t.name}
                 nameSub={t.nameSub}
                 gender={t.gender}
-                age={t.dob ? calculateAge(t.dob) : null}
+                ageText={t.dob ? ageLabel(t.dob) : null}
+                heightCm={t.height_cm}
+                weightKg={t.weight_kg}
+                nationality={t.nationality}
                 roles={{ model: t.is_model, influ: t.is_influencer, ai: t.is_ai_model }}
                 socials={tab === "influencer" ? t.socials : undefined}
                 topFollower={tab === "influencer" ? t.top : undefined}

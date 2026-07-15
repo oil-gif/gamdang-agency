@@ -11,6 +11,7 @@ import {
   toggleShootSlot,
 } from "@/actions/shoots";
 import { getSlotCounts, slotOpen, thaiDateLabel } from "@/lib/booking";
+import { ageLabel } from "@/lib/age";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -320,6 +321,10 @@ export default async function ShootDayDetailPage({
                   📞 {b.phone}
                   {b.line_id ? ` · LINE: ${b.line_id}` : ""}
                   {b.email ? ` · ${b.email}` : ""}
+                  {b.gender
+                    ? ` · ${b.gender === "male" ? "ชาย" : b.gender === "female" ? "หญิง" : "อื่นๆ"}`
+                    : ""}
+                  {b.dob ? ` · อายุ ${ageLabel(b.dob)}` : ""}
                   {b.height ? ` · สูง ${b.height} ซม.` : ""}
                   {b.weight ? ` · หนัก ${b.weight} กก.` : ""}
                 </p>
