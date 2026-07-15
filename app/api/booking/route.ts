@@ -132,10 +132,18 @@ export async function POST(req: NextRequest) {
   }
 
   if (gender || dob || nationality) {
-    await supabase
+    const { error: updErr } = await supabase
       .from("shoot_bookings")
       .update({ gender, dob, nationality })
       .eq("id", bookingId);
+    // เผื่อ migration 010 (nationality) ยังไม่ถูกรัน — อย่าให้ทั้ง gender/dob
+    // หายไปเพราะ column เดียวไม่มี ลองบันทึกเฉพาะ gender/dob อีกรอบ
+    if (updErr) {
+      await supabase
+        .from("shoot_bookings")
+        .update({ gender, dob })
+        .eq("id", bookingId);
+    }
   }
 
   // แจ้งเตือนแอดมินทาง LINE (best-effort — พังก็ไม่ทำให้การจองล้ม)
