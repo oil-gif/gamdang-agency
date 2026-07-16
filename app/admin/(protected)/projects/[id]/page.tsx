@@ -35,10 +35,11 @@ import { Label } from "@/components/ui/label";
 import { calculateAge } from "@/lib/age";
 import { createJobToken, createSubmitToken } from "@/lib/auth/talent-session";
 import { TIER_LABEL } from "@/lib/constants";
+import { SITE_URL } from "@/lib/site";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
 import { getPhotoProxyUrl } from "@/lib/storage";
 
-const BASE_URL = "https://gamdang-app.vercel.app";
+const BASE_URL = SITE_URL;
 
 const RESPONSE_CHIP: Record<string, { label: string; className: string }> = {
   accepted: { label: "รับงานแล้ว ✓", className: "bg-emerald-100 text-emerald-700" },
