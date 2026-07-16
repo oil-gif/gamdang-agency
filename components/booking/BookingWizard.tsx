@@ -39,7 +39,11 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
     let cancelled = false;
     (async () => {
       try {
-        const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+        // ใช้ LIFF app ของหน้าจองโดยเฉพาะ (endpoint ชี้ /booking) ถ้ามี —
+        // ไม่งั้น fallback ตัวเดิม (endpoint /apply)
+        const liffId =
+          process.env.NEXT_PUBLIC_BOOKING_LIFF_ID ||
+          process.env.NEXT_PUBLIC_LIFF_ID;
         if (!liffId) return;
         const { default: liff } = await import("@line/liff");
         await liff.init({ liffId });
