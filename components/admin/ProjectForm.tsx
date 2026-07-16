@@ -1,8 +1,10 @@
 "use client";
 
 import { saveProject } from "@/actions/projects";
+import { ProjectCoverUploader } from "@/components/admin/ProjectCoverUploader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,7 +25,22 @@ type Project = {
   shooting_date?: string | null;
   budget?: string | null;
   status?: string;
+  category?: string | null;
+  cover_path?: string | null;
+  is_published?: boolean;
+  casting_closed?: boolean;
 };
+
+const CATEGORIES = [
+  "TV Commercial",
+  "Movie",
+  "Series",
+  "MV",
+  "Print / Photo",
+  "Event / Presenter",
+  "Online / Influencer",
+  "Other",
+];
 
 export function ProjectForm({
   project,
@@ -116,6 +133,59 @@ export function ProjectForm({
                 <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ===== ประกาศงานสาธารณะ (Casting Call) ===== */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-[#B82233]">
+            ประกาศรับสมัคร (Casting Call){" "}
+            <span className="font-normal text-[#B82233]/60">
+              — เผยแพร่หน้าเว็บให้คนสมัคร/แชร์
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>รูปปกงาน (Cover — 1200 × 630 px สำหรับแชร์ FB/LINE)</Label>
+            <ProjectCoverUploader name="cover_path" defaultPath={project?.cover_path} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="category">หมวดงาน (Category)</Label>
+            <Select name="category" defaultValue={project?.category ?? undefined}>
+              <SelectTrigger id="category" className="w-full">
+                <SelectValue placeholder="เลือกหมวด..." />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-3 sm:col-span-2">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                name="is_published"
+                defaultChecked={project?.is_published ?? false}
+              />
+              เผยแพร่หน้าเว็บ (โชว์ที่หน้า Casting Calls สาธารณะ)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                name="casting_closed"
+                defaultChecked={project?.casting_closed ?? false}
+              />
+              ปิดรับสมัครแล้ว (ขึ้นป้าย &quot;CASTING CLOSED&quot; — ยังโชว์อยู่แต่กดสมัครไม่ได้)
+            </label>
+            <p className="text-xs text-neutral-400">
+              รายละเอียดที่โชว์บนประกาศ = ช่อง &quot;รายละเอียดงาน&quot; ด้านบน · role
+              ที่เปิดรับ เพิ่มได้ในหน้าโปรเจกต์หลังบันทึก
+            </p>
           </div>
         </CardContent>
       </Card>

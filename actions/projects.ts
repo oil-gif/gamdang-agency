@@ -182,6 +182,11 @@ export async function saveProject(formData: FormData) {
     shooting_date: str(formData, "shooting_date"),
     budget: str(formData, "budget"),
     status: str(formData, "status") ?? "draft",
+    // Casting Calls (หน้าสาธารณะ)
+    category: str(formData, "category"),
+    cover_path: str(formData, "cover_path"),
+    is_published: formData.get("is_published") === "on",
+    casting_closed: formData.get("casting_closed") === "on",
   };
 
   if (id) {
@@ -199,6 +204,124 @@ export async function saveProject(formData: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath("/admin/projects");
   redirect(`/admin/projects/${created.id}`);
+}
+
+// ===== Roles ในโปรเจกต์ =====
+export async function getProjectRoles(projectId: string) {
+  const { data, error } = await supabase
+    .from("project_roles")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("display_order", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function addProjectRole(formData: FormData) {
+  const projectId = String(formData.get("project_id"));
+  const title = str(formData, "title");
+  if (!title) return;
+  const { data: maxRow } = await supabase
+    .from("project_roles")
+    .select("display_order")
+    .eq("project_id", projectId)
+    .order("display_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { error } = await supabase.from("project_roles").insert({
+    project_id: projectId,
+    title,
+    description: str(formData, "description"),
+    display_order: (maxRow?.display_order ?? -1) + 1,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/projects/${projectId}`);
+}
+
+export async function deleteProjectRole(formData: FormData) {
+  const id = String(formData.get("id"));
+  const projectId = String(formData.get("project_id"));
+  const { error } = await supabase.from("project_roles").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/projects/${projectId}`);
+}
+
+// ===== ผู้สมัครเข้าร่วม (Applications) =====
+export async function getProjectApplications(projectId: string) {
+  const { data: apps, error } = await supabase
+    .from("project_applications")
+    .select("*, talent:talents(*), role:project_roles(title)")
+    .eq("project_id", projectId)
+    .order("applied_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  if (!apps || apps.length === 0) return [];
+
+  const talentIds = apps.map((a) => a.talent_id);
+  const { data: photos } = await supabase
+    .from("talent_photos")
+    .select("talent_id, kind, storage_path, display_order")
+    .in("talent_id", talentIds)
+    .order("display_order", { ascending: true });
+  return apps.map((a) => {
+    const mine = (photos ?? []).filter((p) => p.talent_id === a.talent_id);
+    return {
+      ...a,
+      photo_path:
+        mine.find((p) => p.kind === "gallery")?.storage_path ??
+        mine.find((p) => p.kind === "compcard")?.storage_path ??
+        null,
+    };
+  });
+}
+
+// อนุมัติผู้สมัคร → เพิ่มเข้า project_talents (proposal เสนอลูกค้า)
+export async function approveApplication(formData: FormData) {
+  const id = String(formData.get("id"));
+  const projectId = String(formData.get("project_id"));
+  const { data: app } = await supabase
+    .from("project_applications")
+    .select("talent_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!app) return;
+
+  const { data: project } = await supabase
+    .from("projects")
+    .select("project_type")
+    .eq("id", projectId)
+    .single();
+  const cardType = project?.project_type === "influencer" ? "influcard" : "compcard";
+
+  const { data: maxRow } = await supabase
+    .from("project_talents")
+    .select("display_order")
+    .eq("project_id", projectId)
+    .order("display_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // เพิ่มเข้า proposal (ถ้ายังไม่มี) แล้ว mark ใบสมัครเป็น approved
+  await supabase.from("project_talents").insert({
+    project_id: projectId,
+    talent_id: app.talent_id,
+    card_type: cardType,
+    display_order: (maxRow?.display_order ?? -1) + 1,
+  });
+  await supabase
+    .from("project_applications")
+    .update({ status: "approved" })
+    .eq("id", id);
+  revalidatePath(`/admin/projects/${projectId}`);
+}
+
+export async function rejectApplication(formData: FormData) {
+  const id = String(formData.get("id"));
+  const projectId = String(formData.get("project_id"));
+  await supabase
+    .from("project_applications")
+    .update({ status: "rejected" })
+    .eq("id", id);
+  revalidatePath(`/admin/projects/${projectId}`);
 }
 
 export async function deleteProject(formData: FormData) {

@@ -24,10 +24,10 @@ export async function GET(
     ? Math.min(Math.max(parseInt(wRaw, 10) || 0, 64), 1600)
     : null;
 
-  // Only ever serve from the known layouts: {talentId}/{kind}/{file}
-  // หรือ _unassigned/{file} (photo inbox — รูป batch ที่ยังไม่มอบหมาย)
+  // Only ever serve from the known layouts: {talentId}/{kind}/{file},
+  // _unassigned/{file} (photo inbox) หรือ _project-covers/{file} (รูปปกงาน)
   if (
-    !/^([\w-]+\/(gallery|compcard|casting)|_unassigned)\/[\w-]+\.\w+$/.test(
+    !/^([\w-]+\/(gallery|compcard|casting)|_unassigned|_project-covers)\/[\w-]+\.\w+$/.test(
       storagePath,
     )
   ) {

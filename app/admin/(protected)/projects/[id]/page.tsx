@@ -1,11 +1,17 @@
 import Link from "next/link";
 import {
+  addProjectRole,
   addTalentToProject,
+  approveApplication,
   deleteProject,
+  deleteProjectRole,
   getPickerTalents,
   getProject,
+  getProjectApplications,
+  getProjectRoles,
   getProjectTalents,
   moveProjectTalent,
+  rejectApplication,
   removeTalentFromProject,
   setProjectTalentCardType,
   setTalentResponseAdmin,
@@ -25,6 +31,7 @@ import { ProjectForm } from "@/components/admin/ProjectForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { calculateAge } from "@/lib/age";
 import { createJobToken, createSubmitToken } from "@/lib/auth/talent-session";
 import { TIER_LABEL } from "@/lib/constants";
@@ -111,16 +118,20 @@ export default async function ProjectDetailPage({
   const { id } = await params;
   const { error, pq, prole } = await searchParams;
 
-  const [project, projectTalents, links, candidates] = await Promise.all([
-    getProject(id),
-    getProjectTalents(id),
-    getProjectLinks(id),
-    getPickerTalents(
-      id,
-      pq || undefined,
-      prole === "model" || prole === "influencer" ? prole : undefined,
-    ),
-  ]);
+  const [project, projectTalents, links, candidates, roles, applications] =
+    await Promise.all([
+      getProject(id),
+      getProjectTalents(id),
+      getProjectLinks(id),
+      getPickerTalents(
+        id,
+        pq || undefined,
+        prole === "model" || prole === "influencer" ? prole : undefined,
+      ),
+      getProjectRoles(id),
+      getProjectApplications(id),
+    ]);
+  const pendingApps = applications.filter((a) => a.status === "pending");
 
   // token ต่อแถว (แจ้งงาน 14 วัน / ส่งงาน 60 วัน) — stateless JWT สร้างใหม่
   // ทุก render ได้ ของเก่ายังใช้ได้จนหมดอายุ
@@ -163,6 +174,160 @@ export default async function ProjectDetailPage({
       </div>
 
       <ProjectForm project={project} error={error} />
+
+      {/* ===== ประกาศงานสาธารณะ: ลิงก์ + roles + ผู้สมัคร ===== */}
+      {project.is_published && (
+        <section className="max-w-3xl space-y-2 rounded-xl border border-[#B82233]/20 bg-[#B82233]/5 p-4">
+          <p className="text-sm font-semibold text-[#B82233]">
+            🌐 เผยแพร่หน้าเว็บแล้ว — ลิงก์แชร์:
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded bg-white px-2 py-1 text-xs">
+              {BASE_URL}/casting/{id}
+            </code>
+            <CopyButton text={`${BASE_URL}/casting/${id}`} />
+            <Button asChild size="sm" variant="outline">
+              <a href={`/casting/${id}`} target="_blank" rel="noopener noreferrer">
+                เปิดดู
+              </a>
+            </Button>
+          </div>
+        </section>
+      )}
+
+      {/* ===== Roles ที่เปิดรับ ===== */}
+      <section className="max-w-3xl space-y-3">
+        <h2 className="text-lg font-semibold text-[#1D4ED8]">
+          Roles ที่เปิดรับ ({roles.length})
+        </h2>
+        <div className="space-y-2">
+          {roles.map((r) => (
+            <div
+              key={r.id}
+              className="flex items-start gap-3 rounded-lg border bg-white p-3"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-neutral-800">{r.title}</p>
+                {r.description && (
+                  <p className="text-sm text-neutral-500">{r.description}</p>
+                )}
+              </div>
+              <form action={deleteProjectRole}>
+                <input type="hidden" name="id" value={r.id} />
+                <input type="hidden" name="project_id" value={id} />
+                <Button type="submit" size="sm" variant="ghost">
+                  ลบ
+                </Button>
+              </form>
+            </div>
+          ))}
+        </div>
+        <form
+          action={addProjectRole}
+          className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed bg-white p-3"
+        >
+          <input type="hidden" name="project_id" value={id} />
+          <div className="space-y-1">
+            <Label htmlFor="role_title">ชื่อ Role (เช่น นางเอก, เด็กชาย 5-7 ขวบ)</Label>
+            <Input id="role_title" name="title" className="w-56" required />
+          </div>
+          <div className="min-w-0 flex-1 space-y-1">
+            <Label htmlFor="role_desc">รายละเอียด (ถ้ามี)</Label>
+            <Input id="role_desc" name="description" placeholder="เพศ/อายุ/ลักษณะ/ค่าตัว" />
+          </div>
+          <Button type="submit">+ เพิ่ม Role</Button>
+        </form>
+      </section>
+
+      {/* ===== ผู้สมัครเข้าร่วม (จากหน้าประกาศ) ===== */}
+      <section className="max-w-3xl space-y-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-[#1D4ED8]">
+            ผู้สมัครเข้าร่วม (Applications)
+          </h2>
+          {pendingApps.length > 0 && (
+            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+              ⏳ รออนุมัติ {pendingApps.length}
+            </span>
+          )}
+        </div>
+        <div className="space-y-2">
+          {applications.map((a) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const t = a.talent as any;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const role = a.role as any;
+            return (
+              <div
+                key={a.id}
+                className="flex items-center gap-3 rounded-xl border bg-white p-3 shadow-sm"
+              >
+                <div className="size-12 shrink-0 overflow-hidden rounded-full border bg-neutral-100">
+                  {a.photo_path ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={getPhotoProxyUrl(a.photo_path, 320)}
+                      alt=""
+                      className="size-full object-cover object-top"
+                    />
+                  ) : null}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/admin/talents/${t?.id}`}
+                    className="font-medium text-neutral-800 hover:text-[#1D4ED8]"
+                  >
+                    {t?.nickname_th || t?.nickname_en || "(ไม่มีชื่อ)"}
+                  </Link>
+                  <p className="text-xs text-neutral-400">
+                    {t?.code}
+                    {t?.dob ? ` · ${calculateAge(t.dob)} ปี` : ""}
+                    {t?.phone ? ` · ${t.phone}` : ""}
+                    {role?.title ? ` · สมัคร: ${role.title}` : ""}
+                  </p>
+                </div>
+                {a.status === "pending" ? (
+                  <>
+                    <form action={approveApplication}>
+                      <input type="hidden" name="id" value={a.id} />
+                      <input type="hidden" name="project_id" value={id} />
+                      <Button
+                        type="submit"
+                        size="sm"
+                        className="bg-emerald-600 text-white hover:bg-emerald-700"
+                      >
+                        ✓ รับเข้า Project
+                      </Button>
+                    </form>
+                    <form action={rejectApplication}>
+                      <input type="hidden" name="id" value={a.id} />
+                      <input type="hidden" name="project_id" value={id} />
+                      <Button type="submit" size="sm" variant="ghost">
+                        ปฏิเสธ
+                      </Button>
+                    </form>
+                  </>
+                ) : (
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      a.status === "approved"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-rose-100 text-rose-700"
+                    }`}
+                  >
+                    {a.status === "approved" ? "รับแล้ว ✓" : "ปฏิเสธ"}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+          {applications.length === 0 && (
+            <p className="rounded-lg border border-dashed bg-white p-6 text-center text-sm text-neutral-400">
+              ยังไม่มีคนสมัครเข้าร่วมงานนี้ — แชร์ลิงก์ประกาศให้คนกดสมัคร
+            </p>
+          )}
+        </div>
+      </section>
 
       {/* ===== Talents in project ===== */}
       <section className="max-w-3xl space-y-4">
