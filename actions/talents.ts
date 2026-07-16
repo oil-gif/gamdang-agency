@@ -10,7 +10,7 @@ import { getTalentSession } from "@/lib/auth/talent-session";
 
 export type TalentFilters = {
   q?: string;
-  role?: "model" | "influencer";
+  role?: "model" | "influencer" | "ai";
   gender?: string;
   status?: string;
   tier?: string;
@@ -36,6 +36,7 @@ export async function getTalents(filters: TalentFilters = {}) {
   }
   if (filters.role === "model") query = query.eq("is_model", true);
   if (filters.role === "influencer") query = query.eq("is_influencer", true);
+  if (filters.role === "ai") query = query.eq("is_ai_model", true);
   if (filters.gender) query = query.eq("gender", filters.gender);
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.tier) query = query.eq("tier", filters.tier);
@@ -72,6 +73,7 @@ export async function getTalentsWithPhotos(
   }
   if (filters.role === "model") query = query.eq("is_model", true);
   if (filters.role === "influencer") query = query.eq("is_influencer", true);
+  if (filters.role === "ai") query = query.eq("is_ai_model", true);
   if (filters.gender) query = query.eq("gender", filters.gender);
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.tier) query = query.eq("tier", filters.tier);
