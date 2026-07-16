@@ -29,7 +29,6 @@ export function CastingApply({
 }) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
-  const [lineBusy, setLineBusy] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
 
   // เปิดในแอป LINE + ยังไม่ login → ผูก session ให้อัตโนมัติ แล้ว refresh
@@ -61,29 +60,9 @@ export function CastingApply({
     };
   }, [loggedIn, router]);
 
-  // กดปุ่ม "เข้าสู่ระบบด้วย LINE" (ใช้ได้ทั้งใน LINE และ browser/Facebook)
-  async function handleLineLogin() {
-    setLineBusy(true);
-    try {
-      const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-      if (!liffId) throw new Error("ระบบยังไม่ได้ตั้งค่า LIFF");
-      const { default: liff } = await import("@line/liff");
-      await liff.init({ liffId });
-      if (!liff.isLoggedIn()) {
-        liff.login({ redirectUri: window.location.href });
-        return;
-      }
-      const idToken = liff.getIDToken();
-      await fetch("/api/line/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
-      router.refresh();
-    } catch {
-      setLineBusy(false);
-    }
-  }
+  // ล็อกอินผ่านหน้า /apply (เป็น LIFF endpoint ที่ลงทะเบียนไว้ — login ได้
+  // ทั้งในแอป LINE และ browser/Facebook) แล้ว ?next เด้งกลับมาหน้านี้
+  const loginHref = `/apply?next=${encodeURIComponent(`/casting/${projectId}`)}`;
 
   const fbShare = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
   const lineShare = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`;
@@ -149,14 +128,12 @@ export function CastingApply({
       ) : (
         // ยังไม่ login
         <div className="space-y-3">
-          <button
-            type="button"
-            onClick={handleLineLogin}
-            disabled={lineBusy}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#06C755] py-3.5 text-base font-bold text-white shadow-md transition hover:opacity-95 disabled:opacity-60"
+          <a
+            href={loginHref}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#06C755] py-3.5 text-base font-bold text-white shadow-md transition hover:opacity-95"
           >
-            {lineBusy ? "กำลังเชื่อม LINE..." : "เข้าสู่ระบบด้วย LINE เพื่อสมัคร"}
-          </button>
+            เข้าสู่ระบบด้วย LINE เพื่อสมัคร
+          </a>
           <p className="text-center text-xs text-neutral-400">
             เป็นสมาชิกอยู่แล้ว? เข้าสู่ระบบแล้วกดสมัครได้เลย ไม่ต้องกรอกใหม่
           </p>
@@ -384,45 +361,39 @@ function ManualApply({
         กรอกข้อมูลเพื่อสมัคร — ทีมงานจะติดต่อกลับ
       </p>
 
-      {/* รูป Compcard (บังคับ) */}
+      {/* รูป Compcard (บังคับ) — กรอบแนวนอน */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-neutral-500">
-          รูป Compcard / รูปถ่ายเต็มตัว *{" "}
+          รูป Compcard *{" "}
           <span className="text-neutral-400">(ต้องแนบ — เอาไปเสนอลูกค้า)</span>
         </label>
-        <div className="flex items-center gap-3">
-          <div className="aspect-[3/4] w-24 shrink-0 overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50">
-            {photoPath ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`/photo/${photoPath}`}
-                alt=""
-                className="size-full object-cover object-top"
-              />
-            ) : (
-              <div className="flex size-full items-center justify-center text-center text-[10px] text-neutral-400">
-                ยังไม่มีรูป
-              </div>
-            )}
-          </div>
-          <div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              onChange={handlePhoto}
-              className="hidden"
-            />
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => fileRef.current?.click()}
-              className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-neutral-50"
-            >
-              {busy ? "กำลังอัพโหลด..." : photoPath ? "เปลี่ยนรูป" : "อัพโหลดรูป"}
-            </button>
-            {err && <p className="mt-1 text-xs text-rose-600">{err}</p>}
-          </div>
+        <div className="aspect-[3/2] w-full overflow-hidden rounded-xl border border-dashed border-neutral-300 bg-neutral-50">
+          {photoPath ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={`/photo/${photoPath}`} alt="" className="size-full object-cover" />
+          ) : (
+            <div className="flex size-full items-center justify-center text-center text-xs text-neutral-400">
+              รูป Compcard (แนวนอน)
+            </div>
+          )}
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          onChange={handlePhoto}
+          className="hidden"
+        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+            className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-neutral-50"
+          >
+            {busy ? "กำลังอัพโหลด..." : photoPath ? "เปลี่ยนรูป" : "อัพโหลดรูป Compcard"}
+          </button>
+          {err && <p className="text-xs text-rose-600">{err}</p>}
         </div>
       </div>
 
@@ -472,15 +443,18 @@ function ManualApply({
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label htmlFor="gender" className="text-xs font-medium text-neutral-500">
-            เพศ (Gender)
+            เพศ (Gender) *
           </label>
           <select
             id="gender"
             name="gender"
+            required
             defaultValue=""
             className="h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm"
           >
-            <option value="">—</option>
+            <option value="" disabled>
+              — เลือกเพศ —
+            </option>
             <option value="male">ชาย</option>
             <option value="female">หญิง</option>
             <option value="other">อื่นๆ</option>
@@ -496,6 +470,36 @@ function ManualApply({
             type="date"
             max={new Date().toISOString().slice(0, 10)}
             className="h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm"
+          />
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="height_cm" className="text-xs font-medium text-neutral-500">
+            ส่วนสูง (cm) *
+          </label>
+          <input
+            id="height_cm"
+            name="height_cm"
+            type="number"
+            required
+            min={30}
+            max={230}
+            placeholder="เช่น 165"
+            className="h-11 w-full rounded-xl border border-neutral-300 px-3 text-sm outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
+          />
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="weight_kg" className="text-xs font-medium text-neutral-500">
+            น้ำหนัก (kg) *
+          </label>
+          <input
+            id="weight_kg"
+            name="weight_kg"
+            type="number"
+            required
+            min={5}
+            max={200}
+            placeholder="เช่น 50"
+            className="h-11 w-full rounded-xl border border-neutral-300 px-3 text-sm outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
           />
         </div>
       </div>

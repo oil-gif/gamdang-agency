@@ -105,9 +105,12 @@ export async function applyToCasting(formData: FormData) {
   const nickname = str(formData, "nickname");
   const phone = str(formData, "phone");
   const photoPath = str(formData, "photo_path");
-  if (!projectId || !nickname || !phone || !photoPath) {
+  const gender = str(formData, "gender");
+  const height = str(formData, "height_cm");
+  const weight = str(formData, "weight_kg");
+  if (!projectId || !nickname || !phone || !photoPath || !gender || !height || !weight) {
     redirect(
-      `/casting/${projectId}?error=${encodeURIComponent("กรุณากรอกชื่อเล่น เบอร์โทร และแนบรูป Compcard")}`,
+      `/casting/${projectId}?error=${encodeURIComponent("กรุณากรอกชื่อเล่น เบอร์โทร เพศ ส่วนสูง น้ำหนัก และแนบรูป Compcard")}`,
     );
   }
 
@@ -130,7 +133,9 @@ export async function applyToCasting(formData: FormData) {
       nickname_en: nickname,
       nickname_th: nickname,
       phone,
-      gender: str(formData, "gender"),
+      gender,
+      height_cm: Number(height),
+      weight_kg: Number(weight),
       dob: str(formData, "dob"),
       nationality: str(formData, "nationality"),
       email: str(formData, "email"),

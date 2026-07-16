@@ -31,7 +31,15 @@ export default function ApplyPage() {
         // the redirect back here, so a link sent by an admin to bind this
         // login to a specific existing talent record survives the login
         // round-trip.
-        const linkToken = new URLSearchParams(window.location.search).get("link");
+        const params = new URLSearchParams(window.location.search);
+        const linkToken = params.get("link");
+        // ?next=/casting/xxx → หลัง login เด้งกลับไปหน้านั้น (เฉพาะ path
+        // ภายในเว็บ กัน open-redirect) ไม่งั้นไปหน้าจัดการโปรไฟล์ตามเดิม
+        const rawNext = params.get("next");
+        const next =
+          rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//")
+            ? rawNext
+            : "/apply/profiles";
 
         const res = await fetch("/api/line/verify", {
           method: "POST",
@@ -43,7 +51,7 @@ export default function ApplyPage() {
           throw new Error(body.error ?? "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่");
         }
 
-        if (!cancelled) router.replace("/apply/profiles");
+        if (!cancelled) router.replace(next);
       } catch (err) {
         if (!cancelled) {
           setIsError(true);
