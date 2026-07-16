@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { BOOKING, CONTACT } from "@/lib/constants";
+import { BOOKING, CONTACT, formatHourEN } from "@/lib/constants";
 
 // Wizard จองถ่ายโปรไฟล์ 4 step (ตามดีไซน์หน้าบ้าน WP เดิมเป๊ะ):
 // เลือกวัน → แพกเกจ → รอบเวลา → ข้อมูล+สลิป
@@ -9,7 +9,8 @@ import { BOOKING, CONTACT } from "@/lib/constants";
 
 export type WizardDate = {
   id: string;
-  label: string;
+  label: string; // อังกฤษ "26 July 2026"
+  labelTh: string; // ไทย "26 กรกฎาคม 2569"
   location: string | null;
   details: string | null;
   avail: { A: Record<string, boolean>; B: Record<string, boolean> };
@@ -204,7 +205,12 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
                   : "border-neutral-200 bg-white hover:border-neutral-300"
               }`}
             >
-              <p className="font-bold text-neutral-800">{d.label}</p>
+              <p className="font-bold text-neutral-800">
+                {d.label}{" "}
+                <span className="text-sm font-normal text-neutral-400">
+                  ({d.labelTh})
+                </span>
+              </p>
               {d.location && (
                 <p className="mt-0.5 text-sm text-neutral-500">📍 {d.location}</p>
               )}
@@ -268,17 +274,17 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
                         : "cursor-not-allowed border-neutral-100 bg-neutral-50 text-neutral-300 line-through"
                   }`}
                 >
-                  {h} น.
+                  {formatHourEN(h)}
                 </button>
               );
             })}
           </div>
           <p className="flex items-center gap-3 text-xs text-neutral-400">
             <span className="flex items-center gap-1">
-              <span className="size-2 rounded-full bg-[#1D4ED8]" /> ว่าง
+              <span className="size-2 rounded-full bg-[#1D4ED8]" /> ว่าง (Available)
             </span>
             <span className="flex items-center gap-1">
-              <span className="size-2 rounded-full bg-neutral-300" /> เต็ม/ปิดรับจอง
+              <span className="size-2 rounded-full bg-neutral-300" /> เต็ม/ปิดรับ (Full)
             </span>
           </p>
         </section>

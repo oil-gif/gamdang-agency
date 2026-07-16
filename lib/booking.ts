@@ -51,10 +51,20 @@ export async function getSlotCounts(shootDayId: string) {
   return counts;
 }
 
-// label วันแบบไทย พ.ศ. เช่น "26 กรกฎาคม 2569"
+// label วันแบบไทย พ.ศ. เช่น "26 กรกฎาคม 2569" (ใช้ในหลังบ้าน)
 export function thaiDateLabel(isoDate: string) {
   const d = new Date(isoDate + "T00:00:00");
   return d.toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+// label วันแบบอังกฤษ ค.ศ. เช่น "26 July 2026" (ใช้หน้าจองสาธารณะ)
+export function enDateLabel(isoDate: string) {
+  const d = new Date(isoDate + "T00:00:00");
+  return d.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -80,7 +90,8 @@ export async function getPublicShootDates() {
       return {
         id: d.id,
         shoot_date: d.shoot_date,
-        label: thaiDateLabel(d.shoot_date),
+        label: enDateLabel(d.shoot_date), // "26 July 2026"
+        labelTh: thaiDateLabel(d.shoot_date), // "26 กรกฎาคม 2569"
         location: d.location,
         details: d.details,
         avail: availability(d.slots ?? {}, counts),

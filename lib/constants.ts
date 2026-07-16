@@ -91,3 +91,12 @@ export const BOOKING = {
   },
   infoUrl: "https://www.gamdang.com/profile-shooting-info/",
 } as const;
+
+// เวลาแบบ AM/PM ภาษาอังกฤษ เช่น "09:00" → "9:00 AM", "13:00" → "1:00 PM"
+// (client-safe — ใช้ในหน้าจอง)
+export function formatHourEN(hour: string): string {
+  const [h] = hour.split(":").map(Number);
+  const period = h < 12 ? "AM" : "PM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:00 ${period}`;
+}
