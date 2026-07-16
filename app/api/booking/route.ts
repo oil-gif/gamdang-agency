@@ -4,6 +4,7 @@ import sharp from "sharp";
 import { BOOKING } from "@/lib/constants";
 import { pushLineMessage } from "@/lib/line-messaging";
 import { thaiDateLabel } from "@/lib/booking";
+import { verifyLineIdToken } from "@/lib/line-verify";
 import { supabase } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -131,13 +132,27 @@ export async function POST(req: NextRequest) {
     return err(code, 409);
   }
 
-  if (gender || dob || nationality) {
+  // เชื่อม LINE ถ้าเปิดจอง "ในแอป LINE" (ส่ง id token มา) — เก็บ line_user_id
+  // ไว้กับการจอง เพื่อผูกโปรไฟล์ให้แม่อัตโนมัติตอนแอดมินดึงเข้าระบบ talent
+  const lineIdToken =
+    typeof body.line_id_token === "string" ? body.line_id_token : "";
+  const lineProfile = lineIdToken ? await verifyLineIdToken(lineIdToken) : null;
+
+  if (gender || dob || nationality || lineProfile) {
+    const full = {
+      gender,
+      dob,
+      nationality,
+      line_user_id: lineProfile?.lineUserId ?? null,
+      line_display_name: lineProfile?.name ?? null,
+      line_picture_url: lineProfile?.picture ?? null,
+    };
     const { error: updErr } = await supabase
       .from("shoot_bookings")
-      .update({ gender, dob, nationality })
+      .update(full)
       .eq("id", bookingId);
-    // เผื่อ migration 010 (nationality) ยังไม่ถูกรัน — อย่าให้ทั้ง gender/dob
-    // หายไปเพราะ column เดียวไม่มี ลองบันทึกเฉพาะ gender/dob อีกรอบ
+    // เผื่อ migration (nationality/line_*) ยังไม่ถูกรัน — อย่าให้ทั้งชุดหายไป
+    // เพราะ column เดียวไม่มี ลองบันทึกเฉพาะ gender/dob อีกรอบ
     if (updErr) {
       await supabase
         .from("shoot_bookings")

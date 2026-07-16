@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BOOKING, CONTACT, formatHourEN } from "@/lib/constants";
 
 // Wizard จองถ่ายโปรไฟล์ 4 step (ตามดีไซน์หน้าบ้าน WP เดิมเป๊ะ):
@@ -26,10 +26,37 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
   const [copiedAcct, setCopiedAcct] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<"success" | string | null>(null);
+  const [lineIdToken, setLineIdToken] = useState<string | null>(null);
+  const [lineLinked, setLineLinked] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   const day = useMemo(() => dates.find((d) => d.id === dayId) ?? null, [dates, dayId]);
+
+  // เชื่อม LINE อัตโนมัติ "เฉพาะตอนเปิดในแอป LINE" (เงียบๆ ไม่บังคับ) — ได้ id
+  // token ไว้ส่งไปผูกโปรไฟล์. เปิดจาก browser ปกติ = ข้าม จองได้ตามปกติ
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+        if (!liffId) return;
+        const { default: liff } = await import("@line/liff");
+        await liff.init({ liffId });
+        if (!liff.isInClient() || !liff.isLoggedIn()) return;
+        const token = liff.getIDToken();
+        if (token && !cancelled) {
+          setLineIdToken(token);
+          setLineLinked(true);
+        }
+      } catch {
+        // ไม่ได้อยู่ใน LINE / init ไม่ได้ — เงียบไว้ จองแบบไม่เชื่อมได้ปกติ
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function pickDay(id: string) {
     setDayId(id);
@@ -117,6 +144,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
           gender: fd.get("gender"),
           dob: fd.get("dob"),
           nationality: fd.get("nationality"),
+          line_id_token: lineIdToken, // เชื่อม LINE อัตโนมัติ (ถ้าเปิดใน LINE)
           website: fd.get("website"), // honeypot
           slip: dataUrl,
         }),
@@ -460,6 +488,14 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
             </div>
           </div>
 
+          {lineLinked && (
+            <p className="flex items-center justify-center gap-1.5 rounded-xl bg-[#06C755]/10 px-4 py-2 text-sm font-medium text-[#06C755]">
+              <span className="flex size-4 items-center justify-center rounded-full bg-[#06C755] text-[8px] font-extrabold text-white">
+                L
+              </span>
+              เชื่อมบัญชี LINE แล้ว — จัดการโปรไฟล์เองได้หลังทีมงานยืนยัน
+            </p>
+          )}
           <button
             type="submit"
             disabled={submitting}

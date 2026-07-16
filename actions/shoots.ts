@@ -265,6 +265,11 @@ export async function createTalentFromBooking(formData: FormData) {
       gender: b.gender ?? null,
       dob: b.dob ?? null,
       nationality: b.nationality ?? null,
+      // ถ้าจองผ่าน LINE (เก็บ line_user_id ไว้) → ผูกโปรไฟล์ให้แม่อัตโนมัติ
+      // → โผล่ในหน้า "โปรไฟล์ของฉัน" แก้ไข/อัพรูปเองได้ทันที ไม่ต้องส่งลิงก์
+      line_user_id: b.line_user_id ?? null,
+      line_display_name: b.line_display_name ?? null,
+      line_picture_url: b.line_picture_url ?? null,
       phone: b.phone,
       email: b.email,
       contact_line_or_whatsapp: b.line_id,
