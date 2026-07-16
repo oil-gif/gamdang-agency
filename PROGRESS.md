@@ -32,7 +32,10 @@
 - [ ] **รวมกับเว็บ WordPress หน้าบ้าน** (ดูหัวข้อ "การรวมกับเว็บ WordPress" ด้านล่าง — เว็บ WP ยังอยู่ Local by Flywheel รอขึ้นโฮสต์จริงก่อน): (1) ปุ่มสมัครบน WP → LIFF URL (2) API `/api/public/talents` + shortcode ใน WP child theme (3) ผูกโดเมนจริง
 - [ ] (ตอนรวม WP เสร็จ) ตัดสินใจว่าจะเก็บหรือถอดหน้า 3 tab บน Vercel (`/`)
 
-**ลิงก์/ค่าที่ใช้บ่อย:** Production https://gamdang-app.vercel.app · LIFF `https://liff.line.me/2010689219-wGKbITGb` · LINE Official `@gamdangmodeling` · เว็บ `www.gamdang.com`, `www.gamdangagency.com`
+**ลิงก์/ค่าที่ใช้บ่อย:** Production https://gamdang-app.vercel.app · LINE Official `@gamdangmodeling` · เว็บ `www.gamdang.com`, `www.gamdangagency.com`
+- **LIFF สมัคร/จัดการโปรไฟล์** (endpoint `/apply`): `2010689219-wGKbITGb` → `https://liff.line.me/2010689219-wGKbITGb`
+- **LIFF จองถ่าย** (endpoint `/booking`, เชื่อม LINE อัตโนมัติ): `2010689219-ciPMtS8K` → `https://liff.line.me/2010689219-ciPMtS8K` (env `NEXT_PUBLIC_BOOKING_LIFF_ID`)
+- ⚠️ LIFF 2 ตัว endpoint ต้องไม่สลับกัน (เคยสลับครั้งนึงตอน add ตัวใหม่ — wGKbITGb=/apply, ciPMtS8K=/booking)
 
 ## Stack & โครงสร้าง
 - Next.js 16 (App Router, TypeScript, Tailwind v4, Turbopack) + Supabase (Postgres + Storage) + shadcn/ui
