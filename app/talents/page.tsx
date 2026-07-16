@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTalentsWithPhotos, type TalentFilters } from "@/actions/talents";
+import { BackToHome } from "@/components/BackToHome";
 import { TalentGridCard } from "@/components/talent/TalentGridCard";
 import { ageLabel } from "@/lib/age";
 import { CATEGORIES, CONTACT, ETHNICITIES, TALENTS_PAGE_SIZE } from "@/lib/constants";
@@ -75,12 +76,12 @@ export default async function PublicTalentsPage({
     <div className="min-h-screen bg-neutral-50">
       <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5">
-          <Link
-            href="/"
-            className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] bg-clip-text text-base font-extrabold tracking-widest text-transparent"
-          >
-            GAMDANG AGENCY
-          </Link>
+          <div className="flex items-center gap-3">
+            <BackToHome />
+            <span className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] bg-clip-text text-base font-extrabold tracking-widest text-transparent">
+              GAMDANG AGENCY
+            </span>
+          </div>
           <a
             href={CONTACT.lineUrl}
             target="_blank"

@@ -1,4 +1,5 @@
 import { signInAdmin } from "@/actions/auth";
+import { BackToHome } from "@/components/BackToHome";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,7 +19,10 @@ export default async function AdminLoginPage({
   const { error } = await searchParams;
 
   return (
-    <div className="bg-brand-gradient flex min-h-screen items-center justify-center p-4">
+    <div className="bg-brand-gradient relative flex min-h-screen items-center justify-center p-4">
+      <div className="absolute left-4 top-4">
+        <BackToHome tone="onDark" />
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>เข้าสู่ระบบ Admin</CardTitle>

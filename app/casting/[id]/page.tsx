@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMyProfilesForCasting } from "@/actions/casting-apply";
+import { BackToHome } from "@/components/BackToHome";
 import { CastingApply } from "@/components/casting/CastingApply";
 import { CONTACT } from "@/lib/constants";
 import { getPublicCasting } from "@/lib/casting";
@@ -69,12 +70,15 @@ export default async function CastingDetailPage({
     <div className="min-h-screen bg-neutral-50">
       <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3.5">
-          <Link
-            href="/casting"
-            className="text-sm font-medium text-neutral-500 hover:text-neutral-800"
-          >
-            ← งานทั้งหมด
-          </Link>
+          <div className="flex items-center gap-2">
+            <BackToHome />
+            <Link
+              href="/casting"
+              className="text-sm font-medium text-neutral-500 hover:text-neutral-800"
+            >
+              ← งานทั้งหมด
+            </Link>
+          </div>
           <span className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] bg-clip-text text-sm font-extrabold tracking-widest text-transparent">
             GAMDANG AGENCY
           </span>

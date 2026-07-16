@@ -4,6 +4,7 @@ import { getPendingCount } from "@/actions/talents";
 import { getBookingPendingCount } from "@/actions/shoots";
 import { createAdminAuthClient } from "@/lib/supabase/auth-server";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { BackToHome } from "@/components/BackToHome";
 import { Button } from "@/components/ui/button";
 
 export default async function AdminProtectedLayout({
@@ -47,6 +48,7 @@ export default async function AdminProtectedLayout({
             <AdminNav links={navLinks} />
           </div>
           <div className="flex items-center gap-3">
+            <BackToHome tone="onDark" />
             <span className="hidden text-xs text-white/60 sm:inline">
               {user.email}
             </span>

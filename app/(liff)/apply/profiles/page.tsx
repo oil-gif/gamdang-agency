@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createTalentForSelf, getMyTalents } from "@/actions/talents";
+import { LiffBackButton } from "@/components/LiffBackButton";
 import { getTalentSession } from "@/lib/auth/talent-session";
 import { getPhotoProxyUrl } from "@/lib/storage";
 
@@ -24,8 +25,10 @@ export default async function ApplyProfilesPage({
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <header className="bg-gradient-to-br from-[#1D4ED8] to-[#B82233] px-4 pb-8 pt-7 text-white">
-        <div className="mx-auto flex max-w-3xl items-center gap-4">
+      <header className="bg-gradient-to-br from-[#1D4ED8] to-[#B82233] px-4 pb-8 pt-5 text-white">
+        <div className="mx-auto max-w-3xl">
+          <LiffBackButton liffId={process.env.NEXT_PUBLIC_LIFF_ID} tone="onDark" />
+          <div className="mt-3 flex items-center gap-4">
           <div className="relative size-14 shrink-0 overflow-hidden rounded-full border-2 border-white/70 bg-white/20">
             {session.linePicture ? (
               <Image
@@ -47,6 +50,7 @@ export default async function ApplyProfilesPage({
             <h1 className="truncate text-xl font-bold">
               {session.lineName ?? "ยินดีต้อนรับ"}
             </h1>
+          </div>
           </div>
         </div>
       </header>

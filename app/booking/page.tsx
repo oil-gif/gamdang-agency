@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { BookingWizard } from "@/components/booking/BookingWizard";
+import { LiffBackButton } from "@/components/LiffBackButton";
 import { getPublicShootDates } from "@/lib/booking";
-import { BOOKING, CONTACT } from "@/lib/constants";
+import { CONTACT } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "จองถ่ายโปรไฟล์ — GAMDANG AGENCY",
@@ -20,12 +20,12 @@ export default async function BookingPage() {
     <div className="min-h-screen bg-neutral-50">
       <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3.5">
-          <Link
-            href="/"
-            className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] bg-clip-text text-base font-extrabold tracking-widest text-transparent"
-          >
-            GAMDANG AGENCY
-          </Link>
+          <div className="flex items-center gap-3">
+            <LiffBackButton liffId={process.env.NEXT_PUBLIC_BOOKING_LIFF_ID} />
+            <span className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] bg-clip-text text-base font-extrabold tracking-widest text-transparent">
+              GAMDANG AGENCY
+            </span>
+          </div>
           <span className="text-sm font-medium text-neutral-600">
             จองถ่ายโปรไฟล์
           </span>
@@ -48,15 +48,6 @@ export default async function BookingPage() {
             <li>❤️ ทีมงานมืออาชีพ ดูแลใกล้ชิด เป็นกันเอง ให้น้อง ๆ สนุก ไม่กดดัน</li>
           </ul>
         </section>
-
-        <a
-          href={BOOKING.infoUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block rounded-2xl border border-neutral-200 bg-white px-5 py-4 text-center text-sm font-medium text-[#1D4ED8] transition hover:border-[#1D4ED8]/40"
-        >
-          📖 อ่านรายละเอียดแพกเกจ เงื่อนไข และสิ่งที่ควรรู้ก่อนจอง →
-        </a>
 
         {dates.length > 0 ? (
           <BookingWizard dates={dates} />

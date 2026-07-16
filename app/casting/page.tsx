@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BackToHome } from "@/components/BackToHome";
 import { CONTACT } from "@/lib/constants";
 import { getPublicCastings } from "@/lib/casting";
 import { getPhotoProxyUrl } from "@/lib/storage";
@@ -49,12 +50,12 @@ export default async function CastingListPage({
     <div className="min-h-screen bg-neutral-50">
       <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5">
-          <Link
-            href="/"
-            className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] bg-clip-text text-base font-extrabold tracking-widest text-transparent"
-          >
-            GAMDANG AGENCY
-          </Link>
+          <div className="flex items-center gap-3">
+            <BackToHome />
+            <span className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] bg-clip-text text-base font-extrabold tracking-widest text-transparent">
+              GAMDANG AGENCY
+            </span>
+          </div>
           <a
             href={CONTACT.lineUrl}
             target="_blank"
