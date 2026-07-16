@@ -31,10 +31,17 @@ export async function POST(req: NextRequest) {
     picture?: string;
   };
 
-  // An admin-issued link binds this LINE identity to one specific existing
-  // talent row, instead of the default upsert-by-line_user_id below (which
-  // would otherwise create a duplicate row for a talent an admin already
-  // added manually).
+  const setSession = () =>
+    createTalentSession({
+      lineUserId: profile.sub,
+      lineName: profile.name ?? null,
+      linePicture: profile.picture ?? null,
+    });
+
+  // An admin-issued link attaches one existing (usually admin-created)
+  // talent to this LINE account. A LINE account can own many talents, so
+  // the only guard is that the target isn't already owned by a DIFFERENT
+  // LINE account.
   if (linkToken) {
     const link = await verifyTalentLinkToken(linkToken);
     if (!link) {
@@ -56,21 +63,7 @@ export async function POST(req: NextRequest) {
 
     if (target.line_user_id && target.line_user_id !== profile.sub) {
       return NextResponse.json(
-        { error: "บัญชีนี้ผูกกับ LINE อื่นไปแล้ว กรุณาติดต่อแอดมิน" },
-        { status: 409 },
-      );
-    }
-
-    const { data: conflict } = await supabase
-      .from("talents")
-      .select("id")
-      .eq("line_user_id", profile.sub)
-      .neq("id", target.id)
-      .maybeSingle();
-
-    if (conflict) {
-      return NextResponse.json(
-        { error: "บัญชี LINE นี้ผูกกับ talent อื่นอยู่แล้ว" },
+        { error: "โปรไฟล์นี้ผูกกับ LINE อื่นไปแล้ว กรุณาติดต่อแอดมิน" },
         { status: 409 },
       );
     }
@@ -88,34 +81,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    await createTalentSession(target.id);
+    await setSession();
     return NextResponse.json({ ok: true });
   }
 
-  // Upsert on line_user_id: only touches identity fields, so an existing
-  // talent's status/source/profile data is never overwritten by a re-login.
-  const { data: talent, error } = await supabase
-    .from("talents")
-    .upsert(
-      {
-        line_user_id: profile.sub,
-        line_display_name: profile.name ?? null,
-        line_picture_url: profile.picture ?? null,
-        source: "self",
-      },
-      { onConflict: "line_user_id" },
-    )
-    .select("id")
-    .single();
-
-  if (error || !talent) {
-    return NextResponse.json(
-      { error: error?.message ?? "upsert failed" },
-      { status: 500 },
-    );
-  }
-
-  await createTalentSession(talent.id);
-
+  // Plain login — just prove the LINE identity and set the session. We do
+  // NOT auto-create a talent here anymore; the /apply/profiles page lists
+  // this account's talents and lets the parent add each child explicitly.
+  await setSession();
   return NextResponse.json({ ok: true });
 }

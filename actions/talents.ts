@@ -380,20 +380,92 @@ export async function saveTalent(formData: FormData) {
   redirect(`/admin/talents/${created.id}`);
 }
 
-// Same shape as saveTalent(), but for the LIFF self-service flow: the
-// talent id comes from their session cookie (never from formData, so one
-// talent can't edit another's row), and status/source are never part of
-// the payload so a talent can't grant themselves "active".
-export async function saveTalentSelf(formData: FormData) {
+// ===== LIFF self-service: 1 LINE account (แม่) จัดการหลายโปรไฟล์ (ลูก) =====
+
+// โปรไฟล์ทั้งหมดของบัญชี LINE นี้ + รูปตัวแทน — สำหรับหน้า /apply/profiles
+export async function getMyTalents() {
+  const session = await getTalentSession();
+  if (!session) return [];
+  const { data: talents } = await supabase
+    .from("talents")
+    .select("*")
+    .eq("line_user_id", session.lineUserId)
+    .order("created_at", { ascending: true });
+  if (!talents || talents.length === 0) return [];
+
+  const { data: photos } = await supabase
+    .from("talent_photos")
+    .select("talent_id, kind, storage_path, display_order")
+    .in(
+      "talent_id",
+      talents.map((t) => t.id),
+    )
+    .order("display_order", { ascending: true });
+
+  return talents.map((t) => {
+    const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
+    const gallery = mine.find((p) => p.kind === "gallery")?.storage_path ?? null;
+    const compcard = mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
+    return { ...t, photo_path: gallery ?? compcard };
+  });
+}
+
+// โหลด talent พร้อมเช็คว่าเป็นของบัญชี LINE นี้จริง (กันแก้ข้ามบัญชี)
+// คืน null ถ้าไม่ใช่เจ้าของ
+export async function getOwnedTalent(talentId: string) {
+  const session = await getTalentSession();
+  if (!session) return null;
+  const { data } = await supabase
+    .from("talents")
+    .select("*")
+    .eq("id", talentId)
+    .eq("line_user_id", session.lineUserId)
+    .maybeSingle();
+  return data ?? null;
+}
+
+// แม่กด "เพิ่มลูกอีกคน" — สร้างโปรไฟล์ใหม่ผูกกับบัญชี LINE เดียวกัน
+export async function createTalentForSelf() {
   const session = await getTalentSession();
   if (!session) redirect("/apply");
+  const { data: created, error } = await supabase
+    .from("talents")
+    .insert({
+      line_user_id: session.lineUserId,
+      line_display_name: session.lineName,
+      line_picture_url: session.linePicture,
+      source: "self",
+      status: "pending",
+    })
+    .select("id")
+    .single();
+  // ก่อนรัน migration 011 line_user_id ยัง UNIQUE — โปรไฟล์ที่ 2 จะโดนบล็อก
+  // อย่าให้ขึ้นหน้าขาว เด้งกลับพร้อมข้อความแทน
+  if (error || !created) {
+    redirect(
+      `/apply/profiles?error=${encodeURIComponent("เพิ่มโปรไฟล์ไม่สำเร็จ กรุณาลองใหม่ หรือติดต่อแอดมิน")}`,
+    );
+  }
+  revalidatePath("/apply/profiles");
+  redirect(`/apply/edit?id=${created.id}`);
+}
+
+// Same shape as saveTalent(), but for the LIFF self-service flow: the
+// talent id comes from formData but is re-checked against the session's
+// LINE account (one parent can't edit another parent's kid), and
+// status/source are never in the payload so a talent can't self-approve.
+export async function saveTalentSelf(formData: FormData) {
+  const talentId = str(formData, "talent_id");
+  const owned = talentId ? await getOwnedTalent(talentId) : null;
+  if (!owned) redirect("/apply/profiles");
+  const backTo = `/apply/edit?id=${owned.id}`;
 
   const gender = str(formData, "gender");
   const dob = str(formData, "dob");
   const phone = str(formData, "phone");
   if (!gender || !dob || !phone) {
     redirect(
-      `/apply/edit?error=${encodeURIComponent("กรุณากรอกเพศ วันเกิด และเบอร์โทร (บังคับ)")}`,
+      `${backTo}&error=${encodeURIComponent("กรุณากรอกเพศ วันเกิด และเบอร์โทร (บังคับ)")}`,
     );
   }
 
@@ -452,11 +524,11 @@ export async function saveTalentSelf(formData: FormData) {
   const { error } = await supabase
     .from("talents")
     .update(payload)
-    .eq("id", session.talentId);
+    .eq("id", owned.id);
   if (error) throw new Error(error.message);
 
-  revalidatePath("/apply/edit");
-  redirect("/apply/edit?saved=1");
+  revalidatePath(backTo);
+  redirect(`${backTo}&saved=1`);
 }
 
 export async function deleteTalent(formData: FormData) {

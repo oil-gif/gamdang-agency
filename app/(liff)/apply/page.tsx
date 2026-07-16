@@ -43,7 +43,7 @@ export default function ApplyPage() {
           throw new Error(body.error ?? "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่");
         }
 
-        if (!cancelled) router.replace("/apply/edit");
+        if (!cancelled) router.replace("/apply/profiles");
       } catch (err) {
         if (!cancelled) {
           setIsError(true);

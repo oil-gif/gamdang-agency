@@ -12,8 +12,22 @@ if (!secret) {
 }
 const encodedSecret = new TextEncoder().encode(secret);
 
-export async function createTalentSession(talentId: string) {
-  const token = await new SignJWT({ talentId, purpose: "session" })
+// Session = the LINE account (a parent), NOT a single talent. One LINE
+// account can own several talents (e.g. a mum managing 2-3 kids), so the
+// cookie identifies the account and each edit action re-checks that the
+// target talent belongs to it. Also carries the LINE display name/picture
+// so the "my profiles" header can render without a talent row.
+export async function createTalentSession(session: {
+  lineUserId: string;
+  lineName?: string | null;
+  linePicture?: string | null;
+}) {
+  const token = await new SignJWT({
+    lineUserId: session.lineUserId,
+    lineName: session.lineName ?? null,
+    linePicture: session.linePicture ?? null,
+    purpose: "session",
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${MAX_AGE_SECONDS}s`)
@@ -41,11 +55,16 @@ export async function getTalentSession() {
     const { payload } = await jwtVerify(token, encodedSecret);
     // "purpose" pins this token to its use: without it, a leaked link
     // token (createTalentLinkToken below) could be dropped straight into
-    // the session cookie and used to impersonate that talent without ever
-    // proving LINE identity.
-    return payload.purpose === "session" && typeof payload.talentId === "string"
-      ? { talentId: payload.talentId }
-      : null;
+    // the session cookie and used to impersonate that account.
+    if (payload.purpose !== "session" || typeof payload.lineUserId !== "string") {
+      return null;
+    }
+    return {
+      lineUserId: payload.lineUserId,
+      lineName: typeof payload.lineName === "string" ? payload.lineName : null,
+      linePicture:
+        typeof payload.linePicture === "string" ? payload.linePicture : null,
+    };
   } catch {
     return null;
   }

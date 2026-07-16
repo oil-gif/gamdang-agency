@@ -1,6 +1,7 @@
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getTalent } from "@/actions/talents";
+import { getOwnedTalent } from "@/actions/talents";
 import { TalentForm } from "@/components/talent/TalentForm";
 import { TalentPhotos } from "@/components/talent/TalentPhotos";
 import { getTalentSession } from "@/lib/auth/talent-session";
@@ -15,50 +16,61 @@ const STATUS: Record<string, { label: string; className: string }> = {
 export default async function ApplyEditPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; saved?: string }>;
+  searchParams: Promise<{ id?: string; error?: string; saved?: string }>;
 }) {
   const session = await getTalentSession();
   if (!session) redirect("/apply");
 
-  const { error, saved } = await searchParams;
-  const talent = await getTalent(session.talentId);
+  const { id, error, saved } = await searchParams;
+  // ต้องเป็นโปรไฟล์ของบัญชี LINE นี้จริง ไม่งั้นเด้งกลับหน้ารายชื่อ
+  const talent = id ? await getOwnedTalent(id) : null;
+  if (!talent) redirect("/apply/profiles");
+
   const status = STATUS[talent.status] ?? STATUS.pending;
   const displayName =
-    talent.nickname_th || talent.line_display_name || "ยินดีต้อนรับ";
+    talent.nickname_th || talent.nickname_en || "โปรไฟล์ใหม่";
 
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Brand header */}
-      <header className="bg-gradient-to-br from-[#1D4ED8] to-[#B82233] px-4 pb-8 pt-7 text-white">
-        <div className="mx-auto flex max-w-3xl items-center gap-4">
-          <div className="relative size-16 shrink-0 overflow-hidden rounded-full border-2 border-white/70 bg-white/20">
-            {talent.line_picture_url ? (
-              <Image
-                src={talent.line_picture_url}
-                alt=""
-                fill
-                sizes="4rem"
-                className="object-cover"
-                unoptimized
-              />
-            ) : (
-              <div className="flex size-full items-center justify-center text-2xl font-semibold">
-                {displayName.charAt(0)}
-              </div>
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm text-white/80">โปรไฟล์ของฉัน</p>
-            <h1 className="truncate text-xl font-bold">{displayName}</h1>
-            <div className="mt-1.5 flex items-center gap-2">
-              {talent.code && (
-                <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium">
-                  {talent.code}
-                </span>
+      <header className="bg-gradient-to-br from-[#1D4ED8] to-[#B82233] px-4 pb-8 pt-5 text-white">
+        <div className="mx-auto max-w-3xl">
+          <Link
+            href="/apply/profiles"
+            className="inline-flex items-center gap-1 text-sm text-white/80 hover:text-white"
+          >
+            ← โปรไฟล์ทั้งหมดของฉัน
+          </Link>
+          <div className="mt-3 flex items-center gap-4">
+            <div className="relative size-16 shrink-0 overflow-hidden rounded-full border-2 border-white/70 bg-white/20">
+              {talent.line_picture_url ? (
+                <Image
+                  src={talent.line_picture_url}
+                  alt=""
+                  fill
+                  sizes="4rem"
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="flex size-full items-center justify-center text-2xl font-semibold">
+                  {displayName.charAt(0)}
+                </div>
               )}
-              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}>
-                {status.label}
-              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm text-white/80">แก้ไขโปรไฟล์</p>
+              <h1 className="truncate text-xl font-bold">{displayName}</h1>
+              <div className="mt-1.5 flex items-center gap-2">
+                {talent.code && (
+                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium">
+                    {talent.code}
+                  </span>
+                )}
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}>
+                  {status.label}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -79,7 +91,7 @@ export default async function ApplyEditPage({
           </div>
         )}
 
-        <TalentPhotos talentId={session.talentId} />
+        <TalentPhotos talentId={talent.id} />
         <TalentForm talent={talent} mode="self" />
       </main>
     </div>

@@ -20,12 +20,17 @@ export async function deletePhoto(formData: FormData) {
   const id = String(formData.get("id"));
   const talentId = String(formData.get("talent_id"));
 
-  // Same reasoning as /api/upload: a logged-in talent must only be able to
-  // touch their own talent_id, and the photo being deleted must actually
-  // belong to that talent_id (not just whatever id was posted).
+  // Same reasoning as /api/upload: a logged-in talent (parent) may only
+  // delete photos on a talent that belongs to their LINE account.
   const talentSession = await getTalentSession();
-  if (talentSession && talentSession.talentId !== talentId) {
-    throw new Error("forbidden");
+  if (talentSession) {
+    const { data: owned } = await supabase
+      .from("talents")
+      .select("id")
+      .eq("id", talentId)
+      .eq("line_user_id", talentSession.lineUserId)
+      .maybeSingle();
+    if (!owned) throw new Error("forbidden");
   }
 
   const { data: photo } = await supabase

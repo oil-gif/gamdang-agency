@@ -72,6 +72,10 @@ export function TalentForm({
       {mode === "admin" && talent?.id && (
         <input type="hidden" name="id" value={talent.id} />
       )}
+      {/* self mode: ระบุว่าแก้โปรไฟล์ลูกคนไหน (server เช็คสิทธิ์ตามบัญชี LINE) */}
+      {mode === "self" && talent?.id && (
+        <input type="hidden" name="talent_id" value={talent.id} />
+      )}
 
       {error && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

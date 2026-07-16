@@ -24,12 +24,20 @@ export async function POST(req: NextRequest) {
   }
 
   // This endpoint has no admin auth check (only /admin/:path* pages are
-  // gated) — a logged-in talent's talent_id is now visible in /apply/edit's
-  // hidden form fields, so anyone with a talent session must be blocked
-  // from uploading to a talent_id that isn't their own.
+  // gated). If the caller has a LINE (talent) session, the target talent
+  // must belong to that LINE account — a parent can only upload to their
+  // own kids' profiles. Admin requests have no talent session → allowed.
   const talentSession = await getTalentSession();
-  if (talentSession && talentSession.talentId !== talentId) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  if (talentSession) {
+    const { data: owned } = await supabase
+      .from("talents")
+      .select("id")
+      .eq("id", talentId)
+      .eq("line_user_id", talentSession.lineUserId)
+      .maybeSingle();
+    if (!owned) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
   }
 
   const base64 = data.includes(",") ? data.slice(data.indexOf(",") + 1) : data;
