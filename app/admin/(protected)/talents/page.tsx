@@ -2,8 +2,8 @@ import Link from "next/link";
 import { getTalentsWithPhotos, type TalentFilters } from "@/actions/talents";
 import { Button } from "@/components/ui/button";
 import { TalentFilterPanel } from "@/components/admin/TalentFilterPanel";
-import { TalentGridCard } from "@/components/talent/TalentGridCard";
-import { STATUS_LABEL_TH, TALENTS_PAGE_SIZE } from "@/lib/constants";
+import { TalentRowCard } from "@/components/admin/TalentRowCard";
+import { STATUS_LABEL_TH, TALENTS_PAGE_SIZE, TIER_LABEL } from "@/lib/constants";
 import { ageLabel } from "@/lib/age";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
 
@@ -78,11 +78,11 @@ export default async function TalentsListPage({
 
       <TalentFilterPanel searchParams={params} />
 
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         {talents.map((t) => {
           const top = t.is_influencer ? topSocial(t) : null;
           return (
-            <TalentGridCard
+            <TalentRowCard
               key={t.id}
               href={`/admin/talents/${t.id}`}
               photoPath={t.photo_path}
@@ -99,6 +99,9 @@ export default async function TalentsListPage({
                 influ: t.is_influencer,
                 ai: t.is_ai_model === true,
               }}
+              tierLabel={
+                t.is_influencer && t.tier ? (TIER_LABEL[t.tier] ?? t.tier) : null
+              }
               statusChip={{
                 label: STATUS_LABEL_TH[t.status] ?? t.status,
                 className: STATUS_CHIP[t.status] ?? "bg-neutral-200 text-neutral-600",
@@ -109,7 +112,6 @@ export default async function TalentsListPage({
                       key: s.key,
                       short: s.short,
                       color: s.color,
-                      url: s.url,
                       followers: s.followers,
                     }))
                   : undefined
@@ -118,10 +120,15 @@ export default async function TalentsListPage({
                 top
                   ? {
                       short: top.short,
-                      color: top.color,
+                      label: top.label,
                       count: formatFollowers(top.followers),
                     }
                   : null
+              }
+              categories={
+                t.is_influencer && Array.isArray(t.categories)
+                  ? (t.categories as string[])
+                  : undefined
               }
               characters={
                 t.is_ai_model && t.character
