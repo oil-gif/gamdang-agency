@@ -18,8 +18,32 @@ function timeAgo(iso: string) {
   return `${days} วันก่อน`;
 }
 
-export default async function CastingListPage() {
-  const castings = await getPublicCastings();
+type Filter = "open" | "closed" | "all";
+
+const TABS: { key: Filter; label: string }[] = [
+  { key: "open", label: "เปิดรับสมัคร" },
+  { key: "closed", label: "ปิดรับแล้ว" },
+  { key: "all", label: "ทั้งหมด" },
+];
+
+export default async function CastingListPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const { status } = await searchParams;
+  const filter: Filter =
+    status === "closed" ? "closed" : status === "all" ? "all" : "open";
+
+  const all = await getPublicCastings();
+  const openCount = all.filter((c) => !c.casting_closed).length;
+  const closedCount = all.length - openCount;
+  const castings = all.filter((c) =>
+    filter === "open" ? !c.casting_closed : filter === "closed" ? c.casting_closed : true,
+  );
+
+  const countFor = (k: Filter) =>
+    k === "open" ? openCount : k === "closed" ? closedCount : all.length;
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -44,11 +68,39 @@ export default async function CastingListPage() {
 
       <main className="mx-auto max-w-5xl px-4 py-8">
         <h1 className="text-3xl font-extrabold text-neutral-800">
-          <span className="text-[#EA580C]">Casting</span> calls
+          <span className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] bg-clip-text text-transparent">
+            Casting
+          </span>{" "}
+          calls
         </h1>
         <p className="mt-1 text-sm text-neutral-500">
           ประกาศรับสมัครงาน — สนใจงานไหน กดสมัครเข้าร่วมได้เลย
         </p>
+
+        {/* ตัวกรอง เปิดรับ / ปิดรับ / ทั้งหมด */}
+        <div className="mt-5 inline-flex rounded-full border border-neutral-200 bg-white p-1 shadow-sm">
+          {TABS.map((t) => {
+            const active = t.key === filter;
+            return (
+              <Link
+                key={t.key}
+                href={t.key === "open" ? "/casting" : `/casting?status=${t.key}`}
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                  active
+                    ? "bg-gradient-to-r from-[#1D4ED8] to-[#B82233] text-white shadow"
+                    : "text-neutral-500 hover:text-neutral-800"
+                }`}
+              >
+                {t.label}
+                <span
+                  className={`ml-1.5 text-xs ${active ? "text-white/80" : "text-neutral-400"}`}
+                >
+                  {countFor(t.key)}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
 
         {castings.length > 0 ? (
           <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -63,7 +115,7 @@ export default async function CastingListPage() {
                     <img
                       src={getPhotoProxyUrl(c.cover_path)}
                       alt=""
-                      className="size-full object-cover"
+                      className={`size-full object-cover ${c.casting_closed ? "opacity-70 grayscale" : ""}`}
                     />
                     {c.casting_closed && (
                       <span className="absolute right-3 top-3 rotate-3 rounded bg-[#B82233] px-3 py-1 text-xs font-bold text-white shadow">
@@ -96,7 +148,7 @@ export default async function CastingListPage() {
                     className={`mt-4 block rounded-xl py-3 text-center text-sm font-bold text-white transition ${
                       c.casting_closed
                         ? "bg-neutral-400"
-                        : "bg-[#EA580C] hover:bg-[#c2410c]"
+                        : "bg-gradient-to-r from-[#1D4ED8] to-[#B82233] hover:opacity-95"
                     }`}
                   >
                     View project
@@ -107,7 +159,12 @@ export default async function CastingListPage() {
           </div>
         ) : (
           <p className="mt-8 rounded-2xl border border-dashed border-neutral-300 bg-white p-16 text-center text-neutral-400">
-            ยังไม่มีประกาศรับสมัครงานในขณะนี้ — ติดตามได้ทาง LINE: {CONTACT.lineId}
+            {filter === "closed"
+              ? "ยังไม่มีงานที่ปิดรับสมัคร"
+              : filter === "open"
+                ? "ยังไม่มีงานที่เปิดรับสมัครในขณะนี้"
+                : "ยังไม่มีประกาศรับสมัครงาน"}{" "}
+            — ติดตามได้ทาง LINE: {CONTACT.lineId}
           </p>
         )}
       </main>

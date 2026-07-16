@@ -2,23 +2,115 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getMyTalents } from "@/actions/talents";
+import { getTalentSession } from "@/lib/auth/talent-session";
 import { verifyLineIdToken } from "@/lib/line-verify";
 import { supabase } from "@/lib/supabase/server";
 
-// คนกด "สมัคร/เข้าร่วม" จากหน้าประกาศงานสาธารณะ:
-// สร้าง talent (pending) + project_application (pending) รอแอดมิน approve
-// ถ้าเปิดใน LINE (ส่ง line_id_token) → ผูก LINE ให้เลย (จัดการโปรไฟล์เองได้)
+export type CastingProfile = {
+  id: string;
+  name: string;
+  code: string | null;
+  photo_path: string | null;
+  alreadyApplied: boolean;
+};
+
+// โปรไฟล์ของสมาชิก (บัญชี LINE นี้) สำหรับกดสมัคร casting โดยไม่ต้องกรอกใหม่
+// คืน loggedIn=false ถ้ายังไม่ได้ login → หน้าเว็บจะโชว์ปุ่มลงทะเบียน
+export async function getMyProfilesForCasting(
+  projectId: string,
+): Promise<{ loggedIn: boolean; profiles: CastingProfile[] }> {
+  const session = await getTalentSession();
+  if (!session) return { loggedIn: false, profiles: [] };
+
+  const talents = await getMyTalents();
+  if (talents.length === 0) return { loggedIn: true, profiles: [] };
+
+  const ids = talents.map((t) => t.id);
+  const { data: apps } = await supabase
+    .from("project_applications")
+    .select("talent_id")
+    .eq("project_id", projectId)
+    .in("talent_id", ids);
+  const applied = new Set((apps ?? []).map((a) => a.talent_id));
+
+  return {
+    loggedIn: true,
+    profiles: talents.map((t) => ({
+      id: t.id,
+      name: t.nickname_th || t.nickname_en || "ยังไม่ตั้งชื่อ",
+      code: t.code ?? null,
+      photo_path: t.photo_path ?? null,
+      alreadyApplied: applied.has(t.id),
+    })),
+  };
+}
+
+// สมาชิกกดสมัคร: เลือกโปรไฟล์ (ลูกได้หลายคน) → สร้าง application รอ approve
+// ไม่ต้องกรอกประวัติใหม่ เพราะมีในระบบแล้ว
+export async function applyAsMembers(formData: FormData) {
+  const projectId = str(formData, "project_id");
+  const session = await getTalentSession();
+  if (!projectId) redirect("/casting");
+  if (!session) {
+    redirect(`/casting/${projectId}?error=${encodeURIComponent("กรุณาเข้าสู่ระบบด้วย LINE ก่อน")}`);
+  }
+
+  const { data: project } = await supabase
+    .from("projects")
+    .select("is_published, casting_closed")
+    .eq("id", projectId)
+    .maybeSingle();
+  if (!project || !project.is_published || project.casting_closed) {
+    redirect(`/casting/${projectId}?error=${encodeURIComponent("งานนี้ปิดรับสมัครแล้ว")}`);
+  }
+
+  const talentIds = formData.getAll("talent_ids").map(String).filter(Boolean);
+  if (talentIds.length === 0) {
+    redirect(`/casting/${projectId}?error=${encodeURIComponent("กรุณาเลือกโปรไฟล์ที่จะสมัคร")}`);
+  }
+
+  // กันสมัครข้ามบัญชี — เอาเฉพาะ talent ที่เป็นของ LINE นี้จริง
+  const { data: owned } = await supabase
+    .from("talents")
+    .select("id")
+    .eq("line_user_id", session!.lineUserId)
+    .in("id", talentIds);
+  const validIds = (owned ?? []).map((o) => o.id);
+  if (validIds.length === 0) {
+    redirect(`/casting/${projectId}?error=${encodeURIComponent("ไม่พบโปรไฟล์ที่เลือก")}`);
+  }
+
+  const roleId = str(formData, "role_id");
+  const note = str(formData, "note");
+  const rows = validIds.map((tid) => ({
+    project_id: projectId,
+    talent_id: tid,
+    role_id: roleId,
+    note,
+  }));
+  // upsert + ignoreDuplicates → กดซ้ำไม่ error (unique project_id+talent_id)
+  await supabase
+    .from("project_applications")
+    .upsert(rows, { onConflict: "project_id,talent_id", ignoreDuplicates: true });
+
+  revalidatePath(`/admin/projects/${projectId}`);
+  redirect(`/casting/${projectId}?applied=1`);
+}
+
+// คนที่ไม่ผูก LINE กรอกฟอร์มเอง — บังคับแนบรูป Compcard (เอาไปเสนอลูกค้า)
+// สร้าง talent (pending) + talent_photo(compcard) + application (pending)
 export async function applyToCasting(formData: FormData) {
   const projectId = str(formData, "project_id");
   const nickname = str(formData, "nickname");
   const phone = str(formData, "phone");
-  if (!projectId || !nickname || !phone) {
+  const photoPath = str(formData, "photo_path");
+  if (!projectId || !nickname || !phone || !photoPath) {
     redirect(
-      `/casting/${projectId}?error=${encodeURIComponent("กรุณากรอกชื่อเล่นและเบอร์โทร")}`,
+      `/casting/${projectId}?error=${encodeURIComponent("กรุณากรอกชื่อเล่น เบอร์โทร และแนบรูป Compcard")}`,
     );
   }
 
-  // งานต้องเผยแพร่ + ยังเปิดรับ
   const { data: project } = await supabase
     .from("projects")
     .select("id, is_published, casting_closed")
@@ -28,7 +120,7 @@ export async function applyToCasting(formData: FormData) {
     redirect(`/casting/${projectId}?error=${encodeURIComponent("งานนี้ปิดรับสมัครแล้ว")}`);
   }
 
-  // เชื่อม LINE ถ้าเปิดในแอป LINE
+  // เชื่อม LINE ถ้าเปิดในแอป LINE (เผื่อกรอกเองแต่อยู่ใน LINE)
   const lineToken = str(formData, "line_id_token");
   const lineProfile = lineToken ? await verifyLineIdToken(lineToken) : null;
 
@@ -54,6 +146,13 @@ export async function applyToCasting(formData: FormData) {
   if (talentErr || !talent) {
     redirect(`/casting/${projectId}?error=${encodeURIComponent("สมัครไม่สำเร็จ กรุณาลองใหม่")}`);
   }
+
+  // เก็บรูปเป็น compcard ของ talent → เห็นในหน้าผู้สมัครหลังบ้าน เอาไปเสนอได้
+  await supabase.from("talent_photos").insert({
+    talent_id: talent.id,
+    kind: "compcard",
+    storage_path: photoPath,
+  });
 
   const { error: appErr } = await supabase.from("project_applications").insert({
     project_id: projectId,

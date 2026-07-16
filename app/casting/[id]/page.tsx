@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getMyProfilesForCasting } from "@/actions/casting-apply";
 import { CastingApply } from "@/components/casting/CastingApply";
 import { CONTACT } from "@/lib/constants";
 import { getPublicCasting } from "@/lib/casting";
@@ -60,6 +61,7 @@ export default async function CastingDetailPage({
   const casting = await getPublicCasting(id);
   if (!casting) notFound();
 
+  const { loggedIn, profiles } = await getMyProfilesForCasting(id);
   const shareUrl = `${BASE_URL}/casting/${id}`;
 
   return (
@@ -159,6 +161,8 @@ export default async function CastingDetailPage({
             closed={casting.casting_closed}
             shareUrl={shareUrl}
             shareTitle={casting.name}
+            loggedIn={loggedIn}
+            profiles={profiles}
           />
         </div>
 
