@@ -384,7 +384,8 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
 
             <div className="space-y-1">
               <label htmlFor="dob" className="text-xs font-medium text-neutral-500">
-                วัน/เดือน/ปีเกิด (Date of Birth) * — ระบบคำนวณอายุให้อัตโนมัติ
+                วัน/เดือน/ปีเกิด (Date of Birth) * — กรอกปีเป็น ค.ศ. เช่น 2025
+                (ระบบคำนวณอายุให้อัตโนมัติ)
               </label>
               <input
                 id="dob"

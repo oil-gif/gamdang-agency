@@ -142,7 +142,10 @@ export function TalentForm({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="dob">วันเกิด (Date of Birth) *</Label>
+            <Label htmlFor="dob">
+              วันเกิด (Date of Birth) *{" "}
+              <span className="font-normal text-muted-foreground">— ปี ค.ศ. เช่น 2025</span>
+            </Label>
             <Input
               id="dob"
               name="dob"

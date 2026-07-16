@@ -462,7 +462,7 @@ function ManualApply({
         </div>
         <div className="space-y-1">
           <label htmlFor="dob" className="text-xs font-medium text-neutral-500">
-            วันเกิด (DOB)
+            วันเกิด (DOB) — ปี ค.ศ.
           </label>
           <input
             id="dob"
