@@ -2,9 +2,14 @@
 
 > อ่านไฟล์นี้ก่อนเริ่มทำงานเสมอ — สรุปว่าทำอะไรไปแล้ว ทำอะไรค้างอยู่ และต้องทำอะไรต่อ
 
-## 📌 TODO ถัดไป (เรียงตามลำดับ — อัพเดต 2026-07-14)
+## 📌 TODO ถัดไป (เรียงตามลำดับ — อัพเดต 2026-07-17)
 
 **รอพี่เจ้าของทำ (ผู้ช่วยทำแทนไม่ได้):**
+- [ ] **ทำ Rich menu ใน LINE OA** (คุยกันแล้ว 2026-07-16): ปุ่ม Casting = `https://liff.line.me/2010689219-wGKbITGb?next=/casting` (login ผ่าน /apply แล้วเด้งไป casting — ระบบจำสมาชิก) · ปุ่มโปรไฟล์/สมัคร = `https://liff.line.me/2010689219-wGKbITGb` (ไม่มี ?next)
+- [ ] **ตั้งเมนูในเว็บ WP (แชท Claude อีกตัว)**: ทาเลนต์ → `/talents` · Casting → `/casting` · สมัคร → LIFF wGKbITGb · จองถ่าย → LIFF ciPMtS8K · Admin → `/admin/login` (ร่างคำสั่งส่งให้พี่แล้ว 2026-07-16)
+- [ ] **เทส casting ครบวงจรโหมดสมาชิก**: เปิด /casting ใน LINE (บัญชีที่มีลูกหลายคน) → เห็นการ์ดลูก ติ๊กเลือกหลายคน → "สมัครเลย" → หลังบ้านเห็นผู้สมัคร → "✓ รับเข้า Project" → คนนั้นเข้า proposal (ปุ่ม LINE login จาก browser เทสผ่านแล้ว 2026-07-16 · โหมดกรอกเอง+Compcard ยังไม่เทส)
+- [x] **Casting Calls ทั้งระบบ (commits `1afc936`→`24d3b3a`, migration 013 รันแล้ว, LINE login เทสผ่าน 2026-07-16)**: ดูหัวข้อ "ระบบ Casting Calls" ด้านล่าง
+- [x] ~~รัน migration 013~~ **รันแล้ว 2026-07-16** (cover_path/category/is_published/casting_closed + project_roles + project_applications)
 - [x] **1 LINE = หลายลูก + จองเชื่อม LINE (commits `c1a4936`+`8ec9255`, migration 011+012 รันแล้ว, e2e ผ่าน 2026-07-16)**: (A) session talent เก็บ **บัญชี LINE** (lineUserId+name/pic) ไม่ใช่ talentId เดียว · `/apply` login → หน้า **`/apply/profiles`** ลิสต์ลูกทุกคน + ปุ่มเพิ่มโปรไฟล์ (`createTalentForSelf`) · `/apply/edit?id=` โหลดผ่าน `getOwnedTalent` (เช็ค line_user_id ตรงบัญชี — กันแก้ข้ามบัญชี) · saveTalentSelf/upload/deletePhoto เช็ค ownership ตามบัญชี LINE · migration 011 drop unique `line_user_id` (talent เก่ากลายเป็นลูกคนแรกอัตโนมัติ) · `/api/line/verify` ไม่ auto-create talent แล้ว (B) จองถ่าย: ถ้าเปิด **ในแอป LINE** wizard เก็บ id token เงียบๆ → `/api/booking` verify → เก็บ `shoot_bookings.line_user_id` → createTalentFromBooking ผูกให้ talent อัตโนมัติ → โผล่ในโปรไฟล์แม่ (browser จองได้ปกติ ไม่เชื่อม) · **⚠️ ต้องมี LIFF app endpoint ชี้ `/booking` แล้วแชร์ลิงก์ใน OA ถึงจะ auto-capture (LIFF เดิมชี้ `/apply`)** · session เปลี่ยนรูปแบบ → คนเก่าต้อง login ใหม่ 1 ครั้ง
 - [x] **ฟอร์มจอง v2 (commits `d1ed9a2`+`82b5174`, migration 010 รันแล้ว, e2e ผ่าน 2026-07-15)**: บังคับ **ชื่อเล่น(อังกฤษ)** แทนชื่อจริง (ชื่อจริง optional, DB full_name NOT NULL → fallback = ชื่อเล่น) · บังคับ **อีเมล** · เพิ่มช่อง **สัญชาติ** (booking + talent) · createTalentFromBooking ลงชื่อเล่นที่ `nickname_en` + carry gender/dob/nationality ครบ · **⚠️ GOTCHA ซ้ำรอยเดิม**: เคยเขียน `update({gender,dob,nationality})` ก่อนรัน migration 010 → ทั้ง statement ล้ม เพศ/วันเกิดหายด้วย (การจอง "Noo" เสีย) → แก้เป็น fallback บันทึกเฉพาะ gender/dob ถ้า nationality column ไม่มี · **บทเรียน: อย่า deploy โค้ดที่เขียน column ใหม่ก่อนพี่รัน migration — หรือทำ fallback เสมอ**
 - [x] **ฟอร์มจอง+รหัส+สัญชาติ+ค้นหาการจอง (commit `5bca1b8`, migration 009 รันแล้ว, e2e ผ่าน 2026-07-15)**: ฟอร์มจองถ่าย step 4 label 2 ภาษา + guide + เพศ(dropdown) + วันเกิด → เก็บใน booking + ติดไปตอน "เพิ่มเข้าระบบ Talent" (อายุคำนวณจาก dob เสมอ) · **รหัส talent อัตโนมัติ format ระบบเก่า** (2 ตัวอักษร+3เลข+1ตัวอักษร เช่น FF979D ผ่าน `gen_talent_code()`) — GD-xxxx เดิมยังอยู่ · **แอดมินแก้รหัสเองได้** ในฟอร์ม talent (เช็คซ้ำ) ไว้โอนรหัสระบบเก่า · `talents.nationality` แก้ได้ทั้ง admin/self · การ์ด (หน้าบ้าน+หลังบ้าน) โชว์ เพศ·อายุ(เด็ก<10 มีเดือน "3 ปี 0 ด.")·สูง·หนัก·สัญชาติ·รหัส · **ค้นหาการจอง** บน /admin/shoots (ชื่อ/ชื่อเล่น/เบอร์/รหัส talent → คลิกเด้งไปการ์ด)
@@ -36,6 +41,27 @@
 - **LIFF สมัคร/จัดการโปรไฟล์** (endpoint `/apply`): `2010689219-wGKbITGb` → `https://liff.line.me/2010689219-wGKbITGb`
 - **LIFF จองถ่าย** (endpoint `/booking`, เชื่อม LINE อัตโนมัติ): `2010689219-ciPMtS8K` → `https://liff.line.me/2010689219-ciPMtS8K` (env `NEXT_PUBLIC_BOOKING_LIFF_ID`)
 - ⚠️ LIFF 2 ตัว endpoint ต้องไม่สลับกัน (เคยสลับครั้งนึงตอน add ตัวใหม่ — wGKbITGb=/apply, ciPMtS8K=/booking)
+- **หน้าสาธารณะ**: `/casting` (ประกาศงาน+สมัคร), `/casting/[id]`, `/talents` (แกลเลอรีทาเลนต์ active)
+- **Base URL ตั้งผ่าน env** (`lib/site.ts`): `NEXT_PUBLIC_SITE_URL` = โดเมนแอป (ลิงก์แชร์/OG/job/submit ทั้งหมด) · `NEXT_PUBLIC_MAIN_SITE_URL` = เว็บหลัก WP (ปุ่ม "← กลับหน้าหลัก", default `www.gamdangagency.com`) — วันย้ายโดเมนแก้ 2 ตัวนี้ใน Vercel + redeploy จบ ไม่ต้องแก้โค้ด
+
+## ระบบ Casting Calls + หน้า Talent สาธารณะ (รอบ 2026-07-16→17, commits `1afc936`→`7343afb`)
+
+**Casting Calls (ประกาศงานสาธารณะ + สมัคร + อนุมัติ):**
+- **Migration 013 (รันแล้ว)**: `projects` เพิ่ม `cover_path`/`category`/`is_published`/`casting_closed` · ตาราง `project_roles` (หลาย role ต่องาน) · `project_applications` (pending/approved/rejected, unique project+talent)
+- **หลังบ้าน**: ProjectForm มีการ์ด "ประกาศรับสมัคร" (อัพรูปปก **1200×630 OG** ผ่าน `/api/project-cover-upload` → `_unassigned` แบบเดียวกัน แต่เก็บ `_project-covers/` + /photo proxy อนุญาต path นี้แล้ว, เลือกหมวด, ติ๊กเผยแพร่/ปิดรับ) · หน้าโปรเจกต์มี: ลิงก์แชร์สาธารณะ+copy, ตัวจัดการ Roles (เพิ่ม/ลบ), รายชื่อผู้สมัคร + ปุ่ม "✓ รับเข้า Project" (→ insert `project_talents` ตาม project_type) / ปฏิเสธ
+- **หน้าสาธารณะ `/casting`**: การ์ดสี CI (gradient น้ำเงิน→แดง — พี่สั่งห้ามใช้ส้ม), แท็บกรอง เปิดรับ/ปิดรับ/ทั้งหมด+ตัวนับ, งานปิด = grayscale + ป้ายแดง "SORRY. CASTING CLOSED." · `/casting/[id]`: OG/Twitter meta (รูปปก 1200×630 — แชร์ FB/LINE ขึ้น preview สวย), roles, ปุ่มแชร์ LINE/FB/copy
+- **ระบบจำสมาชิก (`components/casting/CastingApply.tsx` + `actions/casting-apply.ts`)**: 3 โหมด — (1) **สมาชิก login แล้ว**: `getMyProfilesForCasting` โชว์การ์ดลูกทุกคน ติ๊กเลือกหลายคน → `applyAsMembers` (upsert ignoreDuplicates กันซ้ำ, เช็ค ownership ตาม line_user_id, คนสมัครแล้วขึ้น badge) (2) **ใน LINE ยังไม่ login**: auto-login เงียบๆ ผ่าน liff.getIDToken → /api/line/verify → refresh (3) **browser/Facebook**: ปุ่ม "เข้าสู่ระบบด้วย LINE" = ลิงก์ `/apply?next=/casting/{id}` — **⚠️ GOTCHA: เรียก liff.login() บนหน้าที่ไม่ใช่ LIFF endpoint = 400 Bad Request** ต้อง login ผ่าน /apply (endpoint จริง) แล้ว `?next` เด้งกลับ (`/apply` รับ ?next เฉพาะ path ภายใน กัน open-redirect)
+- **โหมดกรอกเอง (ไม่ผูก LINE)**: บังคับแนบ **รูป Compcard (กรอบแนวนอน 3:2, อัพผ่าน /api/inbox-upload)** + เพศ + ส่วนสูง + น้ำหนัก (พี่สั่ง — เพราะต้องเอารูปไปเสนอลูกค้า) → สร้าง talent pending + talent_photos(compcard) + application
+
+**หน้า `/talents` สาธารณะ (สำหรับเมนู "ทาเลนต์" ใน WP):**
+- แท็บ ทั้งหมด/Model/Influencer/**AI Model** (เพิ่ม role "ai" ใน TalentFilters → `is_ai_model`) + ตัวกรอง (ค้นหา/เพศ/เชื้อชาติ/category/สูง/อายุ) + pagination — โชว์เฉพาะ **status=active**, ไม่มีข้อมูลส่วนตัวหลุด (เบอร์/อีเมล/LINE ไม่ออกจาก server) · ใช้ TalentGridCard เดิม (hover เห็นข้อมูล)
+
+**UX รอบเดียวกัน:**
+- **ปุ่มย้อนกลับ (commit `1cc6b9b`)**: `components/BackToHome.tsx` ("← กลับหน้าหลัก" → MAIN_SITE_URL) บน /talents, /casting, /casting/[id], admin ทุกหน้า (ผ่าน layout), admin login · `components/LiffBackButton.tsx` ("← กลับ" → `liff.closeWindow()`, fallback เว็บหลัก) บน /booking + /apply/profiles · ลบลิงก์ "📖 อ่านรายละเอียดแพกเกจ" ออกจากหน้าจอง (ลูกค้าอ่านจาก WP มาก่อนแล้ว — flow: WP → กดจอง → LIFF)
+- **วันที่เป็น ค.ศ. (commits `64484e3`+`043b747`)**: `<input type="date">` บนเครื่องภาษาไทยขึ้น พ.ศ. 2569 → ใส่ `lang="en-GB"` (ทำใน `components/ui/input.tsx` เมื่อ type=date + raw input 2 จุดใน BookingWizard/CastingApply) + label DOB เขียนกำกับ "กรอกปีเป็น ค.ศ. เช่น 2025" ทั้ง 3 ฟอร์ม
+- **หลังบ้าน Talents การ์ดบาร์ยาว (commit `7343afb`)**: `components/admin/TalentRowCard.tsx` แถวนอน 2 คอลัมน์ (xl) เห็นข้อมูลไม่ต้อง hover — รูปวงกลม, ชื่อ+code, อายุ·เพศ·สูง/หนัก·สัญชาติ, badge MODEL/INFLU/AI/tier, Expertise, "50K on Facebook" (top follower), ไอคอน social, ป้ายสถานะ — คลิกทั้งการ์ดเข้าหน้าแก้ไข · **หน้า /talents สาธารณะยังเป็น photo grid เดิม** (เน้นรูปไว้ขาย)
+
+**แผนเชื่อม WP (บันทึกใน memory `gamdang-casting-wp-integration` ด้วย):** WP ยัง local (`gamdangagency.local`) → ตอนขึ้น `www.gamdangagency.com`: ผูกซับโดเมน `casting.gamdangagency.com` ใน Vercel + ตั้ง `NEXT_PUBLIC_SITE_URL` + เมนู WP ลิงก์มา (ตาราง URL อยู่ใน TODO ด้านบน)
 
 ## Stack & โครงสร้าง
 - Next.js 16 (App Router, TypeScript, Tailwind v4, Turbopack) + Supabase (Postgres + Storage) + shadcn/ui
