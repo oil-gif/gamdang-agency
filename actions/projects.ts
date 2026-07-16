@@ -174,7 +174,7 @@ export async function saveProject(formData: FormData) {
   }
 
   const projectType = str(formData, "project_type");
-  const payload = {
+  const base = {
     name,
     client_name: str(formData, "client_name"),
     description: str(formData, "description"),
@@ -182,28 +182,52 @@ export async function saveProject(formData: FormData) {
     shooting_date: str(formData, "shooting_date"),
     budget: str(formData, "budget"),
     status: str(formData, "status") ?? "draft",
-    // Casting Calls (หน้าสาธารณะ)
+  };
+  // Casting Calls (หน้าสาธารณะ) — ต้องการ migration 013
+  const casting = {
     category: str(formData, "category"),
     cover_path: str(formData, "cover_path"),
     is_published: formData.get("is_published") === "on",
     casting_closed: formData.get("casting_closed") === "on",
   };
+  const payload = { ...base, ...casting };
 
   if (id) {
-    const { error } = await supabase.from("projects").update(payload).eq("id", id);
+    let { error } = await supabase.from("projects").update(payload).eq("id", id);
+    // ยังไม่ได้ run migration 013 → column ยังไม่มี, บันทึกเฉพาะ base ไปก่อน
+    if (isMissingColumn(error)) {
+      ({ error } = await supabase.from("projects").update(base).eq("id", id));
+    }
     if (error) throw new Error(error.message);
     revalidatePath("/admin/projects");
     redirect(`/admin/projects/${id}`);
   }
 
-  const { data: created, error } = await supabase
+  let { data: created, error } = await supabase
     .from("projects")
     .insert(payload)
     .select("id")
     .single();
+  if (isMissingColumn(error)) {
+    ({ data: created, error } = await supabase
+      .from("projects")
+      .insert(base)
+      .select("id")
+      .single());
+  }
   if (error) throw new Error(error.message);
   revalidatePath("/admin/projects");
-  redirect(`/admin/projects/${created.id}`);
+  redirect(`/admin/projects/${created!.id}`);
+}
+
+// column ที่เพิ่มใน migration ยังไม่มีในฐานข้อมูล (deploy ก่อน run migration)
+function isMissingColumn(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  return (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    /column|schema cache|could not find/i.test(error.message ?? "")
+  );
 }
 
 // ===== Roles ในโปรเจกต์ =====
@@ -213,7 +237,8 @@ export async function getProjectRoles(projectId: string) {
     .select("*")
     .eq("project_id", projectId)
     .order("display_order", { ascending: true });
-  if (error) throw new Error(error.message);
+  // ยังไม่ได้ run migration 013 → ตารางยังไม่มี, คืน [] ไปก่อน (ไม่ให้หน้าพัง)
+  if (error) return [];
   return data;
 }
 
@@ -253,7 +278,8 @@ export async function getProjectApplications(projectId: string) {
     .select("*, talent:talents(*), role:project_roles(title)")
     .eq("project_id", projectId)
     .order("applied_at", { ascending: false });
-  if (error) throw new Error(error.message);
+  // ยังไม่ได้ run migration 013 → ตารางยังไม่มี, คืน [] ไปก่อน (ไม่ให้หน้าพัง)
+  if (error) return [];
   if (!apps || apps.length === 0) return [];
 
   const talentIds = apps.map((a) => a.talent_id);
