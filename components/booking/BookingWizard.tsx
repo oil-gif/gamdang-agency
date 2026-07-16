@@ -390,6 +390,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
                 id="dob"
                 name="dob"
                 type="date"
+                lang="en-GB"
                 required
                 max={new Date().toISOString().slice(0, 10)}
                 className="h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm outline-none transition focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"

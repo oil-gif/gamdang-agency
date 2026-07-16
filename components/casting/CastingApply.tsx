@@ -468,6 +468,7 @@ function ManualApply({
             id="dob"
             name="dob"
             type="date"
+            lang="en-GB"
             max={new Date().toISOString().slice(0, 10)}
             className="h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm"
           />
