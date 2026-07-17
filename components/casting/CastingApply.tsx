@@ -334,7 +334,7 @@ function ManualApply({
         r.onerror = () => reject(new Error("read failed"));
         r.readAsDataURL(compressed);
       });
-      const res = await fetch("/api/inbox-upload", {
+      const res = await fetch("/api/casting-apply-photo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ data: dataUrl }),

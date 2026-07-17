@@ -43,7 +43,16 @@ export async function assignInboxPhoto(formData: FormData) {
   const { error: moveError } = await supabase.storage
     .from("talent-photos")
     .move(inbox.storage_path, newPath);
-  if (moveError) throw new Error(moveError.message);
+  if (moveError) {
+    // ไฟล์ต้นทางหาย (inbox row ค้างไม่ตรงกับ storage) — ล้าง row ทิ้งเงียบๆ
+    // ไม่ให้หน้าพังเป็น server error, การ์ดผีจะหายไปเอง
+    if (/not.?found|does not exist|no such/i.test(moveError.message)) {
+      await supabase.from("photo_inbox").delete().eq("id", inboxId);
+      revalidatePath("/admin/photos");
+      return;
+    }
+    throw new Error(moveError.message);
+  }
 
   // compcard มีได้ใบเดียว — ลบใบเดิมทิ้งก่อน
   if (kind === "compcard") {
