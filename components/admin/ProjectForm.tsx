@@ -33,9 +33,12 @@ type Project = {
 
 const CATEGORIES = [
   "TV Commercial",
+  "Ads Commercial",
   "Movie",
   "Series",
   "MV",
+  "Lookbook Shooting",
+  "Fashionshow",
   "Print / Photo",
   "Event / Presenter",
   "Online / Influencer",
