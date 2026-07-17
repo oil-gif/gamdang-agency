@@ -138,11 +138,26 @@ export async function POST(req: NextRequest) {
     typeof body.line_id_token === "string" ? body.line_id_token : "";
   const lineProfile = lineIdToken ? await verifyLineIdToken(lineIdToken) : null;
 
+  // สมาชิกเดิมแตะเลือกโปรไฟล์ตอนจอง → ผูก talent_id เข้าการจองเลย
+  // (เชื่อเฉพาะเมื่อ talent นั้นเป็นของบัญชี LINE ที่ verify ผ่าน — กันปลอม id)
+  let talentId: string | null = null;
+  const claimedTalentId = str(body.talent_id);
+  if (claimedTalentId && lineProfile) {
+    const { data: owned } = await supabase
+      .from("talents")
+      .select("id")
+      .eq("id", claimedTalentId)
+      .eq("line_user_id", lineProfile.lineUserId)
+      .maybeSingle();
+    if (owned) talentId = owned.id;
+  }
+
   if (gender || dob || nationality || lineProfile) {
     const full = {
       gender,
       dob,
       nationality,
+      talent_id: talentId,
       line_user_id: lineProfile?.lineUserId ?? null,
       line_display_name: lineProfile?.name ?? null,
       line_picture_url: lineProfile?.picture ?? null,

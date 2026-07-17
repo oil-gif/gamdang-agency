@@ -18,6 +18,22 @@ export type WizardDate = {
 
 type PkgKey = "A" | "B";
 
+// โปรไฟล์สมาชิก (จาก /api/booking/profiles) — แตะเลือกแล้ว prefill ฟอร์ม
+type MemberProfile = {
+  id: string;
+  name: string;
+  photo_path: string | null;
+  nickname: string;
+  full_name: string;
+  phone: string;
+  email: string;
+  gender: string;
+  dob: string;
+  nationality: string;
+  height: string;
+  weight: string;
+};
+
 export function BookingWizard({ dates }: { dates: WizardDate[] }) {
   const [dayId, setDayId] = useState<string | null>(null);
   const [pkg, setPkg] = useState<PkgKey | null>(null);
@@ -28,6 +44,8 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
   const [result, setResult] = useState<"success" | string | null>(null);
   const [lineIdToken, setLineIdToken] = useState<string | null>(null);
   const [lineLinked, setLineLinked] = useState(false);
+  const [profiles, setProfiles] = useState<MemberProfile[]>([]);
+  const [selectedTalentId, setSelectedTalentId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -52,6 +70,20 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
         if (token && !cancelled) {
           setLineIdToken(token);
           setLineLinked(true);
+          // สมาชิกเดิม: ดึงโปรไฟล์ของบัญชี LINE นี้มาให้แตะเลือก (prefill)
+          try {
+            const res = await fetch("/api/booking/profiles", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id_token: token }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && Array.isArray(data.profiles) && !cancelled) {
+              setProfiles(data.profiles);
+            }
+          } catch {
+            /* ดึงไม่ได้ก็กรอกเองตามปกติ */
+          }
         }
       } catch {
         // ไม่ได้อยู่ใน LINE / init ไม่ได้ — เงียบไว้ จองแบบไม่เชื่อมได้ปกติ
@@ -66,6 +98,36 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
     setDayId(id);
     setPkg(null);
     setHour(null);
+  }
+
+  // แตะการ์ดสมาชิก → เติมข้อมูลลงฟอร์มให้ทุกช่อง + จำ talent_id ไว้ผูกการจอง
+  function pickProfile(p: MemberProfile) {
+    setSelectedTalentId(p.id);
+    const form = formRef.current;
+    if (!form) return;
+    const set = (name: string, value: string) => {
+      const el = form.elements.namedItem(name) as
+        | HTMLInputElement
+        | HTMLSelectElement
+        | null;
+      if (el) el.value = value;
+    };
+    set("nickname", p.nickname);
+    set("full_name", p.full_name);
+    set("phone", p.phone);
+    set("email", p.email);
+    set("gender", p.gender);
+    set("dob", p.dob);
+    set("nationality", p.nationality);
+    set("height", p.height);
+    set("weight", p.weight);
+  }
+
+  // "จองให้คนใหม่" → ล้างฟอร์มกลับไปกรอกเอง
+  function pickNewPerson() {
+    setSelectedTalentId(null);
+    formRef.current?.reset();
+    setSlipName(null);
   }
   function pickPkg(k: PkgKey) {
     setPkg(k);
@@ -149,6 +211,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
           dob: fd.get("dob"),
           nationality: fd.get("nationality"),
           line_id_token: lineIdToken, // เชื่อม LINE อัตโนมัติ (ถ้าเปิดใน LINE)
+          talent_id: selectedTalentId, // สมาชิกเดิม — ผูกการจองกับโปรไฟล์เลย
           website: fd.get("website"), // honeypot
           slip: dataUrl,
         }),
@@ -326,6 +389,65 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
       {day && pkg && hour && (
         <section className="space-y-4">
           {stepLabel(4, "กรอกข้อมูล & แนบสลิป (Your Info & Payment)")}
+
+          {/* สมาชิกเดิม (เปิดจาก LINE) — แตะเลือกโปรไฟล์ ไม่ต้องกรอกใหม่ */}
+          {profiles.length > 0 && (
+            <div className="rounded-2xl border border-[#06C755]/30 bg-[#06C755]/5 p-4">
+              <p className="text-sm font-semibold text-neutral-700">
+                ✓ ระบบจำคุณได้ — แตะเลือกโปรไฟล์ ระบบกรอกข้อมูลให้อัตโนมัติ
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {profiles.map((p) => {
+                  const active = selectedTalentId === p.id;
+                  return (
+                    <button
+                      type="button"
+                      key={p.id}
+                      onClick={() => pickProfile(p)}
+                      className={`flex items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-4 text-sm font-semibold transition ${
+                        active
+                          ? "border-[#1D4ED8] bg-[#1D4ED8] text-white shadow"
+                          : "border-neutral-200 bg-white text-neutral-700 hover:border-[#1D4ED8]/50"
+                      }`}
+                    >
+                      <span className="size-8 shrink-0 overflow-hidden rounded-full bg-neutral-200">
+                        {p.photo_path ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={`/photo/${p.photo_path}?w=320`}
+                            alt=""
+                            className="size-full object-cover object-top"
+                          />
+                        ) : (
+                          <span className="flex size-full items-center justify-center text-[10px] text-neutral-400">
+                            {p.name.charAt(0)}
+                          </span>
+                        )}
+                      </span>
+                      {p.name}
+                      {active && " ✓"}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={pickNewPerson}
+                  className={`rounded-full border border-dashed px-4 py-1.5 text-sm font-medium transition ${
+                    selectedTalentId === null
+                      ? "border-neutral-400 text-neutral-700"
+                      : "border-neutral-300 text-neutral-400 hover:text-neutral-700"
+                  }`}
+                >
+                  + จองให้คนใหม่ (กรอกเอง)
+                </button>
+              </div>
+              {selectedTalentId && (
+                <p className="mt-2 text-xs text-neutral-500">
+                  เช็คข้อมูลด้านล่างอีกครั้ง แก้ไขได้ถ้าไม่ตรง — การจองจะผูกกับโปรไฟล์นี้ให้เลย
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-3 rounded-2xl border border-neutral-200 bg-white p-5 sm:grid-cols-2">
             {/* honeypot กันสแปม — ซ่อนจากคนจริง */}
