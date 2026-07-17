@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CATEGORIES, ETHNICITIES } from "@/lib/constants";
+import { SOCIAL_PLATFORMS } from "@/lib/social";
 
 type Talent = {
   id?: string;
@@ -200,9 +201,12 @@ export function TalentForm({
             เชื้อชาติ <span className="font-normal text-[#1D4ED8]/60">(Ethnicity)</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {ETHNICITIES.map((e) => (
-            <label key={e.value} className="flex items-start gap-2 text-sm">
+            <label
+              key={e.value}
+              className="flex cursor-pointer items-start gap-2 rounded-xl border border-neutral-200 px-3 py-2.5 text-sm transition hover:border-neutral-300 has-[[data-state=checked]]:border-[#1D4ED8] has-[[data-state=checked]]:bg-[#1D4ED8]/5"
+            >
               <Checkbox
                 name="ethnicities"
                 value={e.value}
@@ -302,12 +306,12 @@ export function TalentForm({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-6">
-            <label className="flex items-center gap-2 text-sm">
+          <div className="flex flex-wrap gap-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium transition hover:border-neutral-300 has-[[data-state=checked]]:border-[#1D4ED8] has-[[data-state=checked]]:bg-[#1D4ED8]/5">
               <Checkbox name="is_model" defaultChecked={talent?.is_model ?? false} />
               เป็น Model
             </label>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium transition hover:border-neutral-300 has-[[data-state=checked]]:border-[#B82233] has-[[data-state=checked]]:bg-[#B82233]/5">
               <Checkbox
                 name="is_influencer"
                 checked={isInfluencer}
@@ -316,7 +320,7 @@ export function TalentForm({
               เป็น Influencer
             </label>
             {mode === "admin" && (
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium transition hover:border-neutral-300 has-[[data-state=checked]]:border-violet-500 has-[[data-state=checked]]:bg-violet-50">
                 <Checkbox
                   name="is_ai_model"
                   checked={isAiModel}
@@ -366,9 +370,12 @@ export function TalentForm({
                 ความเชี่ยวชาญ <span className="font-normal text-[#1D4ED8]/60">(Expertise)</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-4">
+            <CardContent className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {CATEGORIES.map((c) => (
-                <label key={c} className="flex items-center gap-2 text-sm">
+                <label
+                  key={c}
+                  className="flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 px-3 py-2.5 text-sm transition hover:border-neutral-300 has-[[data-state=checked]]:border-[#B82233] has-[[data-state=checked]]:bg-[#B82233]/5"
+                >
                   <Checkbox
                     name="categories"
                     value={c}
@@ -387,48 +394,76 @@ export function TalentForm({
                 <span className="font-normal text-[#1D4ED8]/60">(Social & Followers)</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-xs text-neutral-400">
-                สมัครเป็น Influencer ต้องกรอกลิงก์และจำนวนผู้ติดตามอย่างน้อย 1 ช่องทาง
-                และมีผู้ติดตามขั้นต่ำ 3,000 คน
-                <span className="mt-0.5 block">
-                  (To apply as an Influencer, add at least 1 social channel with a
-                  minimum of 3,000 followers.)
+            <CardContent className="space-y-3">
+              <div className="rounded-xl bg-[#1D4ED8]/5 px-3.5 py-2.5 text-xs leading-5 text-neutral-500">
+                📌 กรอก<b>อย่างน้อย 1 ช่องทาง</b> (ผู้ติดตามขั้นต่ำ 3,000 คน) —
+                วางเป็น<b>ลิงก์โปรไฟล์เต็ม</b> คัดลอกจากปุ่ม &quot;แชร์โปรไฟล์&quot;
+                ในแอปนั้นๆ ได้เลย
+                <span className="mt-0.5 block text-neutral-400">
+                  (Add at least 1 channel with 3,000+ followers. Paste your full
+                  profile link.)
                 </span>
-              </p>
-              {(
-                [
-                  ["ig", "Instagram"],
-                  ["tiktok", "TikTok"],
-                  ["youtube", "YouTube"],
-                  ["facebook", "Facebook"],
-                  ["lemon8", "Lemon8"],
-                ] as const
-              ).map(([key, label]) => (
-                <div key={key} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor={`${key}_handle`}>{label} URL/handle</Label>
-                    <Input
-                      id={`${key}_handle`}
-                      name={`${key}_handle`}
-                      defaultValue={
-                        (talent?.[`${key}_handle` as keyof Talent] as string) ?? ""
-                      }
-                    />
+              </div>
+              {SOCIAL_PLATFORMS.map((p) => {
+                const handleVal =
+                  (talent?.[`${p.key}_handle` as keyof Talent] as string) ?? "";
+                const folVal =
+                  (talent?.[`${p.key}_followers` as keyof Talent] as number) ?? 0;
+                return (
+                  <div
+                    key={p.key}
+                    className="rounded-xl border border-neutral-200 p-3.5"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                        style={{ backgroundColor: p.color }}
+                      >
+                        {p.short}
+                      </span>
+                      <span className="text-sm font-semibold text-neutral-800">
+                        {p.label}
+                      </span>
+                    </div>
+                    <div className="mt-2.5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div className="space-y-1 sm:col-span-2">
+                        <Label
+                          htmlFor={`${p.key}_handle`}
+                          className="text-xs font-normal text-muted-foreground"
+                        >
+                          ลิงก์โปรไฟล์ {p.label} ({p.label} URL)
+                        </Label>
+                        <Input
+                          id={`${p.key}_handle`}
+                          name={`${p.key}_handle`}
+                          inputMode="url"
+                          placeholder={`${p.base}username`}
+                          defaultValue={handleVal}
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label
+                          htmlFor={`${p.key}_followers`}
+                          className="text-xs font-normal text-muted-foreground"
+                        >
+                          ผู้ติดตาม (Followers)
+                        </Label>
+                        <Input
+                          id={`${p.key}_followers`}
+                          name={`${p.key}_followers`}
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          placeholder="เช่น 50000"
+                          defaultValue={folVal > 0 ? folVal : ""}
+                          className="h-10"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor={`${key}_followers`}>Followers</Label>
-                    <Input
-                      id={`${key}_followers`}
-                      name={`${key}_followers`}
-                      type="number"
-                      defaultValue={
-                        (talent?.[`${key}_followers` as keyof Talent] as number) ?? 0
-                      }
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
         </>
