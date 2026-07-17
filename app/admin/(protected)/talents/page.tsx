@@ -85,6 +85,7 @@ export default async function TalentsListPage({
             <TalentRowCard
               key={t.id}
               href={`/admin/talents/${t.id}`}
+              talentId={t.id}
               photoPath={t.photo_path}
               name={t.nickname_th ?? t.nickname_en ?? "(ไม่มีชื่อ)"}
               nameSub={t.nickname_en && t.nickname_th ? t.nickname_en : null}

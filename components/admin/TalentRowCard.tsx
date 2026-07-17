@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeleteTalentButton } from "@/components/admin/DeleteTalentButton";
 import { getPhotoProxyUrl } from "@/lib/storage";
 
 // การ์ด talent แบบ "บาร์ยาว" สำหรับ list หลังบ้าน — เห็นข้อมูลครบโดยไม่ต้อง
@@ -14,6 +15,7 @@ export type RowCardSocial = {
 
 export type TalentRowCardProps = {
   href: string;
+  talentId: string;
   photoPath: string | null;
   name: string;
   nameSub?: string | null;
@@ -48,12 +50,16 @@ export function TalentRowCard(props: TalentRowCardProps) {
   ].filter(Boolean);
 
   return (
-    <Link
-      href={props.href}
-      className="group flex items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#1D4ED8]/40 hover:shadow-md"
-    >
+    <div className="group relative flex items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#1D4ED8]/40 hover:shadow-md">
+      {/* คลิกที่ไหนบนการ์ดก็เข้าหน้าแก้ไข (overlay ลิงก์ ปุ่มลบอยู่ทับด้านบน) */}
+      <Link
+        href={props.href}
+        aria-label={props.name}
+        className="absolute inset-0 rounded-2xl"
+      />
+
       {/* รูปวงกลม */}
-      <div className="relative size-16 shrink-0 overflow-hidden rounded-full bg-neutral-100 ring-1 ring-neutral-200">
+      <div className="pointer-events-none relative size-16 shrink-0 overflow-hidden rounded-full bg-neutral-100 ring-1 ring-neutral-200">
         {props.photoPath ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -70,7 +76,7 @@ export function TalentRowCard(props: TalentRowCardProps) {
       </div>
 
       {/* ข้อมูลหลัก */}
-      <div className="min-w-0 flex-1">
+      <div className="pointer-events-none min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <p className="truncate text-base font-bold text-neutral-800">
             {props.name}
@@ -115,7 +121,7 @@ export function TalentRowCard(props: TalentRowCardProps) {
       </div>
 
       {/* ฝั่งขวา: สถานะ + follower สูงสุด + ไอคอน social */}
-      <div className="flex shrink-0 flex-col items-end gap-1.5">
+      <div className="pointer-events-none flex shrink-0 flex-col items-end gap-1.5">
         <span
           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${props.statusChip.className}`}
         >
@@ -146,7 +152,12 @@ export function TalentRowCard(props: TalentRowCardProps) {
           </div>
         )}
       </div>
-    </Link>
+
+      {/* ปุ่มลบ — อยู่เหนือ overlay ลิงก์ กดแล้วถามยืนยันก่อน */}
+      <div className="relative z-10 shrink-0">
+        <DeleteTalentButton id={props.talentId} name={props.name} code={props.code} />
+      </div>
+    </div>
   );
 }
 
