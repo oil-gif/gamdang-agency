@@ -426,48 +426,31 @@ export async function getOwnedTalent(talentId: string) {
   return data ?? null;
 }
 
-// แม่กด "เพิ่มลูกอีกคน" — สร้างโปรไฟล์ใหม่ผูกกับบัญชี LINE เดียวกัน
-export async function createTalentForSelf() {
-  const session = await getTalentSession();
-  if (!session) redirect("/apply");
-  const { data: created, error } = await supabase
-    .from("talents")
-    .insert({
-      line_user_id: session.lineUserId,
-      line_display_name: session.lineName,
-      line_picture_url: session.linePicture,
-      source: "self",
-      status: "pending",
-    })
-    .select("id")
-    .single();
-  // ก่อนรัน migration 011 line_user_id ยัง UNIQUE — โปรไฟล์ที่ 2 จะโดนบล็อก
-  // อย่าให้ขึ้นหน้าขาว เด้งกลับพร้อมข้อความแทน
-  if (error || !created) {
-    redirect(
-      `/apply/profiles?error=${encodeURIComponent("เพิ่มโปรไฟล์ไม่สำเร็จ กรุณาลองใหม่ หรือติดต่อแอดมิน")}`,
-    );
-  }
-  revalidatePath("/apply/profiles");
-  redirect(`/apply/edit?id=${created.id}`);
-}
-
 // Same shape as saveTalent(), but for the LIFF self-service flow: the
 // talent id comes from formData but is re-checked against the session's
 // LINE account (one parent can't edit another parent's kid), and
 // status/source are never in the payload so a talent can't self-approve.
 export async function saveTalentSelf(formData: FormData) {
+  const session = await getTalentSession();
+  if (!session) redirect("/apply");
+
   const talentId = str(formData, "talent_id");
   const owned = talentId ? await getOwnedTalent(talentId) : null;
-  if (!owned) redirect("/apply/profiles");
-  const backTo = `/apply/edit?id=${owned.id}`;
+  // ส่ง talent_id มาแต่ไม่ใช่ของบัญชีนี้ → กันแก้ข้ามบัญชี
+  if (talentId && !owned) redirect("/apply/profiles");
 
+  // ไม่มี owned = โปรไฟล์ใหม่ (ยังไม่เคยสร้าง row) — สร้างตอนกดบันทึกเท่านั้น
+  const isNew = !owned;
+  const backTo = owned ? `/apply/edit?id=${owned.id}` : "/apply/edit";
+  const sep = backTo.includes("?") ? "&" : "?";
+
+  const nicknameTh = str(formData, "nickname_th");
   const gender = str(formData, "gender");
   const dob = str(formData, "dob");
   const phone = str(formData, "phone");
-  if (!gender || !dob || !phone) {
+  if (!nicknameTh || !gender || !dob || !phone) {
     redirect(
-      `${backTo}&error=${encodeURIComponent("กรุณากรอกเพศ วันเกิด และเบอร์โทร (บังคับ)")}`,
+      `${backTo}${sep}error=${encodeURIComponent("กรุณากรอกชื่อเล่น เพศ วันเกิด และเบอร์โทร (บังคับ)")}`,
     );
   }
 
@@ -523,10 +506,33 @@ export async function saveTalentSelf(formData: FormData) {
     categories,
   };
 
+  if (isNew) {
+    // สร้าง row ใหม่ผูกกับบัญชี LINE นี้ (พร้อมข้อมูลที่กรอก) — pending รออนุมัติ
+    const { data: created, error } = await supabase
+      .from("talents")
+      .insert({
+        ...payload,
+        line_user_id: session.lineUserId,
+        line_display_name: session.lineName,
+        line_picture_url: session.linePicture,
+        source: "self",
+        status: "pending",
+      })
+      .select("id")
+      .single();
+    if (error || !created) {
+      redirect(
+        `/apply/edit?error=${encodeURIComponent("บันทึกไม่สำเร็จ กรุณาลองใหม่")}`,
+      );
+    }
+    revalidatePath("/apply/profiles");
+    redirect(`/apply/edit?id=${created.id}&saved=1`);
+  }
+
   const { error } = await supabase
     .from("talents")
     .update(payload)
-    .eq("id", owned.id);
+    .eq("id", owned!.id);
   if (error) throw new Error(error.message);
 
   revalidatePath(backTo);

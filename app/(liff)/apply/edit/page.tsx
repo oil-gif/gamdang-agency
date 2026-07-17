@@ -22,13 +22,17 @@ export default async function ApplyEditPage({
   if (!session) redirect("/apply");
 
   const { id, error, saved } = await searchParams;
-  // ต้องเป็นโปรไฟล์ของบัญชี LINE นี้จริง ไม่งั้นเด้งกลับหน้ารายชื่อ
+  // มี id → ต้องเป็นโปรไฟล์ของบัญชี LINE นี้จริง (กันแก้ข้ามบัญชี)
+  // ไม่มี id → โหมด "เพิ่มโปรไฟล์ใหม่" ยังไม่สร้าง row จนกว่าจะกดบันทึก
   const talent = id ? await getOwnedTalent(id) : null;
-  if (!talent) redirect("/apply/profiles");
+  if (id && !talent) redirect("/apply/profiles");
 
-  const status = STATUS[talent.status] ?? STATUS.pending;
-  const displayName =
-    talent.nickname_th || talent.nickname_en || "โปรไฟล์ใหม่";
+  const isNew = !talent;
+  const status = talent ? (STATUS[talent.status] ?? STATUS.pending) : null;
+  const displayName = isNew
+    ? "โปรไฟล์ใหม่"
+    : talent!.nickname_th || talent!.nickname_en || "โปรไฟล์ใหม่";
+  const avatarUrl = talent?.line_picture_url ?? session.linePicture;
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -43,9 +47,9 @@ export default async function ApplyEditPage({
           </Link>
           <div className="mt-3 flex items-center gap-4">
             <div className="relative size-16 shrink-0 overflow-hidden rounded-full border-2 border-white/70 bg-white/20">
-              {talent.line_picture_url ? (
+              {avatarUrl ? (
                 <Image
-                  src={talent.line_picture_url}
+                  src={avatarUrl}
                   alt=""
                   fill
                   sizes="4rem"
@@ -59,18 +63,22 @@ export default async function ApplyEditPage({
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-white/80">แก้ไขโปรไฟล์</p>
+              <p className="text-sm text-white/80">
+                {isNew ? "เพิ่มโปรไฟล์ใหม่" : "แก้ไขโปรไฟล์"}
+              </p>
               <h1 className="truncate text-xl font-bold">{displayName}</h1>
-              <div className="mt-1.5 flex items-center gap-2">
-                {talent.code && (
-                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium">
-                    {talent.code}
+              {!isNew && (
+                <div className="mt-1.5 flex items-center gap-2">
+                  {talent!.code && (
+                    <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium">
+                      {talent!.code}
+                    </span>
+                  )}
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status!.className}`}>
+                    {status!.label}
                   </span>
-                )}
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}>
-                  {status.label}
-                </span>
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -91,8 +99,14 @@ export default async function ApplyEditPage({
           </div>
         )}
 
-        <TalentPhotos talentId={talent.id} />
-        <TalentForm talent={talent} mode="self" />
+        {isNew ? (
+          <div className="rounded-2xl border border-dashed border-[#1D4ED8]/30 bg-[#1D4ED8]/5 px-4 py-3 text-sm text-neutral-600">
+            📸 กรอกข้อมูล + กด <b>บันทึก</b> ก่อน แล้วค่อยเพิ่มรูปได้ในขั้นตอนถัดไป
+          </div>
+        ) : (
+          <TalentPhotos talentId={talent!.id} />
+        )}
+        <TalentForm talent={talent ?? undefined} mode="self" />
       </main>
     </div>
   );
