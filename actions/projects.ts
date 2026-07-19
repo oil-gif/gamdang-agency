@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { yearsAgo } from "@/lib/age";
 import { supabase } from "@/lib/supabase/server";
 
 export async function getProjects() {
@@ -109,54 +110,83 @@ export async function getProjectTalents(projectId: string) {
 // Candidates for the "เพิ่ม Talent" picker: active talents matching the
 // search, excluding ones already in the project, with a photo for the
 // mini preview card (gallery first for influencers, comp card otherwise).
+export type PickerFilters = {
+  q?: string;
+  role?: "model" | "influencer";
+  tiers?: string[];
+  categories?: string[];
+  minAge?: number;
+  maxAge?: number;
+  page?: number;
+};
+
+const PICKER_PAGE_SIZE = 12;
+
 export async function getPickerTalents(
   projectId: string,
-  q?: string,
-  role?: "model" | "influencer",
+  f: PickerFilters = {},
 ) {
   const { data: existing } = await supabase
     .from("project_talents")
     .select("talent_id")
     .eq("project_id", projectId);
-  const excludeIds = new Set((existing ?? []).map((r) => r.talent_id));
+  const excludeIds = (existing ?? []).map((r) => r.talent_id);
 
   let query = supabase
     .from("talents")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("status", "active")
     .order("created_at", { ascending: false });
-  if (q) {
-    const term = q.replace(/[%,]/g, "");
+
+  // ตัดคนที่อยู่ในโปรเจกต์แล้วออกในระดับ query (เพื่อให้ paginate + นับถูก)
+  if (excludeIds.length > 0) {
+    query = query.not("id", "in", `(${excludeIds.join(",")})`);
+  }
+  if (f.q) {
+    const term = f.q.replace(/[%,]/g, "");
     query = query.or(
       `nickname_th.ilike.%${term}%,nickname_en.ilike.%${term}%,code.ilike.%${term}%`,
     );
   }
-  if (role === "model") query = query.eq("is_model", true);
-  if (role === "influencer") query = query.eq("is_influencer", true);
+  if (f.role === "model") query = query.eq("is_model", true);
+  if (f.role === "influencer") query = query.eq("is_influencer", true);
+  if (f.tiers && f.tiers.length > 0) query = query.in("tier", f.tiers);
+  if (f.categories && f.categories.length > 0)
+    query = query.overlaps("categories", f.categories);
+  if (f.minAge) query = query.lte("dob", yearsAgo(f.minAge));
+  if (f.maxAge) query = query.gte("dob", yearsAgo(f.maxAge + 1));
 
-  const { data: talents, error } = await query;
+  const page = Math.max(f.page ?? 1, 1);
+  const from = (page - 1) * PICKER_PAGE_SIZE;
+  const {
+    data: talents,
+    count,
+    error,
+  } = await query.range(from, from + PICKER_PAGE_SIZE - 1);
   if (error) throw new Error(error.message);
 
-  const candidates = (talents ?? [])
-    .filter((t) => !excludeIds.has(t.id))
-    .slice(0, 12);
-  if (candidates.length === 0) return [];
+  const total = count ?? 0;
+  const totalPages = Math.max(Math.ceil(total / PICKER_PAGE_SIZE), 1);
+  if (!talents || talents.length === 0) {
+    return { candidates: [], total, page, totalPages };
+  }
 
   const { data: photos } = await supabase
     .from("talent_photos")
     .select("talent_id, kind, storage_path, display_order")
     .in(
       "talent_id",
-      candidates.map((t) => t.id),
+      talents.map((t) => t.id),
     )
     .order("display_order", { ascending: true });
 
-  return candidates.map((t) => {
+  const candidates = talents.map((t) => {
     const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
     const gallery = mine.find((p) => p.kind === "gallery")?.storage_path ?? null;
     const compcard = mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
     return { ...t, photo_path: t.is_influencer ? (gallery ?? compcard) : (compcard ?? gallery) };
   });
+  return { candidates, total, page, totalPages };
 }
 
 function str(formData: FormData, key: string) {

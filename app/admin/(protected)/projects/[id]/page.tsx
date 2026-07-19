@@ -34,7 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { calculateAge } from "@/lib/age";
 import { createJobToken, createSubmitToken } from "@/lib/auth/talent-session";
-import { TIER_LABEL } from "@/lib/constants";
+import { CATEGORIES, TIER_LABEL } from "@/lib/constants";
 import { SITE_URL } from "@/lib/site";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
 import { getPhotoProxyUrl } from "@/lib/storage";
@@ -114,24 +114,59 @@ export default async function ProjectDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; pq?: string; prole?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
-  const { error, pq, prole } = await searchParams;
+  const sp = await searchParams;
+  const one = (v: string | string[] | undefined) =>
+    (Array.isArray(v) ? v[0] : v) || undefined;
+  const many = (v: string | string[] | undefined) =>
+    v == null ? [] : Array.isArray(v) ? v : [v];
+  const numOr = (v: string | string[] | undefined) => {
+    const n = Number(one(v));
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  };
+  const error = one(sp.error);
+  const pq = one(sp.pq);
+  const prole = one(sp.prole);
+  const ptiers = many(sp.ptier);
+  const pcats = many(sp.pcat);
+  const pminage = numOr(sp.pminage);
+  const pmaxage = numOr(sp.pmaxage);
+  const ppage = numOr(sp.ppage) ?? 1;
 
-  const [project, projectTalents, links, candidates, roles, applications] =
+  const [project, projectTalents, links, picker, roles, applications] =
     await Promise.all([
       getProject(id),
       getProjectTalents(id),
       getProjectLinks(id),
-      getPickerTalents(
-        id,
-        pq || undefined,
-        prole === "model" || prole === "influencer" ? prole : undefined,
-      ),
+      getPickerTalents(id, {
+        q: pq,
+        role: prole === "model" || prole === "influencer" ? prole : undefined,
+        tiers: ptiers,
+        categories: pcats,
+        minAge: pminage,
+        maxAge: pmaxage,
+        page: ppage,
+      }),
       getProjectRoles(id),
       getProjectApplications(id),
     ]);
+  const candidates = picker.candidates;
+
+  // สร้างลิงก์ pagination โดยคงตัวกรอง picker เดิม (anchor #picker)
+  const pickerHref = (page: number) => {
+    const q = new URLSearchParams();
+    if (pq) q.set("pq", pq);
+    if (prole) q.set("prole", prole);
+    for (const t of ptiers) q.append("ptier", t);
+    for (const c of pcats) q.append("pcat", c);
+    if (pminage) q.set("pminage", String(pminage));
+    if (pmaxage) q.set("pmaxage", String(pmaxage));
+    if (page > 1) q.set("ppage", String(page));
+    const s = q.toString();
+    return `/admin/projects/${id}${s ? `?${s}` : ""}#picker`;
+  };
   const pendingApps = applications.filter((a) => a.status === "pending");
 
   // token ต่อแถว (แจ้งงาน 14 วัน / ส่งงาน 60 วัน) — stateless JWT สร้างใหม่
@@ -614,27 +649,109 @@ export default async function ProjectDetailPage({
       </section>
 
       {/* ===== Talent picker ===== */}
-      <section className="max-w-3xl space-y-4">
-        <h2 className="text-lg font-semibold text-[#1D4ED8]">เพิ่ม Talent</h2>
-        <form method="GET" className="flex flex-wrap gap-2">
-          <Input
-            name="pq"
-            placeholder="ค้นหาชื่อ / code..."
-            defaultValue={pq ?? ""}
-            className="max-w-xs"
-          />
-          <select
-            name="prole"
-            defaultValue={prole ?? ""}
-            className="rounded-md border bg-white px-3 text-sm"
-          >
-            <option value="">ทุกบทบาท</option>
-            <option value="model">Model</option>
-            <option value="influencer">Influencer</option>
-          </select>
-          <Button type="submit" variant="outline">
-            ค้นหา
-          </Button>
+      <section id="picker" className="max-w-4xl space-y-4 scroll-mt-20">
+        <h2 className="text-lg font-semibold text-[#1D4ED8]">
+          เพิ่ม Talent{" "}
+          <span className="text-sm font-normal text-neutral-400">
+            (พบ {picker.total} คน)
+          </span>
+        </h2>
+        <form
+          method="GET"
+          className="space-y-3 rounded-xl border bg-white p-4"
+        >
+          <div className="flex flex-wrap items-end gap-2">
+            <Input
+              name="pq"
+              placeholder="ค้นหาชื่อ / code..."
+              defaultValue={pq ?? ""}
+              className="max-w-xs"
+            />
+            <select
+              name="prole"
+              defaultValue={prole ?? ""}
+              className="h-9 rounded-md border bg-white px-3 text-sm"
+            >
+              <option value="">ทุกบทบาท</option>
+              <option value="model">Model</option>
+              <option value="influencer">Influencer</option>
+            </select>
+            <div className="flex items-center gap-1 text-sm">
+              <span className="text-neutral-500">อายุ</span>
+              <input
+                name="pminage"
+                type="number"
+                min={0}
+                placeholder="ต่ำ"
+                defaultValue={pminage ?? ""}
+                className="h-9 w-16 rounded-md border px-2 text-sm"
+              />
+              <span className="text-neutral-400">–</span>
+              <input
+                name="pmaxage"
+                type="number"
+                min={0}
+                placeholder="สูง"
+                defaultValue={pmaxage ?? ""}
+                className="h-9 w-16 rounded-md border px-2 text-sm"
+              />
+              <span className="text-neutral-400">ปี</span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <div>
+              <p className="mb-1 text-xs font-medium text-neutral-500">Tier</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(["nano", "micro", "mid", "macro", "celeb"] as const).map((tr) => (
+                  <label
+                    key={tr}
+                    className="flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition has-[:checked]:border-[#1D4ED8] has-[:checked]:bg-[#1D4ED8]/5"
+                  >
+                    <input
+                      type="checkbox"
+                      name="ptier"
+                      value={tr}
+                      defaultChecked={ptiers.includes(tr)}
+                      className="size-3.5"
+                    />
+                    {TIER_LABEL[tr] ?? tr}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-medium text-neutral-500">
+                Expertise
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {CATEGORIES.map((c) => (
+                  <label
+                    key={c}
+                    className="flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition has-[:checked]:border-[#B82233] has-[:checked]:bg-[#B82233]/5"
+                  >
+                    <input
+                      type="checkbox"
+                      name="pcat"
+                      value={c}
+                      defaultChecked={pcats.includes(c)}
+                      className="size-3.5"
+                    />
+                    {c}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button type="submit" variant="outline">
+              กรอง
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link href={`/admin/projects/${id}#picker`}>ล้างตัวกรอง</Link>
+            </Button>
+          </div>
         </form>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -664,7 +781,7 @@ export default async function ProjectDetailPage({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-1.5">
                     <p className="truncate font-medium text-neutral-800">
-                      {t.nickname_th}
+                      {t.nickname_th ?? t.nickname_en}
                     </p>
                     <span className="font-mono text-[10px] text-neutral-400">
                       {t.code}
@@ -713,6 +830,24 @@ export default async function ProjectDetailPage({
             </p>
           )}
         </div>
+
+        {picker.totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 pt-1 text-sm">
+            {ppage > 1 && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={pickerHref(ppage - 1)}>← ก่อนหน้า</Link>
+              </Button>
+            )}
+            <span className="text-neutral-400">
+              หน้า {ppage} / {picker.totalPages}
+            </span>
+            {ppage < picker.totalPages && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={pickerHref(ppage + 1)}>ถัดไป →</Link>
+              </Button>
+            )}
+          </div>
+        )}
       </section>
 
       {/* ===== Client links ===== */}

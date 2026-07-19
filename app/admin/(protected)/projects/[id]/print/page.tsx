@@ -30,33 +30,59 @@ export default async function ProjectPrintPage({
   return (
     <div className="mx-auto max-w-[210mm]">
       <style>{`
-        @page { size: A4 portrait; margin: 10mm; }
         .pdf-cover {
           height: 275mm;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
         @media print {
+          /* margin:0 = คุมขอบเอง → ต้องตั้ง Margins: None ในกล่อง print ด้วย */
+          @page { size: A4 portrait; margin: 0; }
+          html, body { background: #fff !important; }
           .no-print { display: none !important; }
-          .pdf-page { break-after: page; box-shadow: none !important; border: none !important; margin: 0 !important; border-radius: 0 !important; }
+          .pdf-page {
+            width: 210mm;
+            min-height: 297mm;
+            box-sizing: border-box;
+            padding: 12mm;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            break-after: page;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
           .pdf-page:last-child { break-after: auto; }
-          body { background: white !important; }
+          /* หน้าปก: gradient เต็มหน้า (ไม่มีขอบขาว) */
+          .pdf-cover { padding: 0 !important; height: 297mm; min-height: 297mm; }
         }
       `}</style>
 
-      <div className="no-print mb-4 flex items-center justify-between rounded-lg border bg-white px-4 py-3">
-        <p className="text-sm text-neutral-500">
-          ตัวอย่าง PDF: หน้าปก + {projectTalents.length} การ์ด ({pages.length}{" "}
-          หน้า, 10 ใบ/หน้า) — กดปุ่ม &quot;บันทึกเป็น PDF&quot; แล้วเลือก{" "}
-          <strong>Save as PDF ใน Chrome</strong> ไฟล์ที่ได้จะเป็น Interactive
-          PDF: ไอคอน Social, LINE และเว็บไซต์กดได้ทั้งหมด
-        </p>
-        <Link
-          href={`/admin/projects/${id}`}
-          className="shrink-0 text-sm font-medium text-[#1D4ED8] hover:underline"
-        >
-          ← กลับหน้าโปรเจกต์
-        </Link>
+      <div className="no-print mb-4 space-y-2 rounded-lg border bg-white px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-neutral-700">
+            ตัวอย่าง PDF: หน้าปก + {projectTalents.length} การ์ด ({pages.length}{" "}
+            หน้า, 10 ใบ/หน้า)
+          </p>
+          <Link
+            href={`/admin/projects/${id}`}
+            className="shrink-0 text-sm font-medium text-[#1D4ED8] hover:underline"
+          >
+            ← กลับหน้าโปรเจกต์
+          </Link>
+        </div>
+        <div className="rounded-md bg-[#1D4ED8]/5 px-3 py-2 text-xs leading-5 text-neutral-600">
+          กดปุ่ม <strong>&quot;บันทึกเป็น PDF&quot;</strong> มุมขวาล่าง →
+          ในกล่องพิมพ์ตั้งค่า 3 อย่างให้ถูกเพื่อไม่ให้ขนาดหน้าเพี้ยน:
+          <span className="mt-1 block">
+            ① <strong>ปลายทาง (Destination)</strong> = &quot;Save as PDF /
+            บันทึกเป็น PDF&quot; · ② <strong>ระยะขอบ (Margins)</strong> =
+            &quot;None / ไม่มี&quot; · ③ เปิด{" "}
+            <strong>Background graphics / กราฟิกพื้นหลัง</strong> (ให้สีพื้น
+            gradient ติด)
+          </span>
+        </div>
       </div>
 
       {/* ===== หน้าปก Report ===== */}
