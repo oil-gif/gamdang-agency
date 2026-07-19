@@ -5,6 +5,7 @@ import { BOOKING } from "@/lib/constants";
 import { pushLineMessage } from "@/lib/line-messaging";
 import { thaiDateLabel } from "@/lib/booking";
 import { verifyLineIdToken } from "@/lib/line-verify";
+import { SITE_URL } from "@/lib/site";
 import { supabase } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -197,7 +198,7 @@ export async function POST(req: NextRequest) {
             `ชื่อ: ${fullName}${str(body.nickname) ? ` (${str(body.nickname)})` : ""}`,
             `โทร: ${phone}${str(body.line_id) ? ` · LINE: ${str(body.line_id)}` : ""}`,
             "",
-            "ตรวจสลิปที่: https://gamdang-app.vercel.app/admin/shoots",
+            `ตรวจสลิปที่: ${SITE_URL}/admin/shoots`,
           ].join("\n"),
         },
       ], process.env.NOTIFY_LINE_ACCESS_TOKEN);

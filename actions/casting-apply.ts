@@ -6,9 +6,10 @@ import { getMyTalents } from "@/actions/talents";
 import { notifyAdmin } from "@/lib/admin-notify";
 import { getTalentSession } from "@/lib/auth/talent-session";
 import { verifyLineIdToken } from "@/lib/line-verify";
+import { SITE_URL } from "@/lib/site";
 import { supabase } from "@/lib/supabase/server";
 
-const BASE = "https://gamdang-app.vercel.app";
+const BASE = SITE_URL;
 
 // ชื่อ Role (ถ้าเลือก) — ไว้ใส่ในข้อความแจ้งเตือน admin
 async function roleTitle(roleId: string | null) {

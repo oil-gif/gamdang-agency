@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifySubmitToken } from "@/lib/auth/talent-session";
 import { pushLineMessage } from "@/lib/line-messaging";
+import { SITE_URL } from "@/lib/site";
 import { supabase } from "@/lib/supabase/server";
 
 const MAX_LINKS = 5;
-const BASE_URL = "https://gamdang-app.vercel.app";
+const BASE_URL = SITE_URL;
 
 // talent กด "บันทึก" ใน /submit/[token] — auth ด้วย submit token
 // (งาน influ = ลิงก์โพสต์ผลงาน · งาน model = casting: ลิงก์ผลงานเก่า + คลิปแนะนำตัว)
