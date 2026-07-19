@@ -12,6 +12,7 @@ import {
 } from "@/actions/shoots";
 import { getSlotCounts, slotOpen, thaiDateLabel } from "@/lib/booking";
 import { ageLabel } from "@/lib/age";
+import { BookingSearch } from "@/components/admin/BookingSearch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -275,6 +276,7 @@ export default async function ShootDayDetailPage({
         <h2 className="text-lg font-semibold text-[#1D4ED8]">
           การจอง ({bookings.length}) — ตรวจสลิปแล้วกดอนุมัติ/ปฏิเสธ
         </h2>
+        {bookings.length > 0 && <BookingSearch total={bookings.length} />}
         <div className="space-y-2">
           {bookings.map((b, i) => {
             const chip = STATUS_CHIP[b.status] ?? STATUS_CHIP.pending;
@@ -282,6 +284,7 @@ export default async function ShootDayDetailPage({
               <div
                 key={b.id}
                 id={`b-${b.id}`}
+                data-b-search={`${b.full_name ?? ""} ${b.nickname ?? ""} ${b.phone ?? ""} ${b.email ?? ""}`.toLowerCase()}
                 className="scroll-mt-24 rounded-xl border bg-white p-4 shadow-sm target:border-[#1D4ED8] target:ring-2 target:ring-[#1D4ED8]/30"
               >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
