@@ -5,9 +5,11 @@ import { MAIN_SITE_URL } from "@/lib/site";
 export function BackToHome({
   tone = "light",
   className = "",
+  label = "กลับหน้าหลัก",
 }: {
   tone?: "light" | "onDark";
   className?: string;
+  label?: string;
 }) {
   const styles =
     tone === "onDark"
@@ -18,7 +20,7 @@ export function BackToHome({
       href={MAIN_SITE_URL}
       className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition ${styles} ${className}`}
     >
-      <span aria-hidden>←</span> กลับหน้าหลัก
+      <span aria-hidden>←</span> {label}
     </a>
   );
 }

@@ -77,7 +77,7 @@ export default async function PublicTalentsPage({
       <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5">
           <div className="flex items-center gap-3">
-            <BackToHome />
+            <BackToHome label="Back to Home" />
             <span className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] bg-clip-text text-base font-extrabold tracking-widest text-transparent">
               GAMDANG AGENCY
             </span>
