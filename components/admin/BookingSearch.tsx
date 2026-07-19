@@ -14,12 +14,23 @@ export function BookingSearch({ total }: { total: number }) {
     const needle = value.trim().toLowerCase();
     const cards = document.querySelectorAll<HTMLElement>("[data-b-search]");
     let count = 0;
+    let firstMatch: HTMLElement | null = null;
     cards.forEach((c) => {
       const match = !needle || (c.dataset.bSearch ?? "").includes(needle);
       c.style.display = match ? "" : "none";
-      if (match) count++;
+      if (match) {
+        count++;
+        if (!firstMatch) firstMatch = c;
+      }
     });
     setShown(count);
+    // ช่องค้นหาอยู่บนสุด — เลื่อนให้เห็นการ์ดคนที่หาเจอ เช็คอินได้เลย
+    if (needle && firstMatch) {
+      (firstMatch as HTMLElement).scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }
   }
 
   return (

@@ -72,6 +72,16 @@ export default async function ShootDayDetailPage({
         </form>
       </div>
 
+      {/* เช็คอินหน้างาน — ค้นหาคนจองในรอบนี้ (อยู่บนสุด กดเข้ามาแล้วหาได้เลย) */}
+      {bookings.length > 0 && (
+        <div className="rounded-2xl border border-[#1D4ED8]/20 bg-[#1D4ED8]/5 p-4">
+          <p className="mb-2 text-sm font-semibold text-[#1D4ED8]">
+            🏁 เช็คอินหน้างาน — ค้นหาคนจองในรอบนี้ ({bookings.length} คิว)
+          </p>
+          <BookingSearch total={bookings.length} />
+        </div>
+      )}
+
       {error && (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
@@ -276,7 +286,6 @@ export default async function ShootDayDetailPage({
         <h2 className="text-lg font-semibold text-[#1D4ED8]">
           การจอง ({bookings.length}) — ตรวจสลิปแล้วกดอนุมัติ/ปฏิเสธ
         </h2>
-        {bookings.length > 0 && <BookingSearch total={bookings.length} />}
         <div className="space-y-2">
           {bookings.map((b, i) => {
             const chip = STATUS_CHIP[b.status] ?? STATUS_CHIP.pending;
