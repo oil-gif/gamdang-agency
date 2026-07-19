@@ -3,9 +3,23 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getMyTalents } from "@/actions/talents";
+import { notifyAdmin } from "@/lib/admin-notify";
 import { getTalentSession } from "@/lib/auth/talent-session";
 import { verifyLineIdToken } from "@/lib/line-verify";
 import { supabase } from "@/lib/supabase/server";
+
+const BASE = "https://gamdang-app.vercel.app";
+
+// ชื่อ Role (ถ้าเลือก) — ไว้ใส่ในข้อความแจ้งเตือน admin
+async function roleTitle(roleId: string | null) {
+  if (!roleId) return null;
+  const { data } = await supabase
+    .from("project_roles")
+    .select("title")
+    .eq("id", roleId)
+    .maybeSingle();
+  return data?.title ?? null;
+}
 
 export type CastingProfile = {
   id: string;
@@ -58,7 +72,7 @@ export async function applyAsMembers(formData: FormData) {
 
   const { data: project } = await supabase
     .from("projects")
-    .select("is_published, casting_closed")
+    .select("name, is_published, casting_closed")
     .eq("id", projectId)
     .maybeSingle();
   if (!project || !project.is_published || project.casting_closed) {
@@ -94,6 +108,24 @@ export async function applyAsMembers(formData: FormData) {
     .from("project_applications")
     .upsert(rows, { onConflict: "project_id,talent_id", ignoreDuplicates: true });
 
+  // แจ้งเตือน admin เข้ากลุ่ม
+  const { data: names } = await supabase
+    .from("talents")
+    .select("nickname_th, nickname_en")
+    .in("id", validIds);
+  const who = (names ?? [])
+    .map((n) => n.nickname_th || n.nickname_en || "-")
+    .join(", ");
+  const role = await roleTitle(roleId);
+  await notifyAdmin([
+    "🎬 มีผู้สมัคร Casting ใหม่! (สมาชิก)",
+    `งาน: ${project.name}`,
+    role ? `Role: ${role}` : "",
+    `ผู้สมัคร: ${who} (${validIds.length} คน)`,
+    "",
+    `ดูผู้สมัคร: ${BASE}/admin/projects/${projectId}`,
+  ].filter(Boolean));
+
   revalidatePath(`/admin/projects/${projectId}`);
   redirect(`/casting/${projectId}?applied=1`);
 }
@@ -116,7 +148,7 @@ export async function applyToCasting(formData: FormData) {
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, is_published, casting_closed")
+    .select("id, name, is_published, casting_closed")
     .eq("id", projectId)
     .maybeSingle();
   if (!project || !project.is_published || project.casting_closed) {
@@ -159,15 +191,27 @@ export async function applyToCasting(formData: FormData) {
     storage_path: photoPath,
   });
 
+  const roleId = str(formData, "role_id");
   const { error: appErr } = await supabase.from("project_applications").insert({
     project_id: projectId,
     talent_id: talent.id,
-    role_id: str(formData, "role_id"),
+    role_id: roleId,
     note: str(formData, "note"),
   });
   if (appErr) {
     redirect(`/casting/${projectId}?error=${encodeURIComponent("สมัครไม่สำเร็จ กรุณาลองใหม่")}`);
   }
+
+  // แจ้งเตือน admin เข้ากลุ่ม
+  const role = await roleTitle(roleId);
+  await notifyAdmin([
+    "🎬 มีผู้สมัคร Casting ใหม่! (กรอกเอง)",
+    `งาน: ${project.name}`,
+    role ? `Role: ${role}` : "",
+    `ชื่อ: ${nickname} · โทร: ${phone}`,
+    "",
+    `ดูผู้สมัคร: ${BASE}/admin/projects/${projectId}`,
+  ].filter(Boolean));
 
   revalidatePath(`/admin/projects/${projectId}`);
   redirect(`/casting/${projectId}?applied=1`);
