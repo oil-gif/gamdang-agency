@@ -14,17 +14,17 @@ export const dynamic = "force-dynamic";
 
 function timeAgo(iso: string) {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
-  if (days <= 0) return "วันนี้";
-  if (days === 1) return "เมื่อวาน";
-  return `${days} วันก่อน`;
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
 }
 
 type Filter = "open" | "closed" | "all";
 
 const TABS: { key: Filter; label: string }[] = [
-  { key: "open", label: "เปิดรับสมัคร" },
-  { key: "closed", label: "ปิดรับแล้ว" },
-  { key: "all", label: "ทั้งหมด" },
+  { key: "open", label: "Open" },
+  { key: "closed", label: "Closed" },
+  { key: "all", label: "All" },
 ];
 
 export default async function CastingListPage({
@@ -62,7 +62,7 @@ export default async function CastingListPage({
             rel="noopener noreferrer"
             className="rounded-full bg-[#06C755] px-4 py-2 text-xs font-semibold text-white"
           >
-            ติดต่อเรา
+            Contact
           </a>
         </div>
       </header>
@@ -75,7 +75,7 @@ export default async function CastingListPage({
           calls
         </h1>
         <p className="mt-1 text-sm text-neutral-500">
-          ประกาศรับสมัครงาน — สนใจงานไหน กดสมัครเข้าร่วมได้เลย
+          Open casting calls — see a role you like? Tap to apply
         </p>
 
         {/* ตัวกรอง เปิดรับ / ปิดรับ / ทั้งหมด */}
@@ -161,11 +161,11 @@ export default async function CastingListPage({
         ) : (
           <p className="mt-8 rounded-2xl border border-dashed border-neutral-300 bg-white p-16 text-center text-neutral-400">
             {filter === "closed"
-              ? "ยังไม่มีงานที่ปิดรับสมัคร"
+              ? "No closed casting calls"
               : filter === "open"
-                ? "ยังไม่มีงานที่เปิดรับสมัครในขณะนี้"
-                : "ยังไม่มีประกาศรับสมัครงาน"}{" "}
-            — ติดตามได้ทาง LINE: {CONTACT.lineId}
+                ? "No open casting calls at the moment"
+                : "No casting calls yet"}{" "}
+            — follow us on LINE: {CONTACT.lineId}
           </p>
         )}
       </main>
