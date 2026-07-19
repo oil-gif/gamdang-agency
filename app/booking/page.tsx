@@ -39,13 +39,32 @@ export default async function BookingPage() {
             ✨ เริ่มต้นเข้าสู่วงการนักแสดง นายแบบ นางแบบ อินฟลูเอนเซอร์ —
             เพิ่มความมั่นใจ กล้าแสดงออก
           </h1>
-          <ul className="mt-3 space-y-1.5 text-sm text-white/90">
-            <li>🎬 เปิดโอกาสสู่งานแฟชั่น โฆษณา ละคร ซีรีส์ ภาพยนตร์</li>
+          <p className="mt-1 text-sm font-medium text-white/70">
+            Start your journey as an actor, model, or influencer — build
+            confidence and stage presence
+          </p>
+          <ul className="mt-4 space-y-2.5 text-sm text-white/90">
+            <li>
+              🎬 เปิดโอกาสสู่งานแฟชั่น โฆษณา ละคร ซีรีส์ ภาพยนตร์
+              <span className="mt-0.5 block text-xs text-white/60">
+                Open doors to fashion, commercials, TV series, and films
+              </span>
+            </li>
             <li>
               📸 Comp Card พร้อมส่งงาน + รูปคุณภาพสูง 40-50 รูป + วิดีโอโปรไฟล์
               พร้อมส่งงานจริง ไม่ต้องออดิชั่น
+              <span className="mt-0.5 block text-xs text-white/60">
+                A ready-to-use comp card + 40–50 high-quality photos + a profile
+                video — submission-ready, no audition needed
+              </span>
             </li>
-            <li>❤️ ทีมงานมืออาชีพ ดูแลใกล้ชิด เป็นกันเอง ให้น้อง ๆ สนุก ไม่กดดัน</li>
+            <li>
+              ❤️ ทีมงานมืออาชีพ ดูแลใกล้ชิด เป็นกันเอง ให้น้อง ๆ สนุก ไม่กดดัน
+              <span className="mt-0.5 block text-xs text-white/60">
+                A friendly, professional team — so the kids have fun with no
+                pressure
+              </span>
+            </li>
           </ul>
         </section>
 
