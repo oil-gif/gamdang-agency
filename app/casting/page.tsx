@@ -75,7 +75,10 @@ export default async function CastingListPage({
           calls
         </h1>
         <p className="mt-1 text-sm text-neutral-500">
-          Open casting calls — see a role you like? Tap to apply
+          ประกาศรับสมัครงาน — สนใจงานไหน กดสมัครเข้าร่วมได้เลย
+          <span className="mt-0.5 block text-xs text-neutral-400">
+            Open casting calls — see a role you like? Tap to apply
+          </span>
         </p>
 
         {/* ตัวกรอง เปิดรับ / ปิดรับ / ทั้งหมด */}
