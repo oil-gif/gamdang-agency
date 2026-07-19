@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 type RawParams = Record<string, string | undefined>;
 
 const ROLE_TABS = [
-  { key: "", label: "ทั้งหมด" },
+  { key: "", label: "All" },
   { key: "model", label: "Model" },
   { key: "influencer", label: "Influencer" },
   { key: "ai", label: "AI Model" },
@@ -88,7 +88,7 @@ export default async function PublicTalentsPage({
             rel="noopener noreferrer"
             className="rounded-full bg-[#06C755] px-4 py-2 text-xs font-semibold text-white"
           >
-            ติดต่อจ้างงาน
+            Contact / Hire
           </a>
         </div>
       </header>
@@ -101,7 +101,7 @@ export default async function PublicTalentsPage({
           Talents
         </h1>
         <p className="mt-1 text-sm text-neutral-500">
-          Model · Influencer · AI Model — เอาเมาส์ชี้ที่การ์ดเพื่อดูรายละเอียด
+          Model · Influencer · AI Model — hover over a card to see details
         </p>
 
         {/* แท็บบทบาท */}
@@ -127,7 +127,7 @@ export default async function PublicTalentsPage({
         {/* ตัวกรอง (GET form — คง role ปัจจุบันไว้) */}
         <details className="mt-4 rounded-2xl border border-neutral-200 bg-white" open>
           <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-neutral-600">
-            ตัวกรอง (Filters) — {total} คน
+            Filters — {total} talents
           </summary>
           <form
             method="get"
@@ -136,26 +136,26 @@ export default async function PublicTalentsPage({
             {role && <input type="hidden" name="role" value={role} />}
             <div className="col-span-2 space-y-1 sm:col-span-3 lg:col-span-1">
               <label htmlFor="q" className="text-xs font-medium text-neutral-500">
-                ค้นหา (ชื่อเล่น / รหัส)
+                Search (nickname / code)
               </label>
               <input
                 id="q"
                 name="q"
                 defaultValue={params.q ?? ""}
-                placeholder="เช่น มิ้นท์"
+                placeholder="e.g. Mint"
                 className="h-10 w-full rounded-lg border border-neutral-300 px-3 text-sm"
               />
             </div>
 
-            <Field label="เพศ" name="gender" value={params.gender}>
-              <option value="any">ทั้งหมด</option>
-              <option value="female">หญิง</option>
-              <option value="male">ชาย</option>
-              <option value="other">อื่นๆ / LGBTQ+</option>
+            <Field label="Gender" name="gender" value={params.gender}>
+              <option value="any">All</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+              <option value="other">Other / LGBTQ+</option>
             </Field>
 
-            <Field label="เชื้อชาติ" name="ethnicity" value={params.ethnicity}>
-              <option value="any">ทั้งหมด</option>
+            <Field label="Ethnicity" name="ethnicity" value={params.ethnicity}>
+              <option value="any">All</option>
               {ETHNICITIES.map((e) => (
                 <option key={e.value} value={e.value}>
                   {e.label}
@@ -164,7 +164,7 @@ export default async function PublicTalentsPage({
             </Field>
 
             <Field label="Category" name="category" value={params.category}>
-              <option value="any">ทั้งหมด</option>
+              <option value="any">All</option>
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -173,14 +173,14 @@ export default async function PublicTalentsPage({
             </Field>
 
             <RangeField
-              label="ส่วนสูง (ซม.)"
+              label="Height (cm)"
               minName="min_height"
               maxName="max_height"
               minVal={params.min_height}
               maxVal={params.max_height}
             />
             <RangeField
-              label="อายุ (ปี)"
+              label="Age (yr)"
               minName="min_age"
               maxName="max_age"
               minVal={params.min_age}
@@ -192,13 +192,13 @@ export default async function PublicTalentsPage({
                 type="submit"
                 className="rounded-lg bg-gradient-to-r from-[#1D4ED8] to-[#B82233] px-5 py-2 text-sm font-semibold text-white"
               >
-                กรอง
+                Apply Filters
               </button>
               <Link
                 href={role ? `/talents?role=${role}` : "/talents"}
                 className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-500"
               >
-                ล้างตัวกรอง
+                Clear
               </Link>
             </div>
           </form>
@@ -258,7 +258,7 @@ export default async function PublicTalentsPage({
           })}
           {talents.length === 0 && (
             <p className="col-span-full rounded-2xl border border-dashed border-neutral-300 bg-white p-14 text-center text-neutral-400">
-              ยังไม่มีทาเลนต์ในหมวดนี้
+              No talents in this category yet
             </p>
           )}
         </div>
@@ -270,25 +270,26 @@ export default async function PublicTalentsPage({
                 href={hrefWith({ page: String(page - 1) })}
                 className="rounded-lg border border-neutral-300 bg-white px-4 py-2 font-medium"
               >
-                ← ก่อนหน้า
+                ← Prev
               </Link>
             )}
             <span className="text-neutral-400">
-              หน้า {page} / {totalPages}
+              Page {page} / {totalPages}
             </span>
             {page < totalPages && (
               <Link
                 href={hrefWith({ page: String(page + 1) })}
                 className="rounded-lg border border-neutral-300 bg-white px-4 py-2 font-medium"
               >
-                ถัดไป →
+                Next →
               </Link>
             )}
           </div>
         )}
 
         <footer className="mt-12 border-t border-neutral-200 pt-6 text-center text-xs text-neutral-400">
-          สนใจจ้างทาเลนต์? ติดต่อ GAMDANG AGENCY · LINE {CONTACT.lineId}
+          Interested in hiring our talents? Contact GAMDANG AGENCY · LINE{" "}
+          {CONTACT.lineId}
         </footer>
       </main>
     </div>
@@ -344,7 +345,7 @@ function RangeField({
           name={minName}
           type="number"
           defaultValue={minVal ?? ""}
-          placeholder="ต่ำ"
+          placeholder="Min"
           className="h-10 w-full rounded-lg border border-neutral-300 px-2 text-sm"
         />
         <span className="text-neutral-400">–</span>
@@ -352,7 +353,7 @@ function RangeField({
           name={maxName}
           type="number"
           defaultValue={maxVal ?? ""}
-          placeholder="สูง"
+          placeholder="Max"
           className="h-10 w-full rounded-lg border border-neutral-300 px-2 text-sm"
         />
       </div>
