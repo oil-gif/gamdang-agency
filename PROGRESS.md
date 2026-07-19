@@ -18,9 +18,21 @@
 
 **หมายเหตุ LIFF**: endpoint ของ LIFF 2 ตัวยังชี้ vercel.app (`/apply`, `/booking`) — ถ้าย้ายโดเมนต้องอัปเดต Endpoint URL ใน LINE Developers Console ด้วย (ไม่งั้น login redirect พัง) หรือคง vercel.app ไว้สำหรับ LIFF ก็ได้ (แยกจากหน้าเว็บสาธารณะ)
 
+## ✅ Pre-launch review 2026-07-19 (ผ่านหมด — commit `d50599a`)
+- tsc / lint / build = **สะอาด 100%** · ไม่มี hardcoded secret ใน git · ไม่มี vercel.app ค้างในลิงก์ใช้งาน (อ่านจาก SITE_URL หมด) · ไม่มี TODO/FIXME ค้าง
+- **env ที่ตั้งใน Vercel Production แล้ว**: SUPABASE_URL/SECRET_KEY, LINE_CHANNEL_ID/SECRET, LINE_MESSAGING_ACCESS_TOKEN/CHANNEL_SECRET, LINE_SESSION_SECRET, NEXT_PUBLIC_LIFF_ID, NEXT_PUBLIC_BOOKING_LIFF_ID, ADMIN_LINE_USER_ID, ADMIN_LINE_NOTIFY_ID, NOTIFY_LINE_ACCESS_TOKEN, NOTIFY_LINE_CHANNEL_SECRET
+- **⚠️ ยังไม่ได้ตั้ง (ตั้งตอนขึ้นโดเมนจริงเท่านั้น)**: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_MAIN_SITE_URL` — ตอนนี้ใช้ fallback (vercel.app / gamdangagency.com) ทำงานได้ปกติ · เซ็ต 2 ตัวนี้ + redeploy เมื่อผูกโดเมน
+- **ค้าง (ก่อน public จริง)**: (1) เปลี่ยนรหัส admin `gamdang2026` (ใน Supabase Auth) (2) หน้า `app/style-guide/page.tsx` ยังอยู่ (public, dev-only — ลบได้ ไม่กระทบระบบ) (3) LINE_CHANNEL_SECRET ตั้งไว้แต่โค้ดไม่ได้ใช้ (ไม่เป็นไร)
+- **DB/security**: RLS เปิดทุกตาราง 0 policy · เข้าถึงผ่าน service role (server-only) เท่านั้น · ไม่มี anon key public ✓
+
 ## 📌 TODO ถัดไป (เรียงตามลำดับ — อัพเดต 2026-07-19)
 
-**เพิ่งทำรอบ 2026-07-17→19 (commits `2378204`→`b97b397`, deploy แล้ว):**
+**เพิ่งทำรอบ 2026-07-17→19 (รอบ 2, commits `2378204`→`d50599a`, deploy แล้ว):**
+- [x] **แจ้งเตือนเข้ากลุ่ม LINE + OA ที่ 2** (commits `6180511`→`b56b0e9`): booking + casting apply แจ้งเตือน admin เข้ากลุ่มผ่าน OA **gamdangprofile** (แยกโควตาจาก OA หลัก) · env `NOTIFY_LINE_ACCESS_TOKEN`/`NOTIFY_LINE_CHANNEL_SECRET`/`ADMIN_LINE_NOTIFY_ID` (group id `Cdf97ea2...`) · webhook ที่ 2 `/api/line/webhook-notify` (พิมพ์ "id" ในกลุ่ม → ตอบ group id) · helper `lib/admin-notify.ts` · push/reply รับ token override · **⚠️ แจ้งเตือน apply สมัคร Model/Influencer ยังไม่มี** (เจ้าของบอกยังไม่ต้องทำ)
+- [x] **Go-live URL** (commit `901015d`): submission.ts validate ลิงก์ /submit ด้วย SITE_URL (ไม่งั้นปุ่ม "ขอส่งงาน" พังตอนย้ายโดเมน) · ลิงก์ในแจ้งเตือนใช้ SITE_URL หมด · job noti ส่งหา `talent.line_user_id` เอง (ไม่ต้องแก้ตอน go-live)
+- [x] **ค้นหาเช็คอินหน้างาน** (commits `db33f2c`+`d50599a`): หน้า detail รอบถ่าย `/admin/shoots/[id]` มีช่องค้นหาบนสุด (client-side filter ทันที + เลื่อนไปการ์ดที่เจอ) — เช็คอินเร็วเมื่อคนเยอะ · ช่องค้นหาข้ามรอบที่ `/admin/shoots` ยังอยู่
+
+**เพิ่งทำรอบ 2026-07-17→19 (รอบ 1, commits `2378204`→`b97b397`, deploy แล้ว):**
 - [x] **จองถ่ายจำสมาชิก** (`2378204`): เปิดจอง LIFF จาก LINE (มีโปรไฟล์แล้ว) → step 4 แตะการ์ดลูก → prefill ทุกช่อง + ผูก `shoot_bookings.talent_id` (เช็ค ownership) · API `/api/booking/profiles`
 - [x] **ฟอร์ม talent UX ใหม่** (`afe4b04`): social เป็นการ์ดมีไอคอนสีแบรนด์ + label ชัด + placeholder ลิงก์จริง + ไกด์ · role/expertise/ethnicity เป็นชิปกดง่าย responsive
 - [x] **หมวดงาน Project เพิ่ม** (`153422a`): Ads Commercial, Lookbook Shooting, Fashionshow
