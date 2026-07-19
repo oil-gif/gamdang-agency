@@ -18,6 +18,13 @@
 
 **หมายเหตุ LIFF**: endpoint ของ LIFF 2 ตัวยังชี้ vercel.app (`/apply`, `/booking`) — ถ้าย้ายโดเมนต้องอัปเดต Endpoint URL ใน LINE Developers Console ด้วย (ไม่งั้น login redirect พัง) หรือคง vercel.app ไว้สำหรับ LIFF ก็ได้ (แยกจากหน้าเว็บสาธารณะ)
 
+## 🗂️ Import Influencer จากระบบเก่า (Google Sheet) — เสร็จแล้ว 2026-07-19
+- **นำเข้า 142 คน** จากไฟล์ `~/Downloads/Influencer Library - Influencers (1).csv` (148 แถว, ซ้ำในชีต 6 คน — Riya/Joseph Choo/Metal/Shekel/Vela/Momoko กรอก 2 รอบ, กัน dedup ด้วย (ชื่อ,เบอร์))
+- ทุกคน **status=active, is_influencer=true, source=admin**, รหัส GD-xxxx อัตโนมัติ · tier คำนวณใหม่จาก follower (ไม่ใช้ค่าจากชีต) · Name→nickname_th(ไทย)/nickname_en(อังกฤษ) · Age→dob โดยประมาณ (จากอายุ+CreatedAt, string-parse เดือน เช่น "6.11"=6ปี11ด.) · LINE handle เก็บที่ contact_line_or_whatsapp (ไม่ใส่ line_user_id) · Category→categories (Other→Others) · Expertise+Note→note
+- **รูป 126/142 คน** ดึงจาก Google Drive (`lh3.googleusercontent.com/d/FILEID`) → อัปเข้า storage `{id}/gallery/{uuid}.{ext}` + talent_photos · 17 คนไม่มีรูป (ไม่มีลิงก์ในชีต หรือ Drive ล็อกไฟล์คืน HTML) — เติมทีหลังผ่าน /admin/photos ได้
+- สคริปต์ import อยู่ใน scratchpad (import_infl.py / import_photos.py) — ใช้ Supabase REST + service key จาก .env.local · **วิธี import ครั้งหน้า**: export ชีตเป็น CSV → อ่าน UTF-8 → map → REST insert เป็น batch (mojibake ที่เห็นในแชทเป็นแค่การ render ไฟล์จริง UTF-8 ปกติ)
+- แก้ dob + ติ๊ก Model เพิ่มให้ 4 คนแล้ว (Kani/Shekel/Moji/MONO) — เจ้าของส่งวันเกิด พ.ศ. มา แปลง −543
+
 ## ✅ Pre-launch review 2026-07-19 (ผ่านหมด — commit `d50599a`)
 - tsc / lint / build = **สะอาด 100%** · ไม่มี hardcoded secret ใน git · ไม่มี vercel.app ค้างในลิงก์ใช้งาน (อ่านจาก SITE_URL หมด) · ไม่มี TODO/FIXME ค้าง
 - **env ที่ตั้งใน Vercel Production แล้ว**: SUPABASE_URL/SECRET_KEY, LINE_CHANNEL_ID/SECRET, LINE_MESSAGING_ACCESS_TOKEN/CHANNEL_SECRET, LINE_SESSION_SECRET, NEXT_PUBLIC_LIFF_ID, NEXT_PUBLIC_BOOKING_LIFF_ID, ADMIN_LINE_USER_ID, ADMIN_LINE_NOTIFY_ID, NOTIFY_LINE_ACCESS_TOKEN, NOTIFY_LINE_CHANNEL_SECRET
@@ -26,6 +33,10 @@
 - **DB/security**: RLS เปิดทุกตาราง 0 policy · เข้าถึงผ่าน service role (server-only) เท่านั้น · ไม่มี anon key public ✓
 
 ## 📌 TODO ถัดไป (เรียงตามลำดับ — อัพเดต 2026-07-19)
+
+**เพิ่งทำรอบ 2026-07-19 (รอบ 3, commits `22a7af4`+`a2c3d98`, deploy แล้ว):**
+- [x] **Talent picker ในหน้าโปรเจกต์ — pagination + filter**: `getPickerTalents(projectId, filters)` กรองในฐานข้อมูล (tier[]/expertise[]/ช่วงอายุ/role/ค้นหา) + count จริง + แบ่งหน้า 12/หน้า (เลิก slice(12) ที่ทำให้เห็นไม่ครบ) · UI มี checkbox Tier + Expertise เลือกหลายอัน, ช่องอายุต่ำ-สูง, ปุ่มก่อนหน้า/ถัดไป (anchor #picker) · **⚠️ GOTCHA**: ไฟล์ "use server" export ได้เฉพาะ async fn — `PICKER_PAGE_SIZE` ต้องเป็น const ธรรมดา (ไม่ export) ไม่งั้น build พัง
+- [x] **แก้ขนาดหน้า PDF** (`/admin/projects/[id]/print`): ต้นเหตุ = เนื้อหา 210mm ใน @page margin 10mm (พิมพ์ได้ 190mm) → Chrome ย่อ · แก้เป็น `@page margin:0` + `.pdf-page` เป็น A4 เป๊ะ (210×297mm, padding 12mm) · หน้าปก gradient เต็มหน้า + padding 18mm (bg เติมทั้งกล่องรวม padding) · เพิ่มไกด์ในหน้า: Destination=Save as PDF, Margins=None, Background graphics=ON · **บันทึกเป็น PDF ต้องตั้ง Margins:None เองในกล่องพิมพ์** (สั่งจากโค้ดไม่ได้)
 
 **เพิ่งทำรอบ 2026-07-17→19 (รอบ 2, commits `2378204`→`d50599a`, deploy แล้ว):**
 - [x] **แจ้งเตือนเข้ากลุ่ม LINE + OA ที่ 2** (commits `6180511`→`b56b0e9`): booking + casting apply แจ้งเตือน admin เข้ากลุ่มผ่าน OA **gamdangprofile** (แยกโควตาจาก OA หลัก) · env `NOTIFY_LINE_ACCESS_TOKEN`/`NOTIFY_LINE_CHANNEL_SECRET`/`ADMIN_LINE_NOTIFY_ID` (group id `Cdf97ea2...`) · webhook ที่ 2 `/api/line/webhook-notify` (พิมพ์ "id" ในกลุ่ม → ตอบ group id) · helper `lib/admin-notify.ts` · push/reply รับ token override · **⚠️ แจ้งเตือน apply สมัคร Model/Influencer ยังไม่มี** (เจ้าของบอกยังไม่ต้องทำ)
