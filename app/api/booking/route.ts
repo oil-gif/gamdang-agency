@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
             "ตรวจสลิปที่: https://gamdang-app.vercel.app/admin/shoots",
           ].join("\n"),
         },
-      ]);
+      ], process.env.NOTIFY_LINE_ACCESS_TOKEN);
     } catch (e) {
       console.error("LINE admin notify failed", e);
     }

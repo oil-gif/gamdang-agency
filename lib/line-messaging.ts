@@ -6,14 +6,21 @@ const accessToken = process.env.LINE_MESSAGING_ACCESS_TOKEN;
 
 type LineMessage = Record<string, unknown>;
 
-export async function pushLineMessage(to: string, messages: LineMessage[]) {
-  if (!accessToken) {
-    throw new Error("Missing LINE_MESSAGING_ACCESS_TOKEN");
+// ใส่ token เองได้ เพื่อส่งจาก OA อื่น (เช่น gamdangprofile สำหรับแจ้งเตือน
+// admin เข้ากลุ่ม — แยกโควตาจาก OA หลักที่คุยกับ talent)
+export async function pushLineMessage(
+  to: string,
+  messages: LineMessage[],
+  token?: string,
+) {
+  const at = token || accessToken;
+  if (!at) {
+    throw new Error("Missing LINE messaging access token");
   }
   const res = await fetch("https://api.line.me/v2/bot/message/push", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${at}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ to, messages }),
@@ -24,14 +31,19 @@ export async function pushLineMessage(to: string, messages: LineMessage[]) {
   }
 }
 
-export async function replyLineMessage(replyToken: string, messages: LineMessage[]) {
-  if (!accessToken) {
-    throw new Error("Missing LINE_MESSAGING_ACCESS_TOKEN");
+export async function replyLineMessage(
+  replyToken: string,
+  messages: LineMessage[],
+  token?: string,
+) {
+  const at = token || accessToken;
+  if (!at) {
+    throw new Error("Missing LINE messaging access token");
   }
   const res = await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${at}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ replyToken, messages }),
