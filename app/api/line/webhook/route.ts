@@ -30,10 +30,37 @@ export async function POST(req: NextRequest) {
       type: string;
       replyToken?: string;
       postback?: { data?: string };
+      message?: { type?: string; text?: string };
+      source?: {
+        type?: string;
+        userId?: string;
+        groupId?: string;
+        roomId?: string;
+      };
     }>;
   };
 
   for (const event of body.events ?? []) {
+    // ตัวช่วยหา ID ปลายทางแจ้งเตือน: พิมพ์ "id" ในแชท/กลุ่ม → บอทตอบ ID กลับ
+    // เอา group id ไปตั้ง ADMIN_LINE_NOTIFY_ID เพื่อให้แจ้งเตือนเด้งเข้ากลุ่ม
+    if (event.type === "message" && event.message?.type === "text") {
+      const t = (event.message.text ?? "").trim().toLowerCase();
+      if (t === "id" || t === "/id" || t === "ไอดี") {
+        const src = event.source ?? {};
+        const targetId = src.groupId ?? src.roomId ?? src.userId ?? "(ไม่พบ)";
+        const kind = src.groupId ? "Group" : src.roomId ? "Room" : "User";
+        if (event.replyToken && !/^0+$/.test(event.replyToken)) {
+          await replyLineMessage(event.replyToken, [
+            {
+              type: "text",
+              text: `${kind} ID:\n${targetId}\n\nนำ ID นี้ไปตั้งค่า ADMIN_LINE_NOTIFY_ID ใน Vercel เพื่อให้แจ้งเตือนการจองเด้งที่นี่ค่ะ`,
+            },
+          ]);
+        }
+      }
+      continue;
+    }
+
     // ปุ่ม Verify ในคอนโซลส่ง event เปล่า/replyToken ศูนย์ล้วน — ข้ามเฉยๆ
     if (event.type !== "postback" || !event.postback?.data) continue;
 

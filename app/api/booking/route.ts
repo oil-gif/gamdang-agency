@@ -177,7 +177,9 @@ export async function POST(req: NextRequest) {
   }
 
   // แจ้งเตือนแอดมินทาง LINE (best-effort — พังก็ไม่ทำให้การจองล้ม)
-  const adminLineId = process.env.ADMIN_LINE_USER_ID;
+  // ADMIN_LINE_NOTIFY_ID = group id (แจ้งเข้ากลุ่ม) ถ้าไม่ตั้งใช้ user id เดิม
+  const adminLineId =
+    process.env.ADMIN_LINE_NOTIFY_ID || process.env.ADMIN_LINE_USER_ID;
   if (adminLineId) {
     try {
       const { data: day } = await supabase
