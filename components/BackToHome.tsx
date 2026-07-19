@@ -5,7 +5,7 @@ import { MAIN_SITE_URL } from "@/lib/site";
 export function BackToHome({
   tone = "light",
   className = "",
-  label = "กลับหน้าหลัก",
+  label = "Back to Home",
 }: {
   tone?: "light" | "onDark";
   className?: string;
