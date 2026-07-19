@@ -2,7 +2,32 @@
 
 > อ่านไฟล์นี้ก่อนเริ่มทำงานเสมอ — สรุปว่าทำอะไรไปแล้ว ทำอะไรค้างอยู่ และต้องทำอะไรต่อ
 
-## 📌 TODO ถัดไป (เรียงตามลำดับ — อัพเดต 2026-07-17)
+## 🚀 เตรียมขึ้นโดเมนจริง www.gamdangagency.com (checklist — อัพเดต 2026-07-19)
+
+> เว็บ WordPress หน้าบ้านจะขึ้น `www.gamdangagency.com` — แอป Next.js นี้เป็นระบบหลังบ้าน/LIFF/หน้าสาธารณะ (talents, casting) เชื่อมจาก WP
+
+**ขั้นตอนตอนพร้อมขึ้นจริง (ทำครั้งเดียว):**
+1. **ผูกซับโดเมนกับ Vercel**: แนะนำ `app.gamdangagency.com` (หรือ `casting.gamdangagency.com`) → Vercel project settings → Domains → add → ตั้ง DNS record (CNAME → cname.vercel-dns.com) ที่ผู้ให้บริการโดเมน
+2. **ตั้ง env ใน Vercel** (Production) แล้ว redeploy:
+   - `NEXT_PUBLIC_SITE_URL=https://app.gamdangagency.com` (ลิงก์แชร์/OG/job/submit/casting เปลี่ยนตามทั้งระบบ — ดู `lib/site.ts`)
+   - `NEXT_PUBLIC_MAIN_SITE_URL=https://www.gamdangagency.com` (ปุ่ม "← Back to Home")
+3. **เมนู/ปุ่มในเว็บ WP** (มีตาราง URL ใน TODO ด้านล่าง): Talent→`/talents` · Casting→`/casting` · สมัคร→LIFF wGKbITGb · จองถ่าย→LIFF ciPMtS8K · Admin→`/admin/login`
+4. **Rich menu ใน LINE OA** (URL พร้อมใน TODO ด้านล่าง)
+5. **อัปเดต OG/hardcoded** ที่ยังชี้ vercel.app: `app/api/booking/route.ts` (ข้อความแจ้งเตือน admin) + `app/casting/[id]/page.tsx` BASE_URL อ่านจาก env แล้ว ✓ · LINE webhook URL ใน console ยังใช้ vercel.app ได้ (ไม่ต้องเปลี่ยนก็ได้)
+6. **Polish ก่อนเปิดจริง**: เปลี่ยนรหัส admin (`gamdang2026`), (optional) ลบหน้า `/style-guide`
+
+**หมายเหตุ LIFF**: endpoint ของ LIFF 2 ตัวยังชี้ vercel.app (`/apply`, `/booking`) — ถ้าย้ายโดเมนต้องอัปเดต Endpoint URL ใน LINE Developers Console ด้วย (ไม่งั้น login redirect พัง) หรือคง vercel.app ไว้สำหรับ LIFF ก็ได้ (แยกจากหน้าเว็บสาธารณะ)
+
+## 📌 TODO ถัดไป (เรียงตามลำดับ — อัพเดต 2026-07-19)
+
+**เพิ่งทำรอบ 2026-07-17→19 (commits `2378204`→`b97b397`, deploy แล้ว):**
+- [x] **จองถ่ายจำสมาชิก** (`2378204`): เปิดจอง LIFF จาก LINE (มีโปรไฟล์แล้ว) → step 4 แตะการ์ดลูก → prefill ทุกช่อง + ผูก `shoot_bookings.talent_id` (เช็ค ownership) · API `/api/booking/profiles`
+- [x] **ฟอร์ม talent UX ใหม่** (`afe4b04`): social เป็นการ์ดมีไอคอนสีแบรนด์ + label ชัด + placeholder ลิงก์จริง + ไกด์ · role/expertise/ethnicity เป็นชิปกดง่าย responsive
+- [x] **หมวดงาน Project เพิ่ม** (`153422a`): Ads Commercial, Lookbook Shooting, Fashionshow
+- [x] **แก้ Batch Upload 500** (`03474a5`): ghost inbox row (ไฟล์หาย) → assignInboxPhoto ลบ row ทิ้งแทน throw · แยก `/api/casting-apply-photo` ไม่ให้ casting apply สร้าง photo_inbox · เคลียร์ ghost + orphan ใน prod แล้ว
+- [x] **ปุ่มลบ talent ในหน้า list** (`788c45e`): TalentRowCard มีปุ่มถังขยะ + confirm (stretched-link overlay) · ลบโปรไฟล์เปล่า 13 คน (บัญชีทดสอบ Oil)
+- [x] **ไม่สร้าง row จนกรอกชื่อ** (`b291bc4`): "เพิ่มโปรไฟล์" → ฟอร์มเปล่า /apply/edit (ไม่มี id) → saveTalentSelf insert ตอนกดบันทึก (บังคับชื่อเล่น+เพศ+dob+เบอร์) · ลบ createTalentForSelf · กันโปรไฟล์เปล่าค้าง
+- [x] **สองภาษา/อังกฤษหน้าสาธารณะ** (`7467b67`,`2f875f3`,`b0c2335`,`5287a88`,`72c4d45`,`b97b397`): banner จอง ไทย+อังกฤษ · หน้า `/talents` filter เป็นอังกฤษหมด · ปุ่ม "← Back to Home" ทุกหน้า (BackToHome รับ prop label) · `/casting` list เป็นอังกฤษ (subtitle ไทย+อังกฤษ)
 
 **รอพี่เจ้าของทำ (ผู้ช่วยทำแทนไม่ได้):**
 - [ ] **ทำ Rich menu ใน LINE OA** (คุยกันแล้ว 2026-07-16): ปุ่ม Casting = `https://liff.line.me/2010689219-wGKbITGb?next=/casting` (login ผ่าน /apply แล้วเด้งไป casting — ระบบจำสมาชิก) · ปุ่มโปรไฟล์/สมัคร = `https://liff.line.me/2010689219-wGKbITGb` (ไม่มี ?next)
