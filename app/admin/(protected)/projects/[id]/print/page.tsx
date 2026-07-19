@@ -54,8 +54,8 @@ export default async function ProjectPrintPage({
             print-color-adjust: exact;
           }
           .pdf-page:last-child { break-after: auto; }
-          /* หน้าปก: gradient เต็มหน้า (ไม่มีขอบขาว) */
-          .pdf-cover { padding: 0 !important; height: 297mm; min-height: 297mm; }
+          /* หน้าปก: gradient เต็มหน้า (bg เติมทั้งกล่อง) แต่เว้นขอบให้ตัวอักษร */
+          .pdf-cover { padding: 18mm !important; height: 297mm; min-height: 297mm; }
         }
       `}</style>
 
