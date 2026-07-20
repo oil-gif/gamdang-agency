@@ -313,7 +313,7 @@ export default async function ProjectDetailPage({
                     href={`/admin/talents/${t?.id}`}
                     className="font-medium text-neutral-800 hover:text-[#1D4ED8]"
                   >
-                    {t?.nickname_th || t?.nickname_en || "(ไม่มีชื่อ)"}
+                    {t?.nickname_en || t?.nickname_th || "(ไม่มีชื่อ)"}
                   </Link>
                   <p className="text-xs text-neutral-400">
                     {t?.code}
@@ -781,7 +781,7 @@ export default async function ProjectDetailPage({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-1.5">
                     <p className="truncate font-medium text-neutral-800">
-                      {t.nickname_th ?? t.nickname_en}
+                      {t.nickname_en ?? t.nickname_th}
                     </p>
                     <span className="font-mono text-[10px] text-neutral-400">
                       {t.code}

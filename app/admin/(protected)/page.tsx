@@ -109,7 +109,7 @@ export default async function AdminDashboardPage() {
                     href={`/admin/talents/${t.id}`}
                     className="font-medium text-neutral-800 hover:text-[#1D4ED8]"
                   >
-                    {t.nickname_th ?? t.nickname_en ?? "(ไม่มีชื่อ)"}
+                    {t.nickname_en ?? t.nickname_th ?? "(ไม่มีชื่อ)"}
                   </Link>
                   <p className="text-xs text-neutral-400">
                     {t.code} · อัพเดทล่าสุด{" "}

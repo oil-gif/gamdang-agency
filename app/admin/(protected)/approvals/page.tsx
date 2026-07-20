@@ -87,7 +87,7 @@ export default async function ApprovalsPage() {
                     href={`/admin/talents/${t.id}`}
                     className="mt-0.5 truncate text-lg font-semibold text-neutral-800 hover:text-[#1D4ED8]"
                   >
-                    {t.nickname_th || t.line_display_name || "(ไม่มีชื่อ)"}
+                    {t.nickname_en || t.nickname_th || t.line_display_name || "(ไม่มีชื่อ)"}
                   </Link>
                   <div className="mt-1 space-y-0.5 text-sm text-neutral-500">
                     <p>

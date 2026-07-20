@@ -95,7 +95,7 @@ export default async function ApplyProfilesPage({
                 </div>
                 <div className="p-2.5">
                   <p className="truncate text-sm font-semibold text-neutral-800">
-                    {t.nickname_th || t.nickname_en || "ยังไม่ตั้งชื่อ"}
+                    {t.nickname_en || t.nickname_th || "ยังไม่ตั้งชื่อ"}
                   </p>
                   <p className="font-mono text-[10px] text-neutral-400">{t.code}</p>
                 </div>

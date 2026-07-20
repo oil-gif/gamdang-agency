@@ -212,8 +212,8 @@ export default async function PublicTalentsPage({
               <TalentGridCard
                 key={t.id}
                 photoPath={t.photo_path}
-                name={t.nickname_th ?? t.nickname_en ?? "(ไม่มีชื่อ)"}
-                nameSub={t.nickname_en && t.nickname_th ? t.nickname_en : null}
+                name={t.nickname_en ?? t.nickname_th ?? "(ไม่มีชื่อ)"}
+                nameSub={t.nickname_en && t.nickname_th ? t.nickname_th : null}
                 code={t.code}
                 gender={t.gender}
                 ageText={t.dob ? ageLabel(t.dob) : null}

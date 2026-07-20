@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
       return {
         id: t.id,
-        name: t.nickname_th || t.nickname_en || "ยังไม่ตั้งชื่อ",
+        name: t.nickname_en || t.nickname_th || "ยังไม่ตั้งชื่อ",
         photo_path:
           mine.find((p) => p.kind === "gallery")?.storage_path ??
           mine.find((p) => p.kind === "compcard")?.storage_path ??

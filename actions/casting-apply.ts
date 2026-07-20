@@ -53,7 +53,7 @@ export async function getMyProfilesForCasting(
     loggedIn: true,
     profiles: talents.map((t) => ({
       id: t.id,
-      name: t.nickname_th || t.nickname_en || "ยังไม่ตั้งชื่อ",
+      name: t.nickname_en || t.nickname_th || "ยังไม่ตั้งชื่อ",
       code: t.code ?? null,
       photo_path: t.photo_path ?? null,
       alreadyApplied: applied.has(t.id),
@@ -115,7 +115,7 @@ export async function applyAsMembers(formData: FormData) {
     .select("nickname_th, nickname_en")
     .in("id", validIds);
   const who = (names ?? [])
-    .map((n) => n.nickname_th || n.nickname_en || "-")
+    .map((n) => n.nickname_en || n.nickname_th || "-")
     .join(", ");
   const role = await roleTitle(roleId);
   await notifyAdmin([

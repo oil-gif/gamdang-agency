@@ -35,7 +35,7 @@ export function TalentCombobox({ inputName }: { inputName: string }) {
   }, [query, open]);
 
   const label = (o: Option) =>
-    `${o.code} — ${o.nickname_th ?? o.nickname_en ?? "(ไม่มีชื่อ)"}`;
+    `${o.code} — ${o.nickname_en ?? o.nickname_th ?? "(ไม่มีชื่อ)"}`;
 
   if (selected) {
     return (
