@@ -269,9 +269,10 @@ export async function saveTalent(formData: FormData) {
 
   const gender = str(formData, "gender");
   const dob = str(formData, "dob");
-  if (!gender || !dob) {
+  const nicknameEn = str(formData, "nickname_en");
+  if (!nicknameEn || !gender || !dob) {
     redirect(
-      `${backTo}?error=${encodeURIComponent("กรุณากรอกเพศและวันเกิด (บังคับ)")}`,
+      `${backTo}?error=${encodeURIComponent("กรุณากรอกชื่อเล่น (English) เพศ และวันเกิด (บังคับ)")}`,
     );
   }
 
@@ -444,13 +445,13 @@ export async function saveTalentSelf(formData: FormData) {
   const backTo = owned ? `/apply/edit?id=${owned.id}` : "/apply/edit";
   const sep = backTo.includes("?") ? "&" : "?";
 
-  const nicknameTh = str(formData, "nickname_th");
+  const nicknameEn = str(formData, "nickname_en");
   const gender = str(formData, "gender");
   const dob = str(formData, "dob");
   const phone = str(formData, "phone");
-  if (!nicknameTh || !gender || !dob || !phone) {
+  if (!nicknameEn || !gender || !dob || !phone) {
     redirect(
-      `${backTo}${sep}error=${encodeURIComponent("กรุณากรอกชื่อเล่น เพศ วันเกิด และเบอร์โทร (บังคับ)")}`,
+      `${backTo}${sep}error=${encodeURIComponent("กรุณากรอกชื่อเล่น (English) เพศ วันเกิด และเบอร์โทร (บังคับ)")}`,
     );
   }
 

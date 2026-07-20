@@ -105,20 +105,21 @@ export function TalentForm({
             </div>
           )}
           <div className="space-y-1.5">
-            <Label htmlFor="nickname_th">ชื่อเล่น (ไทย) *</Label>
+            <Label htmlFor="nickname_en">ชื่อเล่น (English) *</Label>
             <Input
-              id="nickname_th"
-              name="nickname_th"
-              defaultValue={talent?.nickname_th ?? ""}
+              id="nickname_en"
+              name="nickname_en"
+              placeholder="เช่น Som, Tammy"
+              defaultValue={talent?.nickname_en ?? ""}
               required
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="nickname_en">ชื่อเล่น (English)</Label>
+            <Label htmlFor="nickname_th">ชื่อเล่น (ไทย)</Label>
             <Input
-              id="nickname_en"
-              name="nickname_en"
-              defaultValue={talent?.nickname_en ?? ""}
+              id="nickname_th"
+              name="nickname_th"
+              defaultValue={talent?.nickname_th ?? ""}
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
