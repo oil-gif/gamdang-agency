@@ -83,17 +83,20 @@ export function SocialIcon({
       return (
         <svg {...common}>
           {t}
-          <rect width="24" height="24" rx="6" fill="#00D2C3" />
+          <rect width="24" height="24" rx="6" fill="#FFE600" />
           <text
             x="12"
-            y="17"
+            y="14.6"
             textAnchor="middle"
-            fontSize="13"
-            fontWeight="800"
-            fontFamily="Arial, sans-serif"
-            fill="#fff"
+            textLength="19"
+            lengthAdjust="spacingAndGlyphs"
+            fontSize="6.4"
+            fontStyle="italic"
+            fontWeight="900"
+            fontFamily="'Arial Rounded MT Bold', Arial, sans-serif"
+            fill="#111"
           >
-            8
+            Lemon8
           </text>
         </svg>
       );
