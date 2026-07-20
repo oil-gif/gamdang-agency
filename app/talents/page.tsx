@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTalentsWithPhotos, type TalentFilters } from "@/actions/talents";
+import { getPublicTalents, type TalentFilters } from "@/actions/talents";
 import { BackToHome } from "@/components/BackToHome";
 import { TalentGridCard } from "@/components/talent/TalentGridCard";
 import { ageLabel } from "@/lib/age";
@@ -58,7 +58,7 @@ export default async function PublicTalentsPage({
   const filters = parseFilters(params);
   const role = filters.role ?? "";
   const page = Math.max(parseInt(params.page ?? "1", 10) || 1, 1);
-  const { talents, total } = await getTalentsWithPhotos(filters, page);
+  const { talents, total } = await getPublicTalents(filters, page);
   const totalPages = Math.max(Math.ceil(total / TALENTS_PAGE_SIZE), 1);
 
   // สร้างลิงก์โดยคงตัวกรองเดิม เปลี่ยนเฉพาะ key ที่ส่งมา (role / page)

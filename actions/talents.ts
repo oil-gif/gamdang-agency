@@ -125,6 +125,68 @@ export async function getTalent(id: string) {
   return data;
 }
 
+// หน้า /talents สาธารณะ: เรียงเพื่อความสวย+ขายลูกค้า —
+// มีรูปก่อน → follower มากสุดก่อน → ใหม่สุด (คนไม่มีรูปไปท้าย)
+// จำนวน talent ไม่เยอะ (หลักร้อย) ดึงทั้งหมดแล้วเรียง/แบ่งหน้าใน JS ได้สบาย
+export async function getPublicTalents(filters: TalentFilters = {}, page = 1) {
+  let query = supabase.from("talents").select("*").eq("status", "active");
+
+  if (filters.q) {
+    const term = filters.q.replace(/[%,]/g, "");
+    query = query.or(
+      `nickname_th.ilike.%${term}%,nickname_en.ilike.%${term}%,code.ilike.%${term}%`,
+    );
+  }
+  if (filters.role === "model") query = query.eq("is_model", true);
+  if (filters.role === "influencer") query = query.eq("is_influencer", true);
+  if (filters.role === "ai") query = query.eq("is_ai_model", true);
+  if (filters.gender) query = query.eq("gender", filters.gender);
+  if (filters.tier) query = query.eq("tier", filters.tier);
+  if (filters.category) query = query.contains("categories", [filters.category]);
+  if (filters.ethnicity) query = query.contains("ethnicities", [filters.ethnicity]);
+  if (filters.minHeight) query = query.gte("height_cm", filters.minHeight);
+  if (filters.maxHeight) query = query.lte("height_cm", filters.maxHeight);
+  if (filters.minAge) query = query.lte("dob", yearsAgo(filters.minAge));
+  if (filters.maxAge) query = query.gte("dob", yearsAgo(filters.maxAge + 1));
+
+  const { data: talents, error } = await query;
+  if (error) throw new Error(error.message);
+  if (!talents || talents.length === 0) return { talents: [], total: 0 };
+
+  const { data: photos } = await supabase
+    .from("talent_photos")
+    .select("talent_id, kind, storage_path, display_order")
+    .in(
+      "talent_id",
+      talents.map((t) => t.id),
+    )
+    .order("display_order", { ascending: true });
+
+  const withPhoto = talents.map((t) => {
+    const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
+    const gallery = mine.find((p) => p.kind === "gallery")?.storage_path ?? null;
+    const compcard = mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
+    return { ...t, photo_path: gallery ?? compcard };
+  });
+
+  // เรียง: มีรูปก่อน → follower มากสุดก่อน → ใหม่สุด
+  withPhoto.sort((a, b) => {
+    const ap = a.photo_path ? 1 : 0;
+    const bp = b.photo_path ? 1 : 0;
+    if (ap !== bp) return bp - ap;
+    const af = a.max_followers ?? 0;
+    const bf = b.max_followers ?? 0;
+    if (af !== bf) return bf - af;
+    return (
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  });
+
+  const total = withPhoto.length;
+  const from = (page - 1) * TALENTS_PAGE_SIZE;
+  return { talents: withPhoto.slice(from, from + TALENTS_PAGE_SIZE), total };
+}
+
 // The approval queue: everyone waiting for admin review (mostly LINE
 // self-applicants). Includes each talent's comp card path so the queue can
 // show a thumbnail without a second round-trip per row.
