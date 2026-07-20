@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SocialIcon } from "@/components/SocialIcon";
 import { getPhotoProxyUrl } from "@/lib/storage";
 
 // การ์ด talent ตัวเดียวใช้ทั้งหน้าบ้าน (/) และหลังบ้าน (/admin/talents)
@@ -121,14 +122,7 @@ export function TalentGridCard(props: TalentGridCardProps) {
         {(props.socials?.length ?? 0) > 0 && (
           <div className="mt-1.5 flex items-center gap-1">
             {props.socials!.map((s) => (
-              <span
-                key={s.key}
-                title={s.short}
-                className="flex items-center justify-center rounded-full text-[7px] font-bold text-white"
-                style={{ backgroundColor: s.color, width: 16, height: 16 }}
-              >
-                {s.short}
-              </span>
+              <SocialIcon key={s.key} platform={s.key} size={16} title={s.short} />
             ))}
             {props.topFollower && (
               <span className="ml-auto text-[11px] font-bold text-white">

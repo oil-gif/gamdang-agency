@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { SocialIcon } from "@/components/SocialIcon";
 import { CATEGORIES, ETHNICITIES } from "@/lib/constants";
 import { SOCIAL_PLATFORMS } from "@/lib/social";
 
@@ -416,12 +417,7 @@ export function TalentForm({
                     className="rounded-xl border border-neutral-200 p-3.5"
                   >
                     <div className="flex items-center gap-2">
-                      <span
-                        className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                        style={{ backgroundColor: p.color }}
-                      >
-                        {p.short}
-                      </span>
+                      <SocialIcon platform={p.key} size={28} title={p.label} />
                       <span className="text-sm font-semibold text-neutral-800">
                         {p.label}
                       </span>

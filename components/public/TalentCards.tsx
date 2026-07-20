@@ -1,4 +1,5 @@
 import { toggleClientInterest } from "@/actions/client-selection";
+import { SocialIcon } from "@/components/SocialIcon";
 import { calculateAge } from "@/lib/age";
 import { ETHNICITIES, TIER_LABEL } from "@/lib/constants";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
@@ -225,12 +226,12 @@ export function InfluCard({
               title={s.label}
               className="flex items-center gap-1.5 transition hover:scale-105"
             >
-              <span
-                className="flex size-8 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm"
-                style={{ backgroundColor: s.color }}
-              >
-                {s.short}
-              </span>
+              <SocialIcon
+                platform={s.key}
+                size={32}
+                title={s.label}
+                className="shadow-sm"
+              />
               {s.followers > 0 && (
                 <span className="text-xs font-semibold text-neutral-600">
                   {formatFollowers(s.followers)}
@@ -330,16 +331,12 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
                     className="flex items-center gap-1"
                     title={s.label}
                   >
-                    <span
-                      className="flex size-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
-                      style={{
-                        backgroundColor: s.color,
-                        WebkitPrintColorAdjust: "exact",
-                        printColorAdjust: "exact",
-                      }}
-                    >
-                      {s.short}
-                    </span>
+                    <SocialIcon
+                      platform={s.key}
+                      size={20}
+                      title={s.label}
+                      className="[print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
+                    />
                     {s.followers > 0 && (
                       <span className="text-[10px] font-semibold text-neutral-600">
                         {formatFollowers(s.followers)}
@@ -368,16 +365,12 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
             </p>
             {top && (
               <div className="mt-auto flex items-center gap-1.5 pt-1.5">
-                <span
-                  className="flex size-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
-                  style={{
-                    backgroundColor: top.color,
-                    WebkitPrintColorAdjust: "exact",
-                    printColorAdjust: "exact",
-                  }}
-                >
-                  {top.short}
-                </span>
+                <SocialIcon
+                  platform={top.key}
+                  size={20}
+                  title={top.label}
+                  className="[print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
+                />
                 <span className="text-[10px] font-semibold text-neutral-600">
                   {formatFollowers(top.followers)} on {top.label}
                 </span>

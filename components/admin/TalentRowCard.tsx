@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DeleteTalentButton } from "@/components/admin/DeleteTalentButton";
+import { SocialIcon } from "@/components/SocialIcon";
 import { getPhotoProxyUrl } from "@/lib/storage";
 
 // การ์ด talent แบบ "บาร์ยาว" สำหรับ list หลังบ้าน — เห็นข้อมูลครบโดยไม่ต้อง
@@ -140,14 +141,12 @@ export function TalentRowCard(props: TalentRowCardProps) {
         {(props.socials?.length ?? 0) > 0 && (
           <div className="flex items-center gap-1">
             {props.socials!.map((s) => (
-              <span
+              <SocialIcon
                 key={s.key}
-                title={`${s.short} ${s.followers ? `· ${s.followers.toLocaleString()}` : ""}`}
-                className="flex size-[18px] items-center justify-center rounded-full text-[7px] font-bold text-white"
-                style={{ backgroundColor: s.color }}
-              >
-                {s.short}
-              </span>
+                platform={s.key}
+                size={18}
+                title={`${s.short}${s.followers ? ` · ${s.followers.toLocaleString()}` : ""}`}
+              />
             ))}
           </div>
         )}

@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { calculateAge } from "@/lib/age";
 import { createJobToken, createSubmitToken } from "@/lib/auth/talent-session";
+import { SocialIcon } from "@/components/SocialIcon";
 import { CATEGORIES, TIER_LABEL } from "@/lib/constants";
 import { SITE_URL } from "@/lib/site";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
@@ -802,14 +803,7 @@ export default async function ProjectDetailPage({
                   {socials.length > 0 && (
                     <div className="mt-1 flex gap-1">
                       {socials.map((s) => (
-                        <span
-                          key={s.key}
-                          title={s.label}
-                          className="flex size-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
-                          style={{ backgroundColor: s.color }}
-                        >
-                          {s.short}
-                        </span>
+                        <SocialIcon key={s.key} platform={s.key} size={20} title={s.label} />
                       ))}
                     </div>
                   )}
