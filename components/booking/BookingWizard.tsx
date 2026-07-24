@@ -39,7 +39,6 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
   const [pkg, setPkg] = useState<PkgKey | null>(null);
   const [hour, setHour] = useState<string | null>(null);
   const [slipName, setSlipName] = useState<string | null>(null);
-  const [copiedAcct, setCopiedAcct] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<"success" | string | null>(null);
   const [lineIdToken, setLineIdToken] = useState<string | null>(null);
@@ -557,13 +556,13 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
           <div className="rounded-2xl border border-[#1D4ED8]/20 bg-[#1D4ED8]/5 p-5">
             <p className="font-semibold text-neutral-800">
               💳 ชำระเงิน (Payment) ฿
-              {BOOKING.packages[pkg].price.toLocaleString()} — เลือกจ่ายวิธีใดก็ได้
+              {BOOKING.packages[pkg].price.toLocaleString()} — สแกน QR จ่าย
             </p>
 
-            {/* ① จ่ายด้วย QR พร้อมเพย์ (คนละบัญชีกับการโอนเงิน) */}
+            {/* จ่ายด้วย QR พร้อมเพย์ */}
             <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4">
               <p className="text-sm font-bold text-[#1D4ED8]">
-                ① สแกน / บันทึก QR แล้วจ่ายในแอปธนาคาร
+                สแกน / บันทึก QR แล้วจ่ายในแอปธนาคาร
               </p>
               <p className="mt-0.5 text-xs text-neutral-400">
                 Scan or save the QR, then pay in your banking app
@@ -575,6 +574,12 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
                   alt="QR พร้อมเพย์ แก้มแดง โมเดลลิ่ง (Gamdang Modeling)"
                   className="w-full max-w-[240px] rounded-lg border border-neutral-200"
                 />
+                <p className="mt-2 text-center text-xs text-neutral-500">
+                  รหัสร้านค้า (SCB Biller):{" "}
+                  <span className="font-mono font-semibold text-neutral-700">
+                    014000000142364
+                  </span>
+                </p>
                 <div className="mt-3 rounded-lg bg-[#1D4ED8]/5 px-3 py-2 text-center text-xs leading-5 text-neutral-500">
                   📲 <b>กดค้างที่รูป QR</b> เพื่อบันทึกลงเครื่อง (หรือแคปหน้าจอ) →
                   เปิดแอปธนาคาร → เลือก <b>&quot;สแกน / รูปภาพ&quot;</b> แล้วเลือก QR นี้จ่ายได้เลย
@@ -585,49 +590,6 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
                 </div>
               </div>
             </div>
-
-            {/* ② หรือโอนเข้าบัญชีธนาคาร */}
-            <p className="mt-4 text-sm font-bold text-[#1D4ED8]">
-              ② หรือโอนเข้าบัญชีธนาคาร (Bank Transfer)
-            </p>
-            <dl className="mt-2 space-y-2 text-sm text-neutral-600">
-              <div>
-                <dt className="text-xs font-medium text-neutral-400">Bank Name</dt>
-                <dd className="text-neutral-700">{BOOKING.bank.bank}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium text-neutral-400">
-                  Bank Account No.
-                </dt>
-                <dd className="flex items-center gap-2">
-                  <span className="font-mono text-base font-bold text-neutral-800">
-                    {BOOKING.bank.accountNo}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      // copy เฉพาะตัวเลข (ไม่มีขีด) → วางโอนได้เลย ไม่ผิด
-                      await navigator.clipboard.writeText(
-                        BOOKING.bank.accountNo.replace(/\D/g, ""),
-                      );
-                      setCopiedAcct(true);
-                      setTimeout(() => setCopiedAcct(false), 2000);
-                    }}
-                    className="rounded-full border border-[#1D4ED8]/40 bg-white px-3 py-1 text-xs font-semibold text-[#1D4ED8] transition hover:bg-[#1D4ED8]/10"
-                  >
-                    {copiedAcct ? "คัดลอกแล้ว ✓" : "📋 คัดลอกเลขบัญชี"}
-                  </button>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium text-neutral-400">Account Name</dt>
-                <dd className="text-neutral-700">{BOOKING.bank.accountName}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium text-neutral-400">SWIFT</dt>
-                <dd className="text-neutral-500">{BOOKING.bank.swift}</dd>
-              </div>
-            </dl>
             <div className="mt-4">
               <input
                 ref={fileRef}
