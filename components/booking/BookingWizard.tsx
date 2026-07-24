@@ -557,9 +557,43 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
           <div className="rounded-2xl border border-[#1D4ED8]/20 bg-[#1D4ED8]/5 p-5">
             <p className="font-semibold text-neutral-800">
               💳 ชำระเงิน (Payment) ฿
-              {BOOKING.packages[pkg].price.toLocaleString()} โดยโอนเข้าบัญชี
+              {BOOKING.packages[pkg].price.toLocaleString()} — เลือกจ่ายวิธีใดก็ได้
             </p>
-            <dl className="mt-3 space-y-2 text-sm text-neutral-600">
+
+            {/* ① จ่ายด้วย QR พร้อมเพย์ (คนละบัญชีกับการโอนเงิน) */}
+            <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4">
+              <p className="text-sm font-bold text-[#1D4ED8]">
+                ① สแกน / บันทึก QR แล้วจ่ายในแอปธนาคาร
+              </p>
+              <p className="mt-0.5 text-xs text-neutral-400">
+                Scan or save the QR, then pay in your banking app
+              </p>
+              <div className="mt-3 flex flex-col items-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/promptpay-gamdang.jpg"
+                  alt="QR พร้อมเพย์ แก้มแดง โมเดลลิ่ง (Gamdang Modeling)"
+                  className="w-full max-w-[240px] rounded-lg border border-neutral-200"
+                />
+                <a
+                  href="/promptpay-gamdang.jpg"
+                  download="Gamdang-PromptPay-QR.jpg"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#1D4ED8] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+                >
+                  ⬇️ บันทึก QR (Save QR)
+                </a>
+                <p className="mt-2 text-center text-[11px] leading-4 text-neutral-400">
+                  บันทึกรูป QR ไว้ในเครื่อง → เปิดแอปธนาคาร → เลือก
+                  &quot;สแกน / รูปภาพ&quot; แล้วเลือก QR นี้ (มือถือกดค้างที่รูปก็บันทึกได้)
+                </p>
+              </div>
+            </div>
+
+            {/* ② หรือโอนเข้าบัญชีธนาคาร */}
+            <p className="mt-4 text-sm font-bold text-[#1D4ED8]">
+              ② หรือโอนเข้าบัญชีธนาคาร (Bank Transfer)
+            </p>
+            <dl className="mt-2 space-y-2 text-sm text-neutral-600">
               <div>
                 <dt className="text-xs font-medium text-neutral-400">Bank Name</dt>
                 <dd className="text-neutral-700">{BOOKING.bank.bank}</dd>
