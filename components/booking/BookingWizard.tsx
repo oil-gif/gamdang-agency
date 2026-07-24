@@ -575,17 +575,14 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
                   alt="QR พร้อมเพย์ แก้มแดง โมเดลลิ่ง (Gamdang Modeling)"
                   className="w-full max-w-[240px] rounded-lg border border-neutral-200"
                 />
-                <a
-                  href="/promptpay-gamdang.jpg"
-                  download="Gamdang-PromptPay-QR.jpg"
-                  className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#1D4ED8] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
-                >
-                  ⬇️ บันทึก QR (Save QR)
-                </a>
-                <p className="mt-2 text-center text-[11px] leading-4 text-neutral-400">
-                  บันทึกรูป QR ไว้ในเครื่อง → เปิดแอปธนาคาร → เลือก
-                  &quot;สแกน / รูปภาพ&quot; แล้วเลือก QR นี้ (มือถือกดค้างที่รูปก็บันทึกได้)
-                </p>
+                <div className="mt-3 rounded-lg bg-[#1D4ED8]/5 px-3 py-2 text-center text-xs leading-5 text-neutral-500">
+                  📲 <b>กดค้างที่รูป QR</b> เพื่อบันทึกลงเครื่อง (หรือแคปหน้าจอ) →
+                  เปิดแอปธนาคาร → เลือก <b>&quot;สแกน / รูปภาพ&quot;</b> แล้วเลือก QR นี้จ่ายได้เลย
+                  <span className="mt-0.5 block text-[11px] text-neutral-400">
+                    Long-press the QR to save (or screenshot), then pay via your
+                    banking app
+                  </span>
+                </div>
               </div>
             </div>
 
