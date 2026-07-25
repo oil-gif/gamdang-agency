@@ -2,6 +2,22 @@
 
 > อ่านไฟล์นี้ก่อนเริ่มทำงานเสมอ — สรุปว่าทำอะไรไปแล้ว ทำอะไรค้างอยู่ และต้องทำอะไรต่อ
 
+## ✨ รอบล่าสุด — Comp Card Studio + Portfolio + Report/Proposal (2026-07-25, พี่คอนเฟิร์ม "Perfect")
+
+**Comp Card Studio (commits `43ff349`→`1b1b376`, migration 014 รันแล้ว ✓):**
+- **สมัคร LIFF = wizard 3 ขั้น** (`app/(liff)/apply/edit/page.tsx` + progress bar): (1) ข้อมูล (ฟอร์ม TalentForm — โหมด self บังคับ ชื่อเล่นEN/สูง/หนัก/สัญชาติ + Portfolio) (2) รูป (`CompcardSlots` — กติกาถ่ายรูปฉบับแก้มแดง gradient CI + ติ๊กยอมรับก่อน → 8 ช่อง บังคับ 4 [headshot/half/lifestyle/full] + extra 4, แต่ละช่อง crop เลื่อน-ซูม-pinch ผ่าน `CropperModal` แบบ WYSIWYG = สัดส่วน crop ตรงกรอบการ์ด) (3) ยืนยัน (`ConfirmStep` — สรุป + ยินยอม PDPA 3 ข้อฉบับทางการ รวม "คอมการ์ดใช้นำเสนองานในเครือแก้มแดงเท่านั้น" + "รูปจริงไม่ใช่ AI")
+- **การ์ดวาดด้วย HTML Canvas ฝั่ง browser** (`CompcardGenerator` + สเปคกลาง `lib/compcard.ts`): headshot ใหญ่ซ้าย · half/lifestyle ซ้อนกลาง · กล่องข้อมูล+full body ขวา · CTA bar ล่าง — **ไม่มี QR ไม่มีลิงก์** · กล่องข้อมูลสี **ฟ้า=ชาย ชมพู=หญิง gradient CI=อื่นๆ** โชว์ code(บาง กลาง)/ชื่อEN(ใหญ่)/เพศ-อายุ(auto จาก dob)/สูง-หนัก/สัญชาติ ชิดขวา · โลโก้แก้มแดงใน CTA + ลายน้ำวงกลมมุมขวาล่างของ headshot+full · หัวข้อ "My Compcard" · CTA "Official LINE"
+- **เก็บรูป**: slot upload → `/api/slot-upload` (เข้า gallery + `talents.compcard_slots` jsonb map) · การ์ดสำเร็จ → `/api/compcard-upload` (sharp jpeg q84 ≤1800px แทนใบเดิม) · admin มี "Comp Card Studio" ในหน้า talent อัพ/สร้างการ์ดแทนได้
+- **⚠️ ปรับ layout/สี/CTA แก้ที่ `lib/compcard.ts` ที่เดียว** ("use server" export const ไม่ได้ → ค่าคงที่อยู่ไฟล์นี้ที่ client ใช้ได้)
+
+**Portfolio ตอนสมัคร (commit `48d8ffb`):** ฟอร์ม self เก็บ **คลิปแนะนำตัว + ลิงก์ผลงาน ~5** (`talents.intro_video_url`/`portfolio_links`) ตั้งแต่สมัคร → ฟอร์มขอส่งงาน `/submit/[token]` prefill จากโปรไฟล์อัตโนมัติ (ไม่ต้องกรอกซ้ำ ส่งลูกค้าได้เลย)
+
+**Report `/admin/projects/[id]/report` (commits `414751d`+`8b35202`):**
+- **รูปเพิ่มเติมโชว์ครบ**: เดิมโชว์แค่ `extra_photo_paths` (ตอนขอส่งงาน) → เพิ่มรูป extra ตอนสมัคร = gallery ที่ไม่ใช่ 4 ช่องคอมการ์ด (จาก `compcard_slots`) และไม่ใช่รูปหลัก, dedup, สูงสุด 8
+- **เรียงใหม่**: ชื่อ+ข้อมูล → คอมการ์ด → รูปเพิ่ม → คลิป → ผลงาน · **หัวข้ออังกฤษ** `Age / Height cm / Weight kg / Nationality` · คลิป "คลิปแนะนำตัว (Intro Clip)" ให้เข้าชุด "ผลงานที่ผ่านมา (Past Work)"
+
+**การ์ดเสนอลูกค้า (commits `7d17b1c`+`e5b4186`, `components/public/TalentCards.tsx`):** ModelCard(เว็บ /p) + PrintMiniCard(PDF) เปลี่ยนหัวข้อเป็นอังกฤษ `Age / Height cm / Weight kg` · เชื้อชาติ/สัญชาติผ่าน `nationalityTextEn()` = ใช้ `talent.nationality` ก่อน (เช่น Thai) ถ้าไม่มี fallback เป็น label เชื้อชาติเต็ม **คงวงเล็บไทย** (Mixed Race (ลูกครึ่ง)) · mini card: Age บรรทัดเดียว, Height·Weight อีกบรรทัด (whitespace-nowrap ไม่ให้ตัดคำ) · InfluCard เว็บใช้ Age/Max Followers อังกฤษอยู่แล้ว
+
 ## 🚀 เตรียมขึ้นโดเมนจริง www.gamdangagency.com (checklist — อัพเดต 2026-07-19)
 
 > เว็บ WordPress หน้าบ้านจะขึ้น `www.gamdangagency.com` — แอป Next.js นี้เป็นระบบหลังบ้าน/LIFF/หน้าสาธารณะ (talents, casting) เชื่อมจาก WP
@@ -53,8 +69,8 @@
 - [x] **สองภาษา/อังกฤษหน้าสาธารณะ** (`7467b67`,`2f875f3`,`b0c2335`,`5287a88`,`72c4d45`,`b97b397`): banner จอง ไทย+อังกฤษ · หน้า `/talents` filter เป็นอังกฤษหมด · ปุ่ม "← Back to Home" ทุกหน้า (BackToHome รับ prop label) · `/casting` list เป็นอังกฤษ (subtitle ไทย+อังกฤษ)
 
 **รอพี่เจ้าของทำ (ผู้ช่วยทำแทนไม่ได้):**
-- [ ] **⚠️ รัน migration 014** (`supabase/migrations/014_compcard_slots.sql` — `talents.compcard_slots jsonb`) — Comp Card Studio อัพรูปช่องไม่ได้จนกว่าจะรัน (ระบบเด้ง error บอกชัด ไม่พังหน้า)
-- [ ] **เทส Comp Card Studio ครบวงจร** (commit `43ff349`, 2026-07-25): LIFF สมัคร → wizard 3 ขั้น (ข้อมูล[บังคับ สูง/หนัก/สัญชาติ ใน self] → รูป: กติกาฉบับแก้มแดง+ติ๊กยอมรับ → 8 ช่อง/บังคับ 4 พร้อม crop เลื่อน-ซูม-pinch → ยืนยัน+ยินยอม 3 ข้อ) → การ์ดวาดด้วย canvas ฝั่ง browser (กล่องข้อมูล ฟ้า=ชาย ชมพู=หญิง gradient CI=อื่นๆ · code/ชื่อEN/เพศ-อายุ/สูง-หนัก/สัญชาติ · CTA ล่าง ไม่มี QR) → บันทึกผ่าน /api/compcard-upload (แทนใบเดิม, jpeg q84 ≤1800px) · admin มี "Comp Card Studio" ในหน้า talent + อัพการ์ดเก่าได้ที่ส่วนรูปภาพเดิม · สเปคกลาง lib/compcard.ts (แก้ CTA/สี/layout ที่เดียว) · slot upload → /api/slot-upload (gallery + talents.compcard_slots)
+- [x] ~~รัน migration 014~~ **รันแล้ว 2026-07-25** (`talents.compcard_slots jsonb`) — Comp Card Studio อัพรูปช่องได้แล้ว
+- [x] **Comp Card Studio + polish** — เสร็จ + พี่คอนเฟิร์ม "Perfect" 2026-07-25 (ดูบล็อก "✨ รอบล่าสุด" บนสุด) · **ยังรอเทสมือครบวงจรจริงในแอป LINE** (สมัครใหม่ทั้ง flow → เห็นการ์ดในหน้าเสนอ/report)
 - [ ] **ทำ Rich menu ใน LINE OA** (คุยกันแล้ว 2026-07-16): ปุ่ม Casting = `https://liff.line.me/2010689219-wGKbITGb?next=/casting` (login ผ่าน /apply แล้วเด้งไป casting — ระบบจำสมาชิก) · ปุ่มโปรไฟล์/สมัคร = `https://liff.line.me/2010689219-wGKbITGb` (ไม่มี ?next)
 - [ ] **ตั้งเมนูในเว็บ WP (แชท Claude อีกตัว)**: ทาเลนต์ → `/talents` · Casting → `/casting` · สมัคร → LIFF wGKbITGb · จองถ่าย → LIFF ciPMtS8K · Admin → `/admin/login` (ร่างคำสั่งส่งให้พี่แล้ว 2026-07-16)
 - [ ] **เทส casting ครบวงจรโหมดสมาชิก**: เปิด /casting ใน LINE (บัญชีที่มีลูกหลายคน) → เห็นการ์ดลูก ติ๊กเลือกหลายคน → "สมัครเลย" → หลังบ้านเห็นผู้สมัคร → "✓ รับเข้า Project" → คนนั้นเข้า proposal (ปุ่ม LINE login จาก browser เทสผ่านแล้ว 2026-07-16 · โหมดกรอกเอง+Compcard ยังไม่เทส)
