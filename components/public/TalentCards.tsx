@@ -58,6 +58,20 @@ export function ethnicityText(t: { ethnicities?: string[] | null }) {
     : null;
 }
 
+// เวอร์ชันภาษาอังกฤษล้วน สำหรับการ์ดเสนอลูกค้าต่างชาติ — ใช้สัญชาติก่อน
+// ถ้าไม่มีค่อย fallback เป็นเชื้อชาติ (ตัดวงเล็บไทยออก เช่น "Asian (เอเชีย)" → "Asian")
+export function nationalityTextEn(t: {
+  nationality?: string | null;
+  ethnicities?: string[] | null;
+}) {
+  if (t.nationality) return t.nationality;
+  const list = (t.ethnicities ?? []) as string[];
+  if (list.length === 0) return null;
+  return list
+    .map((e) => (ETHNICITY_LABEL[e] ?? e).replace(/\s*\(.*?\)\s*/g, "").trim())
+    .join(" / ");
+}
+
 /**
  * งาน Model — full landscape comp card with a fact bar underneath.
  * ส่ง selectToken มาเมื่ออยากให้มีปุ่ม "สนใจ" สำหรับลูกค้า (เฉพาะ /p/[token])
@@ -74,10 +88,10 @@ export function ModelCard({
   const img = pt.compcard_path ?? pt.gallery_paths[0] ?? null;
   const interested = pt.client_interested === true;
   const facts = [
-    t.dob ? `อายุ ${calculateAge(t.dob)} ปี` : null,
-    t.height_cm ? `สูง ${t.height_cm} ซม.` : null,
-    t.weight_kg ? `หนัก ${t.weight_kg} กก.` : null,
-    ethnicityText(t),
+    t.dob ? `Age ${calculateAge(t.dob)}` : null,
+    t.height_cm ? `Height ${t.height_cm} cm` : null,
+    t.weight_kg ? `Weight ${t.weight_kg} kg` : null,
+    nationalityTextEn(t),
   ].filter(Boolean) as string[];
 
   return (
@@ -315,7 +329,7 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
                   on {top.label}
                 </>
               )}
-              {t.dob && ` · อายุ ${calculateAge(t.dob)}`}
+              {t.dob && ` · Age ${calculateAge(t.dob)}`}
             </p>
             {expertise.length > 0 && (
               <p className="mt-1 truncate text-[10px] font-medium text-[#B82233]">
@@ -351,15 +365,15 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
           <>
             <p className="mt-0.5 text-[11px] leading-4 text-neutral-500">
               {[
-                t.dob ? `อายุ ${calculateAge(t.dob)} ปี` : null,
-                t.height_cm ? `สูง ${t.height_cm} ซม.` : null,
-                t.weight_kg ? `หนัก ${t.weight_kg} กก.` : null,
+                t.dob ? `Age ${calculateAge(t.dob)}` : null,
+                t.height_cm ? `Height ${t.height_cm} cm` : null,
+                t.weight_kg ? `Weight ${t.weight_kg} kg` : null,
               ]
                 .filter(Boolean)
                 .join(" · ")}
-              {ethnicityText(t) && (
+              {nationalityTextEn(t) && (
                 <span className="block text-[10px] text-neutral-400">
-                  {ethnicityText(t)}
+                  {nationalityTextEn(t)}
                 </span>
               )}
             </p>
