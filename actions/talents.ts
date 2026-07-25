@@ -8,6 +8,20 @@ import { CATEGORIES, ETHNICITIES, TALENTS_PAGE_SIZE } from "@/lib/constants";
 import { yearsAgo } from "@/lib/age";
 import { getTalentSession } from "@/lib/auth/talent-session";
 
+// รูปตัวแทนของ talent สำหรับการ์ด/ลิสต์ — เลือก "รูปหลัก → หน้าตรง" ก่อนเสมอ
+// (compcard_slots.single = รูปหลัก, headshot = หน้าตรง) แล้วค่อย fallback เป็น
+// gallery รูปแรก / คอมการ์ด · กันเคสหยิบรูปเต็มตัว/รูปคอมการ์ดมาเป็นรูปตัวแทน
+function pickPrimaryPhoto(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  t: { compcard_slots?: Record<string, any> | null },
+  photos: { kind: string; storage_path: string }[],
+): string | null {
+  const slots = (t.compcard_slots ?? {}) as Record<string, string>;
+  const gallery = photos.find((p) => p.kind === "gallery")?.storage_path ?? null;
+  const compcard = photos.find((p) => p.kind === "compcard")?.storage_path ?? null;
+  return slots.single ?? slots.headshot ?? gallery ?? compcard ?? null;
+}
+
 export type TalentFilters = {
   q?: string;
   role?: "model" | "influencer" | "ai";
@@ -106,10 +120,7 @@ export async function getTalentsWithPhotos(
     total: count ?? 0,
     talents: talents.map((t) => {
       const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
-      const gallery = mine.find((p) => p.kind === "gallery")?.storage_path ?? null;
-      const compcard =
-        mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
-      return { ...t, photo_path: gallery ?? compcard };
+      return { ...t, photo_path: pickPrimaryPhoto(t, mine) };
     }),
   };
 }
@@ -170,9 +181,7 @@ export async function getPublicTalents(filters: TalentFilters = {}, page = 1) {
     )
     .map((t) => {
       const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
-      const gallery = mine.find((p) => p.kind === "gallery")?.storage_path ?? null;
-      const compcard = mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
-      return { ...t, photo_path: gallery ?? compcard };
+      return { ...t, photo_path: pickPrimaryPhoto(t, mine) };
     });
 
   // เรียง: มีรูปก่อน → follower มากสุดก่อน → ใหม่สุด
@@ -492,9 +501,7 @@ export async function getMyTalents() {
 
   return talents.map((t) => {
     const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
-    const gallery = mine.find((p) => p.kind === "gallery")?.storage_path ?? null;
-    const compcard = mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
-    return { ...t, photo_path: gallery ?? compcard };
+    return { ...t, photo_path: pickPrimaryPhoto(t, mine) };
   });
 }
 
