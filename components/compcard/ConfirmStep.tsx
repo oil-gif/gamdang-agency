@@ -67,7 +67,7 @@ export function ConfirmStep({
 
         <div>
           <h3 className="mb-2 text-base font-bold text-neutral-800">
-            🪪 Comp Card ของหนู
+            🪪 My Compcard
           </h3>
           <CompcardGenerator talent={talent} slots={slots} />
         </div>

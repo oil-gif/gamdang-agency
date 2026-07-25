@@ -147,14 +147,14 @@ export function CompcardGenerator({
       ctx.fillStyle = "#ffffff";
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "right";
-      // รหัส — ใหญ่ชัด แต่ไม่หนาจัด
-      ctx.font = `600 86px ${F}`;
-      ctx.fillText(talent.code ?? "", rx, INFO_BOX.y + 96, maxW);
-      // ชื่อ EN
-      ctx.font = `600 42px ${F}`;
+      // รหัส — เล็กลง+บางลง (ไม่แย่งเด่นกับชื่อ)
+      ctx.font = `400 62px ${F}`;
+      ctx.fillText(talent.code ?? "", rx, INFO_BOX.y + 74, maxW);
+      // ชื่อ EN — เด่นสุด
+      ctx.font = `600 54px ${F}`;
       const name = talent.nickname_en || talent.nickname_th || "";
-      ctx.fillText(name, rx, INFO_BOX.y + 152, maxW);
-      // เพศ/อายุ · สูง/หนัก · สัญชาติ (สามบรรทัด เว้นระยะสม่ำเสมอ)
+      ctx.fillText(name, rx, INFO_BOX.y + 140, maxW);
+      // เพศ/อายุ · สูง/หนัก · สัญชาติ (เว้นขอบล่างให้หายใจ)
       const age = talent.dob ? calculateAge(talent.dob) : null;
       const lines = [
         genderAgeLabel(talent.gender, age),
@@ -166,9 +166,9 @@ export function CompcardGenerator({
           .join(" · "),
         talent.nationality ?? "",
       ].filter((l) => l && l.length > 0);
-      ctx.font = `400 32px ${F}`;
+      ctx.font = `400 30px ${F}`;
       lines.forEach((line, i) => {
-        ctx.fillText(line, rx, INFO_BOX.y + 208 + i * 44, maxW);
+        ctx.fillText(line, rx, INFO_BOX.y + 190 + i * 40, maxW);
       });
       ctx.textAlign = "left";
 
