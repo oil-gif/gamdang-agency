@@ -43,11 +43,12 @@ export function CastingApply({
         await liff.init({ liffId });
         if (liff.isInClient() && liff.isLoggedIn()) {
           const idToken = liff.getIDToken();
-          if (!idToken) return;
+          const accessToken = liff.getAccessToken();
+          if (!idToken && !accessToken) return;
           await fetch("/api/line/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ idToken }),
+            body: JSON.stringify({ idToken, accessToken }),
           });
           if (!cancelled) router.refresh();
         }

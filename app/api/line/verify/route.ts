@@ -4,9 +4,11 @@ import { createTalentSession, verifyTalentLinkToken } from "@/lib/auth/talent-se
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
-  const idToken = body?.idToken;
-  if (!idToken || typeof idToken !== "string") {
-    return NextResponse.json({ error: "missing idToken" }, { status: 400 });
+  const idToken = typeof body?.idToken === "string" ? body.idToken : null;
+  const accessToken =
+    typeof body?.accessToken === "string" ? body.accessToken : null;
+  if (!idToken && !accessToken) {
+    return NextResponse.json({ error: "missing token" }, { status: 400 });
   }
   const linkToken = typeof body?.linkToken === "string" ? body.linkToken : null;
 
@@ -15,31 +17,69 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "server not configured" }, { status: 500 });
   }
 
-  const verifyRes = await fetch("https://api.line.me/oauth2/v2.1/verify", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ id_token: idToken, client_id: channelId }),
-  });
+  let profile: { sub: string; name?: string; picture?: string } | null = null;
+  let lastDetail: string | null = null;
 
-  if (!verifyRes.ok) {
-    // LINE ตอบเหตุผลจริงมาด้วย (เช่น token หมดอายุ / aud ไม่ตรง channel) —
-    // log ไว้ diagnose ถ้าปัญหายังอยู่หลังล็อกอินใหม่
-    const detail = await verifyRes.json().catch(() => null);
-    console.error("[line/verify] token rejected:", verifyRes.status, detail);
+  // ทางหลัก: ID token (ต้องมี openid scope)
+  if (idToken) {
+    const verifyRes = await fetch("https://api.line.me/oauth2/v2.1/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ id_token: idToken, client_id: channelId }),
+    });
+    if (verifyRes.ok) {
+      const p = (await verifyRes.json()) as {
+        sub: string;
+        name?: string;
+        picture?: string;
+      };
+      profile = { sub: p.sub, name: p.name, picture: p.picture };
+    } else {
+      const detail = await verifyRes.json().catch(() => null);
+      lastDetail = detail?.error_description ?? detail?.error ?? null;
+      console.error("[line/verify] id_token rejected:", verifyRes.status, detail);
+    }
+  }
+
+  // ทางสำรอง: Access token (ใช้ profile scope ที่มีเสมอ — ไม่ต้องพึ่ง openid)
+  // ตรวจว่า token ออกให้ channel ของเราจริง แล้วดึงโปรไฟล์
+  if (!profile && accessToken) {
+    const vr = await fetch(
+      `https://api.line.me/oauth2/v2.1/verify?access_token=${encodeURIComponent(accessToken)}`,
+    );
+    if (vr.ok) {
+      const v = (await vr.json()) as { client_id?: string };
+      if (v.client_id === channelId) {
+        const pr = await fetch("https://api.line.me/v2/profile", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (pr.ok) {
+          const p = (await pr.json()) as {
+            userId: string;
+            displayName?: string;
+            pictureUrl?: string;
+          };
+          profile = { sub: p.userId, name: p.displayName, picture: p.pictureUrl };
+        } else {
+          lastDetail = "profile fetch failed";
+        }
+      } else {
+        lastDetail = "access token channel mismatch";
+        console.error("[line/verify] access_token client mismatch:", v.client_id);
+      }
+    } else {
+      const detail = await vr.json().catch(() => null);
+      lastDetail = detail?.error_description ?? detail?.error ?? "access token invalid";
+      console.error("[line/verify] access_token rejected:", vr.status, detail);
+    }
+  }
+
+  if (!profile) {
     return NextResponse.json(
-      {
-        error: "invalid LINE token",
-        detail: detail?.error_description ?? detail?.error ?? null,
-      },
+      { error: "invalid LINE token", detail: lastDetail },
       { status: 401 },
     );
   }
-
-  const profile = (await verifyRes.json()) as {
-    sub: string;
-    name?: string;
-    picture?: string;
-  };
 
   const setSession = () =>
     createTalentSession({

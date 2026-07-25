@@ -36,10 +36,11 @@ export default function ApplyPage() {
         const params = new URLSearchParams(window.location.search);
         const triedRelogin = params.get("relogin") === "1";
 
-        // ปล่อยให้ LINE เป็นคนตัดสินว่า token ใช้ได้ไหม (verify ฝั่งเซิร์ฟเวอร์)
-        // ไม่เดาเองฝั่ง client — กันเคสนาฬิกาเครื่องเพี้ยนแล้ว relogin วนไม่จบ
+        // ยืนยันตัวตนด้วย ID token เป็นหลัก + Access token เป็นตัวสำรอง
+        // (บางเครื่อง getIDToken() คืนค่าว่างเพราะ openid — access token ใช้แทนได้)
         const idToken = liff.getIDToken();
-        if (!idToken) {
+        const accessToken = liff.getAccessToken();
+        if (!idToken && !accessToken) {
           if (!triedRelogin) return relogin();
           throw new Error("ไม่พบข้อมูลยืนยันตัวตนจาก LINE");
         }
@@ -60,7 +61,7 @@ export default function ApplyPage() {
         const res = await fetch("/api/line/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken, linkToken }),
+          body: JSON.stringify({ idToken, accessToken, linkToken }),
         });
         if (!res.ok) {
           // 401 = token ไม่ผ่าน (มักเพราะหมดอายุ) → ขอ token สดแล้วลองอีกครั้ง
