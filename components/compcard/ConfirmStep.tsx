@@ -84,24 +84,55 @@ export function ConfirmStep({
           </p>
         </div>
 
-        <div>
-          <h3 className="mb-2 text-base font-bold text-neutral-800">
-            {variant === "influencer" ? "🖼️ รูปโปรไฟล์ของฉัน" : "🪪 My Compcard"}
-          </h3>
-          {variant === "compcard" ? (
+        {variant === "compcard" ? (
+          <div>
+            <h3 className="mb-2 text-base font-bold text-neutral-800">🪪 My Compcard</h3>
             <CompcardGenerator talent={talent} slots={slots} />
-          ) : (
-            // legacy / influencer — โชว์รูปที่อัพไว้ (ไม่ต้องวาดใหม่)
-            // eslint-disable-next-line @next/next/no-img-element
+          </div>
+        ) : variant === "influencer" ? (
+          <div>
+            <h3 className="mb-2 text-base font-bold text-neutral-800">
+              🖼️ รูปโปรไฟล์ของฉัน
+            </h3>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`/photo/${variant === "legacy" ? compcardPath : singlePhotoPath}`}
-              alt={variant === "legacy" ? "คอมการ์ดแก้มแดงเดิม" : "รูปโปรไฟล์"}
-              className={`w-full rounded-xl border border-neutral-200 bg-neutral-50 ${
-                variant === "legacy" ? "object-contain" : "max-h-[520px] object-contain"
-              }`}
+              src={`/photo/${singlePhotoPath}`}
+              alt="รูปโปรไฟล์"
+              className="max-h-[520px] w-full rounded-xl border border-neutral-200 bg-neutral-50 object-contain"
             />
-          )}
-        </div>
+          </div>
+        ) : (
+          // legacy — รูปหลัก = การ์ดหน้าบ้าน · คอมการ์ดแก้มแดง = แนบให้ลูกค้า
+          <div className="space-y-4">
+            <div>
+              <h3 className="mb-2 text-base font-bold text-neutral-800">
+                🖼️ รูปการ์ด (หน้าบ้าน)
+              </h3>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/photo/${singlePhotoPath}`}
+                alt="รูปการ์ด"
+                className="max-h-[520px] w-full rounded-xl border border-neutral-200 bg-neutral-50 object-contain"
+              />
+            </div>
+            {compcardPath && (
+              <div>
+                <h3 className="mb-2 text-base font-bold text-neutral-800">
+                  🪪 คอมการ์ดแก้มแดง{" "}
+                  <span className="text-xs font-normal text-neutral-400">
+                    (แนบให้ลูกค้า)
+                  </span>
+                </h3>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/photo/${compcardPath}`}
+                  alt="คอมการ์ดแก้มแดงเดิม"
+                  className="w-full rounded-xl border border-neutral-200 bg-neutral-50 object-contain"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         <Link
           href={doneHref}

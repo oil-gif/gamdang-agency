@@ -3,15 +3,22 @@
 import { useRef, useState } from "react";
 import { CropperModal } from "@/components/compcard/CropperModal";
 
-// สมัคร Influencer ล้วน — อัพรูปเดียว (crop เป็นแนวตั้ง 3:4) พอ ไม่ต้องทำ Comp Card
+// อัพรูปหลักรูปเดียว (crop แนวตั้ง 3:4) — ใช้เป็นรูปการ์ดโชว์หน้าบ้าน
+// ทั้งกรณี Influencer ล้วน และกรณี Model ที่มีคอมการ์ดแก้มแดงเดิม
 export function SinglePhotoUpload({
   talentId,
   initialPath,
   onChange,
+  heading = "📸 รูปโปรไฟล์ Influencer",
+  subheading = "อัพแค่รูปเดียวพอ — เลือกรูปที่หน้าชัด สวย เป็นตัวคุณที่สุด",
+  note = "รูปจริงล่าสุด หน้าชัด ไม่ผ่านฟิลเตอร์ปรับหน้า — ทีมงานใช้เสนอลูกค้า",
 }: {
   talentId: string;
   initialPath?: string | null;
   onChange?: (path: string) => void;
+  heading?: string;
+  subheading?: string;
+  note?: string;
 }) {
   const [path, setPath] = useState<string | null>(initialPath ?? null);
   const [cropFile, setCropFile] = useState<File | null>(null);
@@ -56,10 +63,8 @@ export function SinglePhotoUpload({
     <div className="space-y-4">
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
         <div className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] px-5 py-4 text-white">
-          <p className="text-base font-bold">📸 รูปโปรไฟล์ Influencer</p>
-          <p className="mt-0.5 text-xs text-white/80">
-            อัพแค่รูปเดียวพอ — เลือกรูปที่หน้าชัด สวย เป็นตัวคุณที่สุด
-          </p>
+          <p className="text-base font-bold">{heading}</p>
+          <p className="mt-0.5 text-xs text-white/80">{subheading}</p>
         </div>
         <div className="p-5">
           <button
@@ -105,9 +110,7 @@ export function SinglePhotoUpload({
               </span>
             )}
           </button>
-          <p className="mt-3 text-center text-xs text-neutral-400">
-            รูปจริงล่าสุด หน้าชัด ไม่ผ่านฟิลเตอร์ปรับหน้า — ทีมงานใช้เสนอลูกค้า
-          </p>
+          <p className="mt-3 text-center text-xs text-neutral-400">{note}</p>
         </div>
       </div>
 

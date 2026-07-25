@@ -76,13 +76,14 @@ export default async function ApplyEditPage({
         : "compcard";
 
   // gate ก่อนไปหน้ายืนยัน (step 3)
+  // legacy ต้องมี "รูปหลัก" (singlePath) ด้วย — ใช้เป็นการ์ดหน้าบ้านแทนคอมการ์ด
   const gateOk = influencerOnly
     ? !!singlePath
-    : hasRequiredSlots || !!compcardPath;
+    : hasRequiredSlots || (!!compcardPath && !!singlePath);
   if (step === 3 && !gateOk) {
     const msg = influencerOnly
       ? "อัพโหลดรูปโปรไฟล์ก่อนค่ะ"
-      : "อัพโหลดรูปให้ครบก่อนค่ะ (คอมการ์ดใหม่ 4 รูป หรือคอมการ์ดแก้มแดงเดิม)";
+      : "อัพโหลดรูปให้ครบก่อนค่ะ (คอมการ์ดใหม่ 4 รูป · หรือคอมการ์ดแก้มแดงเดิม + รูปหลัก 1 รูป)";
     redirect(`/apply/edit?id=${id}&step=2&error=${encodeURIComponent(msg)}`);
   }
 
@@ -210,6 +211,7 @@ export default async function ApplyEditPage({
                   (talent as { legacy_code?: string | null }).legacy_code ?? null
                 }
                 legacyPath={compcardPath}
+                legacySinglePath={singlePath}
               />
             )}
             <div className="flex gap-3">
@@ -229,7 +231,7 @@ export default async function ApplyEditPage({
             <p className="text-center text-xs text-neutral-400">
               {influencerOnly
                 ? "อัพโหลดรูปโปรไฟล์ก่อน ถึงจะไปขั้นตอนยืนยันได้"
-                : "ทำคอมการ์ดใหม่ให้ครบ 4 รูป หรืออัพคอมการ์ดแก้มแดงเดิม ก่อนไปยืนยัน"}
+                : "ทำคอมการ์ดใหม่ให้ครบ 4 รูป · หรืออัพคอมการ์ดแก้มแดงเดิม + รูปหลัก 1 รูป ก่อนไปยืนยัน"}
             </p>
           </>
         )}

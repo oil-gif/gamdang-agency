@@ -12,12 +12,14 @@ export function ModelPhotoStep({
   initialMode,
   legacyCode,
   legacyPath,
+  legacySinglePath,
 }: {
   talentId: string;
   initialSlots: Record<string, string>;
   initialMode: "new" | "legacy";
   legacyCode?: string | null;
   legacyPath?: string | null;
+  legacySinglePath?: string | null;
 }) {
   const [mode, setMode] = useState<"new" | "legacy">(initialMode);
 
@@ -80,6 +82,7 @@ export function ModelPhotoStep({
           talentId={talentId}
           initialCode={legacyCode}
           initialPath={legacyPath}
+          initialSinglePath={legacySinglePath}
         />
       )}
     </div>

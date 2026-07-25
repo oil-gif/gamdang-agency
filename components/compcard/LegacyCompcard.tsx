@@ -2,18 +2,22 @@
 
 import { useRef, useState } from "react";
 import { saveLegacyCompcardCode } from "@/actions/talents";
+import { SinglePhotoUpload } from "@/components/compcard/SinglePhotoUpload";
 
 // Model ที่มี "คอมการ์ดแก้มแดงเดิม" (ทำภายใน 1 ปี) — กรอกรหัสแก้มแดงเก่า +
-// อัพโหลดรูปคอมการ์ดเดิม (เป็นรูปสำเร็จแล้ว ไม่ต้อง crop) แทนการสร้างใหม่
+// อัพรูปหลัก 1 รูป (ใช้เป็นการ์ดโชว์หน้าบ้าน) + อัพรูปคอมการ์ดเดิม
+// (เก็บไว้เสนอลูกค้า ไม่เอาไปโชว์ในแกลเลอรีสาธารณะ)
 export function LegacyCompcard({
   talentId,
   initialCode,
   initialPath,
+  initialSinglePath,
   onChange,
 }: {
   talentId: string;
   initialCode?: string | null;
   initialPath?: string | null;
+  initialSinglePath?: string | null;
   onChange?: (path: string) => void;
 }) {
   const [code, setCode] = useState(initialCode ?? "");
@@ -65,6 +69,15 @@ export function LegacyCompcard({
         (มีโลโก้/รหัสแก้มแดงบนการ์ด) · ถ้าเป็นคอมการ์ดจากที่อื่น หรือเกิน 1 ปี
         กรุณาเลือก &quot;สร้างคอมการ์ดใหม่&quot; แทนค่ะ
       </div>
+
+      {/* รูปหลัก 1 รูป — ใช้เป็นการ์ดโชว์หน้าบ้าน (ไม่เอาคอมการ์ดไปโชว์) */}
+      <SinglePhotoUpload
+        talentId={talentId}
+        initialPath={initialSinglePath}
+        heading="🖼️ รูปหลักสำหรับการ์ด (Main Photo) *"
+        subheading="รูปเดี่ยว 1 รูป — ใช้โชว์เป็นการ์ดหน้าเว็บ (แทนการโชว์คอมการ์ด)"
+        note="เลือกรูปหน้าชัด สวย เป็นตัวคุณที่สุด — ระบบใช้รูปนี้เป็นการ์ดสาธารณะ"
+      />
 
       <div className="space-y-1.5">
         <label htmlFor="legacy_code" className="text-sm font-semibold text-neutral-700">
