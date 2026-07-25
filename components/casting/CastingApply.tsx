@@ -30,6 +30,17 @@ export function CastingApply({
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+  // เปิดจากเบราว์เซอร์ในแอป FB/IG/TikTok ที่ login LINE ยาก (ไม่ใช่แอป LINE)
+  const [inFbBrowser, setInFbBrowser] = useState(false);
+
+  useEffect(() => {
+    const ua = navigator.userAgent || "";
+    const bad = /FBAN|FBAV|FB_IAB|Instagram|Messenger|MessengerLite|TikTok/i.test(ua);
+    if (bad) {
+      setInFbBrowser(true);
+      setManualOpen(true); // เปิดฟอร์มกรอกเองให้เลย จะได้ไม่ติด LINE login
+    }
+  }, []);
 
   // เปิดในแอป LINE + ยังไม่ login → ผูก session ให้อัตโนมัติ แล้ว refresh
   useEffect(() => {
@@ -129,15 +140,39 @@ export function CastingApply({
       ) : (
         // ยังไม่ login
         <div className="space-y-3">
-          <a
-            href={loginHref}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-[#06C755] py-3.5 text-base font-bold text-white shadow-md transition hover:opacity-95"
-          >
-            เข้าสู่ระบบด้วย LINE เพื่อสมัคร
-          </a>
-          <p className="text-center text-xs text-neutral-400">
-            เป็นสมาชิกอยู่แล้ว? เข้าสู่ระบบแล้วกดสมัครได้เลย ไม่ต้องกรอกใหม่
-          </p>
+          {/* เปิดจาก Facebook/IG → LINE login ยุ่งยาก แนะนำทางที่ง่ายกว่า */}
+          {inFbBrowser && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-800">
+              <p className="font-bold">📱 คุณเปิดจากแอป Facebook อยู่</p>
+              <p className="mt-1 text-[13px]">
+                เข้าสู่ระบบ LINE จากตรงนี้จะยุ่งยาก (ต้องกรอกอีเมล/รหัส) — แนะนำ:
+              </p>
+              <ul className="mt-1.5 space-y-1 text-[13px]">
+                <li>
+                  ✅ <b>กรอกใบสมัครด้านล่างได้เลย</b> — ไม่ต้องเข้าสู่ระบบ (แนบรูป 1 รูป)
+                </li>
+                <li>
+                  หรือกด <b>•••</b> มุมขวาบน →{" "}
+                  <b>&quot;เปิดในเบราว์เซอร์&quot;</b> (Safari/Chrome) แล้วค่อยเข้าสู่ระบบ LINE
+                </li>
+              </ul>
+            </div>
+          )}
+
+          {/* ปุ่ม LINE — เด่นเมื่อไม่ได้อยู่ใน FB browser · เป็นทางเลือกรองเมื่ออยู่ */}
+          {!inFbBrowser && (
+            <>
+              <a
+                href={loginHref}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-[#06C755] py-3.5 text-base font-bold text-white shadow-md transition hover:opacity-95"
+              >
+                เข้าสู่ระบบด้วย LINE เพื่อสมัคร
+              </a>
+              <p className="text-center text-xs text-neutral-400">
+                เป็นสมาชิกอยู่แล้ว? เข้าสู่ระบบแล้วกดสมัครได้เลย ไม่ต้องกรอกใหม่
+              </p>
+            </>
+          )}
 
           {!manualOpen ? (
             <button
@@ -153,6 +188,16 @@ export function CastingApply({
               roles={roles}
               shareTitle={shareTitle}
             />
+          )}
+
+          {/* อยู่ใน FB browser → ยังให้ทางเลือก LINE ไว้ท้ายสุด (เผื่ออยากใช้) */}
+          {inFbBrowser && (
+            <a
+              href={loginHref}
+              className="block w-full rounded-full border border-[#06C755] py-2.5 text-center text-sm font-semibold text-[#06C755]"
+            >
+              หรือเข้าสู่ระบบด้วย LINE (สำหรับสมาชิกเดิม)
+            </a>
           )}
         </div>
       )}
