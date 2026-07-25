@@ -78,6 +78,17 @@ export default async function ProjectReportPage({
       {/* ===== หน้าปก ===== */}
       <section className="pdf-page pdf-cover mb-6 flex flex-col justify-between rounded-lg bg-gradient-to-br from-[#1D4ED8] via-[#5b2b8f] to-[#B82233] p-14 text-white shadow-sm">
         <div>
+          {/* โลโก้แก้มแดง (mascot) ด้านบนสุด */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/gamdang-logo.png"
+            alt="GAMDANG"
+            className="mb-4 h-20 w-auto"
+            style={{
+              WebkitPrintColorAdjust: "exact",
+              printColorAdjust: "exact",
+            }}
+          />
           <p className="text-xl font-extrabold tracking-[0.25em]">GAMDANG AGENCY</p>
           <p className="mt-1 text-xs tracking-widest text-white/60">
             MODELING &amp; INFLUENCER AGENCY
