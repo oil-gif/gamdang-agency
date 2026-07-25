@@ -65,9 +65,12 @@ export function TalentForm({
   error?: string;
   mode?: "admin" | "self";
 }) {
+  const [isModel, setIsModel] = useState(talent?.is_model ?? false);
   const [isInfluencer, setIsInfluencer] = useState(talent?.is_influencer ?? false);
   const [isAiModel, setIsAiModel] = useState(talent?.is_ai_model ?? false);
   const action = mode === "self" ? saveTalentSelf : saveTalent;
+  // self: สูง/หนัก/สัญชาติ บังคับเฉพาะ Model (Influencer ล้วนไม่ต้องกรอก)
+  const modelFieldsRequired = mode === "self" && isModel;
 
   return (
     <form action={action} className="max-w-3xl space-y-6">
@@ -83,6 +86,55 @@ export function TalentForm({
         <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
+      )}
+
+      {/* self: เลือกบทบาทก่อน — กำหนดว่าจะต้องกรอก/อัพโหลดอะไรต่อ */}
+      {mode === "self" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-[#1D4ED8]">
+              สมัครเป็น <span className="font-normal text-[#1D4ED8]/60">(Apply as)</span>{" "}
+              <span className="text-[#B82233]">*</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border-2 border-neutral-200 p-4 transition has-[[data-state=checked]]:border-[#1D4ED8] has-[[data-state=checked]]:bg-[#1D4ED8]/5">
+                <Checkbox
+                  name="is_model"
+                  checked={isModel}
+                  onCheckedChange={(v) => setIsModel(v === true)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="block font-bold text-neutral-800">🎬 Model</span>
+                  <span className="mt-0.5 block text-xs leading-4 text-neutral-500">
+                    งานถ่ายแบบ โฆษณา เดินแบบ — มีคอมการ์ด (ต้องกรอกส่วนสูง/น้ำหนัก)
+                  </span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border-2 border-neutral-200 p-4 transition has-[[data-state=checked]]:border-[#B82233] has-[[data-state=checked]]:bg-[#B82233]/5">
+                <Checkbox
+                  name="is_influencer"
+                  checked={isInfluencer}
+                  onCheckedChange={(v) => setIsInfluencer(v === true)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="block font-bold text-neutral-800">⭐ Influencer</span>
+                  <span className="mt-0.5 block text-xs leading-4 text-neutral-500">
+                    รีวิว คอนเทนต์ โซเชียล — อัพรูปเดียวพอ ไม่ต้องทำคอมการ์ด
+                  </span>
+                </span>
+              </label>
+            </div>
+            <p className="text-xs leading-5 text-neutral-400">
+              เลือกได้ทั้ง 2 ถ้าทำทั้งคู่ — <b className="text-neutral-500">ใช้ข้อมูลชุดเดียวกัน</b>{" "}
+              กรอกเพิ่มแค่ช่องทางโซเชียล + ผู้ติดตาม · ถ้าเลือก Model ระบบจะให้ทำคอมการ์ด
+              แล้ว<b className="text-neutral-500">ใช้รูปหลักเป็นรูป Influencer ให้อัตโนมัติ</b> ไม่ต้องอัพซ้ำ
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       <Card>
@@ -159,7 +211,7 @@ export function TalentForm({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="height_cm">
-              ส่วนสูง (Height, ซม.){mode === "self" && " *"}
+              ส่วนสูง (Height, ซม.){modelFieldsRequired && " *"}
             </Label>
             <Input
               id="height_cm"
@@ -167,12 +219,12 @@ export function TalentForm({
               type="number"
               placeholder="เช่น 120"
               defaultValue={talent?.height_cm ?? ""}
-              required={mode === "self"}
+              required={modelFieldsRequired}
             />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="weight_kg">
-              น้ำหนัก (Weight, กก.){mode === "self" && " *"}
+              น้ำหนัก (Weight, กก.){modelFieldsRequired && " *"}
             </Label>
             <Input
               id="weight_kg"
@@ -180,7 +232,7 @@ export function TalentForm({
               type="number"
               placeholder="เช่น 25"
               defaultValue={talent?.weight_kg ?? ""}
-              required={mode === "self"}
+              required={modelFieldsRequired}
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
@@ -195,14 +247,14 @@ export function TalentForm({
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="nationality">
-              สัญชาติ (Nationality){mode === "self" && " *"}
+              สัญชาติ (Nationality){modelFieldsRequired && " *"}
             </Label>
             <Input
               id="nationality"
               name="nationality"
               placeholder="เช่น Thai, Thai/American"
               defaultValue={talent?.nationality ?? ""}
-              required={mode === "self"}
+              required={modelFieldsRequired}
             />
           </div>
         </CardContent>
@@ -316,30 +368,33 @@ export function TalentForm({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-[#1D4ED8]">
-            บทบาท{mode === "admin" && " & สถานะ"}{" "}
-            <span className="font-normal text-[#1D4ED8]/60">
-              ({mode === "admin" ? "Role & Status" : "Role"})
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium transition hover:border-neutral-300 has-[[data-state=checked]]:border-[#1D4ED8] has-[[data-state=checked]]:bg-[#1D4ED8]/5">
-              <Checkbox name="is_model" defaultChecked={talent?.is_model ?? false} />
-              เป็น Model
-            </label>
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium transition hover:border-neutral-300 has-[[data-state=checked]]:border-[#B82233] has-[[data-state=checked]]:bg-[#B82233]/5">
-              <Checkbox
-                name="is_influencer"
-                checked={isInfluencer}
-                onCheckedChange={(v) => setIsInfluencer(v === true)}
-              />
-              เป็น Influencer
-            </label>
-            {mode === "admin" && (
+      {/* self: บทบาทเลือกไว้บนสุดแล้ว — การ์ดนี้เฉพาะ admin (มี AI + สถานะ) */}
+      {mode === "admin" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-[#1D4ED8]">
+              บทบาท & สถานะ{" "}
+              <span className="font-normal text-[#1D4ED8]/60">(Role & Status)</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium transition hover:border-neutral-300 has-[[data-state=checked]]:border-[#1D4ED8] has-[[data-state=checked]]:bg-[#1D4ED8]/5">
+                <Checkbox
+                  name="is_model"
+                  checked={isModel}
+                  onCheckedChange={(v) => setIsModel(v === true)}
+                />
+                เป็น Model
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium transition hover:border-neutral-300 has-[[data-state=checked]]:border-[#B82233] has-[[data-state=checked]]:bg-[#B82233]/5">
+                <Checkbox
+                  name="is_influencer"
+                  checked={isInfluencer}
+                  onCheckedChange={(v) => setIsInfluencer(v === true)}
+                />
+                เป็น Influencer
+              </label>
               <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-medium transition hover:border-neutral-300 has-[[data-state=checked]]:border-violet-500 has-[[data-state=checked]]:bg-violet-50">
                 <Checkbox
                   name="is_ai_model"
@@ -348,22 +403,20 @@ export function TalentForm({
                 />
                 เป็น AI Model
               </label>
-            )}
-          </div>
-          {mode === "admin" && isAiModel && (
-            <div className="space-y-1.5">
-              <Label htmlFor="character">
-                Character (คั่นด้วย / เช่น Energetic / Fun)
-              </Label>
-              <Input
-                id="character"
-                name="character"
-                placeholder="Energetic / Fun"
-                defaultValue={talent?.character ?? ""}
-              />
             </div>
-          )}
-          {mode === "admin" && (
+            {isAiModel && (
+              <div className="space-y-1.5">
+                <Label htmlFor="character">
+                  Character (คั่นด้วย / เช่น Energetic / Fun)
+                </Label>
+                <Input
+                  id="character"
+                  name="character"
+                  placeholder="Energetic / Fun"
+                  defaultValue={talent?.character ?? ""}
+                />
+              </div>
+            )}
             <div className="max-w-xs space-y-1.5">
               <Label htmlFor="status">สถานะ (Status)</Label>
               <Select name="status" defaultValue={talent?.status ?? "pending"}>
@@ -378,9 +431,9 @@ export function TalentForm({
                 </SelectContent>
               </Select>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {isInfluencer && (
         <>

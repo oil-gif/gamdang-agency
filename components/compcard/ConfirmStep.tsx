@@ -18,6 +18,9 @@ export function ConfirmStep({
   isInfluencer,
   topSocialText,
   expertise,
+  variant = "compcard",
+  compcardPath,
+  singlePhotoPath,
 }: {
   talent: CompcardTalent & { phone?: string | null };
   slots: Record<string, string>;
@@ -26,6 +29,11 @@ export function ConfirmStep({
   isInfluencer: boolean;
   topSocialText: string | null;
   expertise: string[];
+  // compcard = สร้างใหม่ด้วยระบบ · legacy = อัพคอมการ์ดแก้มแดงเดิม ·
+  // influencer = รูปเดียว (Influencer ล้วน ไม่ทำคอมการ์ด)
+  variant?: "compcard" | "legacy" | "influencer";
+  compcardPath?: string | null;
+  singlePhotoPath?: string | null;
 }) {
   const [c1, setC1] = useState(false);
   const [c2, setC2] = useState(false);
@@ -41,17 +49,28 @@ export function ConfirmStep({
       "เพศ / อายุ",
       `${talent.gender === "male" ? "ชาย" : talent.gender === "female" ? "หญิง" : "อื่นๆ"}${age != null ? ` · ${age} ปี` : ""}`,
     ],
-    [
+  ];
+  // สูง/หนัก/สัญชาติ — โชว์เมื่อมีข้อมูล (Influencer ล้วนอาจไม่ได้กรอก)
+  if (talent.height_cm || talent.weight_kg) {
+    rows.push([
       "ส่วนสูง / น้ำหนัก",
       `${talent.height_cm ?? "-"} cm / ${talent.weight_kg ?? "-"} kg`,
-    ],
-    ["สัญชาติ", talent.nationality ?? "-"],
-    ["เบอร์โทร", talent.phone ?? "-"],
-  ];
+    ]);
+  }
+  if (talent.nationality) rows.push(["สัญชาติ", talent.nationality]);
+  rows.push(["เบอร์โทร", talent.phone ?? "-"]);
   if (isInfluencer) {
     if (expertise.length > 0) rows.push(["ความเชี่ยวชาญ", expertise.join(", ")]);
     if (topSocialText) rows.push(["ช่องทางเด่น", topSocialText]);
   }
+
+  // ข้อยินยอมข้อ 2 ปรับตามชนิดการสมัคร
+  const c2Text =
+    variant === "legacy"
+      ? "ข้าพเจ้ายืนยันว่าคอมการ์ดที่อัพโหลดเป็นคอมการ์ดของแก้มแดง (GAMDANG AGENCY) ที่จัดทำไว้เดิม และยินยอมให้บริษัทนำไปใช้และเผยแพร่ในฐานข้อมูลนักแสดง เพื่อการนำเสนองานภายใต้เครือแก้มแดงเท่านั้น"
+      : variant === "influencer"
+        ? "ข้าพเจ้ายินยอมให้บริษัทนำรูปถ่ายและข้อมูลไปใช้และเผยแพร่ในฐานข้อมูลนักแสดง เพื่อการนำเสนองานภายใต้เครือแก้มแดง (GAMDANG AGENCY) เท่านั้น"
+        : "ข้าพเจ้ายินยอมให้บริษัทนำรูปถ่ายไปจัดทำ Comp Card โดยระบบของแก้มแดง และเผยแพร่ในฐานข้อมูลนักแสดงของบริษัท ทั้งนี้ Comp Card ที่ระบบสร้างขึ้นจะใช้เพื่อการนำเสนองานภายใต้เครือแก้มแดง (GAMDANG AGENCY) เท่านั้น";
 
   if (confirmed) {
     return (
@@ -67,9 +86,21 @@ export function ConfirmStep({
 
         <div>
           <h3 className="mb-2 text-base font-bold text-neutral-800">
-            🪪 My Compcard
+            {variant === "influencer" ? "🖼️ รูปโปรไฟล์ของฉัน" : "🪪 My Compcard"}
           </h3>
-          <CompcardGenerator talent={talent} slots={slots} />
+          {variant === "compcard" ? (
+            <CompcardGenerator talent={talent} slots={slots} />
+          ) : (
+            // legacy / influencer — โชว์รูปที่อัพไว้ (ไม่ต้องวาดใหม่)
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`/photo/${variant === "legacy" ? compcardPath : singlePhotoPath}`}
+              alt={variant === "legacy" ? "คอมการ์ดแก้มแดงเดิม" : "รูปโปรไฟล์"}
+              className={`w-full rounded-xl border border-neutral-200 bg-neutral-50 ${
+                variant === "legacy" ? "object-contain" : "max-h-[520px] object-contain"
+              }`}
+            />
+          )}
         </div>
 
         <Link
@@ -121,11 +152,7 @@ export function ConfirmStep({
               setC1,
               "ข้าพเจ้ายินยอมให้ บริษัท แก้มแดง จำกัด (GAMDANG AGENCY) จัดเก็บ ใช้ และประมวลผลข้อมูลส่วนบุคคลและรูปถ่ายตามใบสมัครนี้ เพื่อการจัดทำฐานข้อมูลนักแสดง การพิจารณาจับคู่งาน และการนำเสนอต่อลูกค้าของบริษัท ภายใต้พระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)",
             ],
-            [
-              c2,
-              setC2,
-              "ข้าพเจ้ายินยอมให้บริษัทนำรูปถ่ายไปจัดทำ Comp Card โดยระบบของแก้มแดง และเผยแพร่ในฐานข้อมูลนักแสดงของบริษัท ทั้งนี้ Comp Card ที่ระบบสร้างขึ้นจะใช้เพื่อการนำเสนองานภายใต้เครือแก้มแดง (GAMDANG AGENCY) เท่านั้น",
-            ],
+            [c2, setC2, c2Text],
             [
               c3,
               setC3,

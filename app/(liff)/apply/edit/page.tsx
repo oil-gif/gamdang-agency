@@ -2,12 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getOwnedTalent } from "@/actions/talents";
-import { CompcardSlots } from "@/components/compcard/CompcardSlots";
 import { ConfirmStep } from "@/components/compcard/ConfirmStep";
+import { ModelPhotoStep } from "@/components/compcard/ModelPhotoStep";
+import { SinglePhotoUpload } from "@/components/compcard/SinglePhotoUpload";
 import { TalentForm } from "@/components/talent/TalentForm";
 import { getTalentSession } from "@/lib/auth/talent-session";
 import { REQUIRED_SLOTS } from "@/lib/compcard";
 import { formatFollowers, topSocial } from "@/lib/social";
+import { supabase } from "@/lib/supabase/server";
 
 const STATUS: Record<string, { label: string; className: string }> = {
   pending: { label: "รออนุมัติ", className: "bg-amber-100 text-amber-700" },
@@ -37,15 +39,51 @@ export default async function ApplyEditPage({
   if (id && !talent) redirect("/apply/profiles");
 
   const isNew = !talent;
-  // step: ใหม่ = ได้แค่ 1 · step 3 ต้องมีรูปบังคับครบ 4 ไม่งั้นเด้งกลับ step 2
   let step = Math.min(3, Math.max(1, parseInt(stepRaw ?? "1", 10) || 1));
   if (isNew) step = 1;
+
+  // ===== แยกเส้นทางตามบทบาท =====
+  // Influencer ล้วน → อัพรูปเดียว · Model → คอมการ์ดใหม่ หรือคอมการ์ดแก้มแดงเดิม
+  const isModel = talent?.is_model === true;
+  const isInfluencer = talent?.is_influencer === true;
+  const influencerOnly = isInfluencer && !isModel;
   const slots: Record<string, string> = (talent?.compcard_slots ?? {}) as Record<
     string,
     string
   >;
-  if (step === 3 && !REQUIRED_SLOTS.every((k) => slots[k])) {
-    redirect(`/apply/edit?id=${id}&step=2&error=${encodeURIComponent("อัพโหลดรูปบังคับให้ครบ 4 ช่องก่อนค่ะ")}`);
+  const hasRequiredSlots = REQUIRED_SLOTS.every((k) => slots[k]);
+  const singlePath = slots.single ?? null;
+
+  // คอมการ์ดที่อัพไว้ (legacy) — ใช้เช็ค gate + โชว์ตอนยืนยัน
+  let compcardPath: string | null = null;
+  if (talent && !isNew) {
+    const { data: cc } = await supabase
+      .from("talent_photos")
+      .select("storage_path")
+      .eq("talent_id", talent.id)
+      .eq("kind", "compcard")
+      .maybeSingle();
+    compcardPath = cc?.storage_path ?? null;
+  }
+
+  // variant ตอนยืนยัน: influencer / compcard(สร้างใหม่) / legacy(อัพเดิม)
+  const variant: "compcard" | "legacy" | "influencer" = influencerOnly
+    ? "influencer"
+    : hasRequiredSlots
+      ? "compcard"
+      : compcardPath
+        ? "legacy"
+        : "compcard";
+
+  // gate ก่อนไปหน้ายืนยัน (step 3)
+  const gateOk = influencerOnly
+    ? !!singlePath
+    : hasRequiredSlots || !!compcardPath;
+  if (step === 3 && !gateOk) {
+    const msg = influencerOnly
+      ? "อัพโหลดรูปโปรไฟล์ก่อนค่ะ"
+      : "อัพโหลดรูปให้ครบก่อนค่ะ (คอมการ์ดใหม่ 4 รูป หรือคอมการ์ดแก้มแดงเดิม)";
+    redirect(`/apply/edit?id=${id}&step=2&error=${encodeURIComponent(msg)}`);
   }
 
   const status = talent ? (STATUS[talent.status] ?? STATUS.pending) : null;
@@ -139,7 +177,7 @@ export default async function ApplyEditPage({
       <main className="mx-auto max-w-3xl space-y-5 px-4 pb-24 pt-5">
         {saved && step === 2 && (
           <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            ✓ บันทึกข้อมูลแล้ว — ต่อไปอัพโหลดรูปเพื่อทำ Comp Card ค่ะ
+            ✓ บันทึกข้อมูลแล้ว — ต่อไปอัพโหลดรูปค่ะ
           </div>
         )}
         {error && (
@@ -152,8 +190,7 @@ export default async function ApplyEditPage({
           <>
             {isNew && (
               <div className="rounded-2xl border border-dashed border-[#1D4ED8]/30 bg-[#1D4ED8]/5 px-4 py-3 text-sm text-neutral-600">
-                📝 กรอกข้อมูล + กด <b>บันทึก</b> แล้วไปขั้นตอนอัพโหลดรูปเพื่อทำ
-                Comp Card ต่อได้เลยค่ะ
+                📝 กรอกข้อมูล + กด <b>บันทึก</b> แล้วไปขั้นตอนอัพโหลดรูปต่อได้เลยค่ะ
               </div>
             )}
             <TalentForm talent={talent ?? undefined} mode="self" />
@@ -162,7 +199,19 @@ export default async function ApplyEditPage({
 
         {step === 2 && !isNew && (
           <>
-            <CompcardSlots talentId={talent!.id} initialSlots={slots} />
+            {influencerOnly ? (
+              <SinglePhotoUpload talentId={talent!.id} initialPath={singlePath} />
+            ) : (
+              <ModelPhotoStep
+                talentId={talent!.id}
+                initialSlots={slots}
+                initialMode={compcardPath && !hasRequiredSlots ? "legacy" : "new"}
+                legacyCode={
+                  (talent as { legacy_code?: string | null }).legacy_code ?? null
+                }
+                legacyPath={compcardPath}
+              />
+            )}
             <div className="flex gap-3">
               <Link
                 href={`/apply/edit?id=${id}&step=1`}
@@ -178,7 +227,9 @@ export default async function ApplyEditPage({
               </Link>
             </div>
             <p className="text-center text-xs text-neutral-400">
-              ต้องมีรูปบังคับครบ 4 ช่องก่อน ถึงจะไปขั้นตอนยืนยันได้
+              {influencerOnly
+                ? "อัพโหลดรูปโปรไฟล์ก่อน ถึงจะไปขั้นตอนยืนยันได้"
+                : "ทำคอมการ์ดใหม่ให้ครบ 4 รูป หรืออัพคอมการ์ดแก้มแดงเดิม ก่อนไปยืนยัน"}
             </p>
           </>
         )}
@@ -189,9 +240,12 @@ export default async function ApplyEditPage({
             slots={slots}
             backHref={`/apply/edit?id=${id}&step=2`}
             doneHref="/apply/profiles"
-            isInfluencer={talent!.is_influencer === true}
+            isInfluencer={isInfluencer}
             topSocialText={topSocialText}
             expertise={(talent!.categories ?? []) as string[]}
+            variant={variant}
+            compcardPath={compcardPath}
+            singlePhotoPath={singlePath}
           />
         )}
       </main>

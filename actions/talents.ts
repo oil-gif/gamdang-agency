@@ -528,13 +528,28 @@ export async function saveTalentSelf(formData: FormData) {
   const gender = str(formData, "gender");
   const dob = str(formData, "dob");
   const phone = str(formData, "phone");
-  // สูง/หนัก/สัญชาติ บังคับ (ขึ้นบน Comp Card + การ์ด Model)
+  const isModel = formData.get("is_model") === "on";
+  const isInfluencer = formData.get("is_influencer") === "on";
+  // ต้องเลือกอย่างน้อย 1 บทบาท
+  if (!isModel && !isInfluencer) {
+    redirect(
+      `${backTo}${sep}error=${encodeURIComponent("เลือกอย่างน้อย 1 บทบาท: Model หรือ Influencer")}`,
+    );
+  }
+  // ข้อมูลพื้นฐานบังคับทุกคน
+  if (!nicknameEn || !gender || !dob || !phone) {
+    redirect(
+      `${backTo}${sep}error=${encodeURIComponent("กรุณากรอกให้ครบ: ชื่อเล่น (English) เพศ วันเกิด และเบอร์โทร")}`,
+    );
+  }
+  // สูง/หนัก/สัญชาติ บังคับเฉพาะ Model (ขึ้นบน Comp Card + การ์ด Model) —
+  // Influencer ล้วนไม่ต้องกรอก เพื่อให้สมัครง่ายขึ้น
   const heightCm = str(formData, "height_cm");
   const weightKg = str(formData, "weight_kg");
   const nationality = str(formData, "nationality");
-  if (!nicknameEn || !gender || !dob || !phone || !heightCm || !weightKg || !nationality) {
+  if (isModel && (!heightCm || !weightKg || !nationality)) {
     redirect(
-      `${backTo}${sep}error=${encodeURIComponent("กรุณากรอกให้ครบ: ชื่อเล่น (English) เพศ วันเกิด เบอร์โทร ส่วนสูง น้ำหนัก และสัญชาติ")}`,
+      `${backTo}${sep}error=${encodeURIComponent("Model ต้องกรอก ส่วนสูง น้ำหนัก และสัญชาติ ด้วยค่ะ")}`,
     );
   }
 
@@ -625,6 +640,22 @@ export async function saveTalentSelf(formData: FormData) {
 
   revalidatePath(backTo);
   redirect(`${backTo}&step=2&saved=1`);
+}
+
+// ผู้สมัคร Model ที่เลือก "มีคอมการ์ดแก้มแดงเดิม" — เก็บรหัสแก้มแดงเก่าที่กรอก
+// (เช็คสิทธิ์ตามบัญชี LINE) · เขียนแบบ defensive เผื่อยังไม่ได้รัน migration 015
+export async function saveLegacyCompcardCode(talentId: string, code: string) {
+  const owned = await getOwnedTalent(talentId);
+  if (!owned) return { ok: false as const, error: "forbidden" };
+  const { error } = await supabase
+    .from("talents")
+    .update({ legacy_code: code.trim() || null })
+    .eq("id", talentId);
+  if (error) {
+    // คอลัมน์ legacy_code ยังไม่มี (ยังไม่รัน migration 015) — ไม่ให้ flow พัง
+    return { ok: false as const, error: error.message };
+  }
+  return { ok: true as const };
 }
 
 export async function deleteTalent(formData: FormData) {
