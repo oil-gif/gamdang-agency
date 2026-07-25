@@ -13,11 +13,15 @@ export default function ApplyPage() {
     let cancelled = false;
 
     // ล็อกอิน LINE ใหม่โดยพา ?relogin=1 กลับมาด้วย (กันลูป: ทำได้ครั้งเดียว)
-    // ใช้ liff.login() เฉยๆ — ห้ามเรียก liff.logout() ก่อน เพราะในแอป LINE
-    // มันทำให้ getIDToken() คืนค่าว่างหลัง redirect กลับ (เข้าไม่ได้ทั้งระบบ)
+    // logout ก่อน — บังคับ re-consent เพื่อขอ token สดที่มี scope ครบ (เคสผู้ใช้
+    // ถือ token เก่าที่ออกก่อนเปิด scope) · เรียกเฉพาะตอน token เก่าใช้ไม่ได้
+    // เท่านั้น (ไม่ใช่ทุกครั้งที่โหลด) จึงไม่กระทบคนที่ token ใช้ได้อยู่แล้ว
     function relogin() {
       const url = new URL(window.location.href);
       url.searchParams.set("relogin", "1");
+      try {
+        liff.logout();
+      } catch {}
       liff.login({ redirectUri: url.toString() });
     }
 
@@ -103,6 +107,10 @@ export default function ApplyPage() {
             <button
               type="button"
               onClick={() => {
+                // logout ก่อน login — บังคับขอ token สดที่มี scope ครบ
+                try {
+                  liff.logout();
+                } catch {}
                 try {
                   liff.login();
                 } catch {
