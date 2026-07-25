@@ -37,3 +37,18 @@ export async function createAdminAuthClient() {
     },
   });
 }
+
+// true ถ้า request นี้มาจากแอดมินที่ล็อกอินแล้ว (Supabase Auth) — ใช้ใน
+// route ที่ปกติเช็คสิทธิ์เจ้าของ talent เพื่อให้แอดมินอัพ/บันทึกแทนได้เสมอ
+// (เผื่อเบราว์เซอร์แอดมินมี talent session ค้างจากการทดสอบ)
+export async function isAdminAuthed(): Promise<boolean> {
+  try {
+    const supabase = await createAdminAuthClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return !!user;
+  } catch {
+    return false;
+  }
+}

@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import sharp from "sharp";
 import { getTalentSession } from "@/lib/auth/talent-session";
+import { isAdminAuthed } from "@/lib/supabase/auth-server";
 import { supabase } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -17,8 +18,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "missing file or talent_id" }, { status: 400 });
   }
 
+  // แอดมิน (Supabase Auth) ผ่านได้เสมอ — เช็คสิทธิ์เจ้าของเฉพาะ talent session
+  // ที่ไม่ใช่แอดมิน (กันเบราว์เซอร์แอดมินที่มี talent session ค้างโดนบล็อก)
   const talentSession = await getTalentSession();
-  if (talentSession) {
+  if (talentSession && !(await isAdminAuthed())) {
     const { data: owned } = await supabase
       .from("talents")
       .select("id")

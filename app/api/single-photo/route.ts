@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import sharp from "sharp";
 import { getTalentSession } from "@/lib/auth/talent-session";
+import { isAdminAuthed } from "@/lib/supabase/auth-server";
 import { supabase } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   const talentSession = await getTalentSession();
-  if (talentSession) {
+  if (talentSession && !(await isAdminAuthed())) {
     const { data: owned } = await supabase
       .from("talents")
       .select("id")

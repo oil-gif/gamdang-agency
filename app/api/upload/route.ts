@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import sharp from "sharp";
 import { supabase } from "@/lib/supabase/server";
 import { getTalentSession } from "@/lib/auth/talent-session";
+import { isAdminAuthed } from "@/lib/supabase/auth-server";
 
 // sharp is a native binding — must run on the Node.js runtime, not Edge.
 export const runtime = "nodejs";
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   // must belong to that LINE account — a parent can only upload to their
   // own kids' profiles. Admin requests have no talent session → allowed.
   const talentSession = await getTalentSession();
-  if (talentSession) {
+  if (talentSession && !(await isAdminAuthed())) {
     const { data: owned } = await supabase
       .from("talents")
       .select("id")
