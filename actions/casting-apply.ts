@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getMyTalents } from "@/actions/talents";
 import { notifyCasting } from "@/lib/admin-notify";
-import { getTalentSession } from "@/lib/auth/talent-session";
+import {
+  createTalentLinkToken,
+  getTalentSession,
+} from "@/lib/auth/talent-session";
 import { verifyLineIdToken } from "@/lib/line-verify";
 import { SITE_URL } from "@/lib/site";
 import { supabase } from "@/lib/supabase/server";
@@ -267,6 +270,13 @@ export async function applyToCasting(formData: FormData) {
   ].filter(Boolean));
 
   revalidatePath(`/admin/projects/${projectId}`);
+
+  // ต่อยอด: ถ้ายังไม่ผูก LINE (กรอกเองผ่าน browser/FB) → สร้าง link token ให้
+  // เอาไปเชื่อมโปรไฟล์นี้กับ LINE ตัวเองได้เองในหน้าสำเร็จ (ไม่ต้องรอแอดมิน)
+  if (!lineProfile) {
+    const linkToken = await createTalentLinkToken(talent.id);
+    redirect(`/casting/${projectId}?applied=1&link=${linkToken}`);
+  }
   redirect(`/casting/${projectId}?applied=1`);
 }
 

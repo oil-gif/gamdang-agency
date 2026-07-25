@@ -56,10 +56,11 @@ export default async function CastingDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ applied?: string; error?: string }>;
+  searchParams: Promise<{ applied?: string; error?: string; link?: string }>;
 }) {
   const { id } = await params;
-  const { applied, error } = await searchParams;
+  const { applied, error, link } = await searchParams;
+  const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
   const casting = await getPublicCasting(id);
   if (!casting) notFound();
 
@@ -87,8 +88,33 @@ export default async function CastingDetailPage({
 
       <main className="mx-auto max-w-3xl px-4 py-6">
         {applied && (
-          <div className="mb-5 rounded-2xl border border-[#06C755]/30 bg-[#06C755]/10 p-4 text-center text-sm font-semibold text-[#04863b]">
-            ✓ ส่งใบสมัครเรียบร้อยแล้ว! ทีมงานจะติดต่อกลับผ่านช่องทางที่ให้ไว้
+          <div className="mb-5 space-y-3">
+            <div className="rounded-2xl border border-[#06C755]/30 bg-[#06C755]/10 p-4 text-center text-sm font-semibold text-[#04863b]">
+              ✓ ส่งใบสมัครเรียบร้อยแล้ว! ทีมงานจะติดต่อกลับผ่านช่องทางที่ให้ไว้
+            </div>
+            {/* ต่อยอด: กรอกเองแล้วยังไม่ผูก LINE → ชวนเชื่อม LINE (ทาง B) */}
+            {link && liffId && (
+              <div className="rounded-2xl border-2 border-[#1D4ED8]/25 bg-gradient-to-br from-[#1D4ED8]/[0.06] to-[#B82233]/[0.06] p-5 text-center">
+                <p className="text-base font-bold text-neutral-800">
+                  🔗 เชื่อมกับ LINE เพื่อเป็นสมาชิก
+                </p>
+                <p className="mx-auto mt-1.5 max-w-md text-[13px] leading-5 text-neutral-500">
+                  เชื่อมโปรไฟล์ที่เพิ่งสมัครกับ LINE ของคุณ — จะได้{" "}
+                  <b className="text-neutral-700">รับแจ้งเตือนงานตรงถึง LINE</b>,
+                  แก้ไข/เพิ่มรูปเองได้ และ{" "}
+                  <b className="text-neutral-700">สมัครงานครั้งหน้าได้เลยไม่ต้องกรอกใหม่</b>
+                </p>
+                <a
+                  href={`https://liff.line.me/${liffId}?link=${link}`}
+                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#06C755] px-7 py-3 text-sm font-bold text-white shadow-md transition hover:opacity-95"
+                >
+                  เชื่อมกับ LINE ของฉัน →
+                </a>
+                <p className="mt-2 text-[11px] text-neutral-400">
+                  แนะนำให้เปิดในแอป LINE · ไม่ทำตอนนี้ก็ได้ ทีมงานส่งลิงก์ให้ทีหลังได้
+                </p>
+              </div>
+            )}
           </div>
         )}
         {error && (
