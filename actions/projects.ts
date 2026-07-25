@@ -143,6 +143,7 @@ export async function getProjectTalents(projectId: string) {
 export type PickerFilters = {
   q?: string;
   role?: "model" | "influencer";
+  gender?: "male" | "female" | "other";
   tiers?: string[];
   categories?: string[];
   minAge?: number;
@@ -180,6 +181,7 @@ export async function getPickerTalents(
   }
   if (f.role === "model") query = query.eq("is_model", true);
   if (f.role === "influencer") query = query.eq("is_influencer", true);
+  if (f.gender) query = query.eq("gender", f.gender);
   if (f.tiers && f.tiers.length > 0) query = query.in("tier", f.tiers);
   if (f.categories && f.categories.length > 0)
     query = query.overlaps("categories", f.categories);

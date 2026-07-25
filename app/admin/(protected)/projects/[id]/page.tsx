@@ -131,6 +131,7 @@ export default async function ProjectDetailPage({
   const error = one(sp.error);
   const pq = one(sp.pq);
   const prole = one(sp.prole);
+  const pgender = one(sp.pgender);
   const ptiers = many(sp.ptier);
   const pcats = many(sp.pcat);
   const pminage = numOr(sp.pminage);
@@ -145,6 +146,10 @@ export default async function ProjectDetailPage({
       getPickerTalents(id, {
         q: pq,
         role: prole === "model" || prole === "influencer" ? prole : undefined,
+        gender:
+          pgender === "male" || pgender === "female" || pgender === "other"
+            ? pgender
+            : undefined,
         tiers: ptiers,
         categories: pcats,
         minAge: pminage,
@@ -161,6 +166,7 @@ export default async function ProjectDetailPage({
     const q = new URLSearchParams();
     if (pq) q.set("pq", pq);
     if (prole) q.set("prole", prole);
+    if (pgender) q.set("pgender", pgender);
     for (const t of ptiers) q.append("ptier", t);
     for (const c of pcats) q.append("pcat", c);
     if (pminage) q.set("pminage", String(pminage));
@@ -688,6 +694,16 @@ export default async function ProjectDetailPage({
               <option value="">ทุกบทบาท</option>
               <option value="model">Model</option>
               <option value="influencer">Influencer</option>
+            </select>
+            <select
+              name="pgender"
+              defaultValue={pgender ?? ""}
+              className="h-9 rounded-md border bg-white px-3 text-sm"
+            >
+              <option value="">ทุกเพศ</option>
+              <option value="female">หญิง</option>
+              <option value="male">ชาย</option>
+              <option value="other">อื่นๆ / LGBTQ+</option>
             </select>
             <div className="flex items-center gap-1 text-sm">
               <span className="text-neutral-500">อายุ</span>
