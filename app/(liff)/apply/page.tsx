@@ -13,14 +13,11 @@ export default function ApplyPage() {
     let cancelled = false;
 
     // ล็อกอิน LINE ใหม่โดยพา ?relogin=1 กลับมาด้วย (กันลูป: ทำได้ครั้งเดียว)
-    // logout ก่อน — บังคับให้ได้ ID token สดจริง (ในแอป LINE liff.login() เฉยๆ
-    // อาจคืน token เก่าที่แคชไว้ เช่นตอนเคยเปิดตอน channel ยัง Developing)
+    // ใช้ liff.login() เฉยๆ — ห้ามเรียก liff.logout() ก่อน เพราะในแอป LINE
+    // มันทำให้ getIDToken() คืนค่าว่างหลัง redirect กลับ (เข้าไม่ได้ทั้งระบบ)
     function relogin() {
       const url = new URL(window.location.href);
       url.searchParams.set("relogin", "1");
-      try {
-        liff.logout();
-      } catch {}
       liff.login({ redirectUri: url.toString() });
     }
 
@@ -39,15 +36,8 @@ export default function ApplyPage() {
         const params = new URLSearchParams(window.location.search);
         const triedRelogin = params.get("relogin") === "1";
 
-        // บนเบราว์เซอร์เดสก์ท็อป/เว็บ ID token ที่แคชไว้อาจหมดอายุ ทั้งที่
-        // isLoggedIn() ยัง true (ในแอป LINE จะรีเฟรชให้เอง) → ขอ token สดก่อน
-        const decoded = liff.getDecodedIDToken() as { exp?: number } | null;
-        const expired = !decoded || (decoded.exp ?? 0) * 1000 < Date.now() + 5000;
-        if (expired && !triedRelogin) {
-          relogin();
-          return;
-        }
-
+        // ปล่อยให้ LINE เป็นคนตัดสินว่า token ใช้ได้ไหม (verify ฝั่งเซิร์ฟเวอร์)
+        // ไม่เดาเองฝั่ง client — กันเคสนาฬิกาเครื่องเพี้ยนแล้ว relogin วนไม่จบ
         const idToken = liff.getIDToken();
         if (!idToken) {
           if (!triedRelogin) return relogin();
@@ -112,10 +102,6 @@ export default function ApplyPage() {
             <button
               type="button"
               onClick={() => {
-                // logout ก่อน login — ล้าง token เก่าที่ค้าง แล้วขอสดใหม่
-                try {
-                  liff.logout();
-                } catch {}
                 try {
                   liff.login();
                 } catch {
