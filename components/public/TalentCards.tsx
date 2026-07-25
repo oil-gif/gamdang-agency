@@ -58,8 +58,8 @@ export function ethnicityText(t: { ethnicities?: string[] | null }) {
     : null;
 }
 
-// เวอร์ชันภาษาอังกฤษล้วน สำหรับการ์ดเสนอลูกค้าต่างชาติ — ใช้สัญชาติก่อน
-// ถ้าไม่มีค่อย fallback เป็นเชื้อชาติ (ตัดวงเล็บไทยออก เช่น "Asian (เอเชีย)" → "Asian")
+// สำหรับการ์ดเสนอลูกค้า — ใช้สัญชาติก่อน (เช่น Thai) ถ้าไม่มีค่อย fallback
+// เป็นเชื้อชาติแบบเต็ม (คงวงเล็บไทยไว้ เช่น "Mixed Race (ลูกครึ่ง)")
 export function nationalityTextEn(t: {
   nationality?: string | null;
   ethnicities?: string[] | null;
@@ -67,9 +67,7 @@ export function nationalityTextEn(t: {
   if (t.nationality) return t.nationality;
   const list = (t.ethnicities ?? []) as string[];
   if (list.length === 0) return null;
-  return list
-    .map((e) => (ETHNICITY_LABEL[e] ?? e).replace(/\s*\(.*?\)\s*/g, "").trim())
-    .join(" / ");
+  return list.map((e) => ETHNICITY_LABEL[e] ?? e).join(" / ");
 }
 
 /**
@@ -364,13 +362,19 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
         ) : (
           <>
             <p className="mt-0.5 text-[11px] leading-4 text-neutral-500">
-              {[
-                t.dob ? `Age ${calculateAge(t.dob)}` : null,
-                t.height_cm ? `Height ${t.height_cm} cm` : null,
-                t.weight_kg ? `Weight ${t.weight_kg} kg` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
+              {t.dob && (
+                <span className="block">Age {calculateAge(t.dob)}</span>
+              )}
+              {(t.height_cm || t.weight_kg) && (
+                <span className="block whitespace-nowrap">
+                  {[
+                    t.height_cm ? `Height ${t.height_cm} cm` : null,
+                    t.weight_kg ? `Weight ${t.weight_kg} kg` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              )}
               {nationalityTextEn(t) && (
                 <span className="block text-[10px] text-neutral-400">
                   {nationalityTextEn(t)}
