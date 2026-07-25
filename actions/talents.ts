@@ -216,20 +216,23 @@ export async function getPendingTalents() {
 
   const { data: photos } = await supabase
     .from("talent_photos")
-    .select("talent_id, storage_path")
-    .eq("kind", "compcard")
+    .select("talent_id, kind, storage_path, display_order")
     .in(
       "talent_id",
       talents.map((t) => t.id),
-    );
+    )
+    .order("display_order", { ascending: true });
 
-  const compcardByTalent = new Map(
-    (photos ?? []).map((p) => [p.talent_id, p.storage_path]),
+  return (
+    talents
+      .map((t) => {
+        const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
+        return { ...t, compcard_path: pickPrimaryPhoto(t, mine) };
+      })
+      // ซ่อน "สมัครค้าง" ที่ยังไม่อัพรูปเลย ออกจากคิวอนุมัติ — ยังอยู่ในระบบ
+      // (สถานะ pending) ถ้ากลับมาอัพรูปเสร็จจะโผล่ในคิวให้อนุมัติเอง
+      .filter((t) => t.compcard_path)
   );
-  return talents.map((t) => ({
-    ...t,
-    compcard_path: compcardByTalent.get(t.id) ?? null,
-  }));
 }
 
 // สถิติ dashboard แบบ count-only (ไม่ดึงข้อมูลทั้งตาราง — เร็วแม้หมื่น record)
@@ -245,12 +248,22 @@ export async function getTalentCounts() {
 }
 
 export async function getPendingCount() {
-  const { count, error } = await supabase
+  // นับเฉพาะ "รออนุมัติที่อัพรูปแล้ว" ให้ตรงกับคิวอนุมัติ (ซ่อนสมัครค้าง)
+  const { data: pending, error } = await supabase
     .from("talents")
-    .select("id", { count: "exact", head: true })
+    .select("id")
     .eq("status", "pending");
   if (error) throw new Error(error.message);
-  return count ?? 0;
+  if (!pending || pending.length === 0) return 0;
+  const { data: photos } = await supabase
+    .from("talent_photos")
+    .select("talent_id")
+    .in(
+      "talent_id",
+      pending.map((t) => t.id),
+    );
+  const withPhoto = new Set((photos ?? []).map((p) => p.talent_id));
+  return pending.filter((t) => withPhoto.has(t.id)).length;
 }
 
 // ค้นหา talent สำหรับ combobox (photo inbox ฯลฯ) — จำกัด 20 ผลลัพธ์
