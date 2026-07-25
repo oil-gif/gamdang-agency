@@ -142,10 +142,10 @@ export function CompcardSlots({
             <div className="rounded-xl border border-[#1D4ED8]/20 bg-[#1D4ED8]/[0.04] p-4">
               <p className="text-sm font-bold text-[#1D4ED8]">✓ รูปแบบนี้ = ผ่าน</p>
               <ul className="mt-2 space-y-1.5 text-[13px] leading-5 text-neutral-600">
-                <li>• ถ่ายใหม่ไม่เกิน 3 เดือน (มือถือก็ได้)</li>
+                <li>• ถ่ายใหม่ไม่เกิน 6 เดือน (ฉากหลังไม่รก)</li>
                 <li>• แสงสว่าง หน้าชัด มองกล้อง</li>
                 <li>• เห็นหน้าเต็มๆ ไม่มีผม/มือ/หมวกบัง</li>
-                <li>• เสื้อผ้าเรียบง่าย พื้นหลังไม่รก</li>
+                <li>• เสื้อผ้าเรียบง่าย ดูสุภาพ</li>
                 <li>• ในรูปมีคนเดียว</li>
               </ul>
             </div>
