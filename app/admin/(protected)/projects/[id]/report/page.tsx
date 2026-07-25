@@ -190,15 +190,18 @@ export default async function ProjectReportPage({
               const extraPhotos: string[] = Array.from(
                 new Set([...(pt.extra_photo_paths ?? []), ...galleryExtras]),
               ).slice(0, 8);
+              // หัวข้อภาษาอังกฤษ (คำง่ายๆ สำหรับลูกค้าต่างชาติอ่านได้)
               const facts = [
-                t.dob ? `อายุ ${calculateAge(t.dob)} ปี` : null,
-                t.height_cm ? `สูง ${t.height_cm} ซม.` : null,
-                t.weight_kg ? `หนัก ${t.weight_kg} กก.` : null,
-                (t.ethnicities ?? []).length > 0
-                  ? (t.ethnicities as string[])
-                      .map((e) => ETHNICITY_LABEL[e] ?? e)
-                      .join(" / ")
-                  : null,
+                t.dob ? `Age ${calculateAge(t.dob)}` : null,
+                t.height_cm ? `Height ${t.height_cm} cm` : null,
+                t.weight_kg ? `Weight ${t.weight_kg} kg` : null,
+                t.nationality
+                  ? `Nationality ${t.nationality}`
+                  : (t.ethnicities ?? []).length > 0
+                    ? (t.ethnicities as string[])
+                        .map((e) => ETHNICITY_LABEL[e] ?? e)
+                        .join(" / ")
+                    : null,
               ].filter(Boolean) as string[];
 
               return (
@@ -206,15 +209,8 @@ export default async function ProjectReportPage({
                   key={pt.id}
                   className="report-block overflow-hidden rounded-xl border border-neutral-200"
                 >
-                  {mainImg && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={getPhotoProxyUrl(mainImg)}
-                      alt={displayName}
-                      className="max-h-64 w-full bg-neutral-50 object-contain"
-                    />
-                  )}
                   <div className="p-4">
+                    {/* 1) ชื่อ + ข้อมูล (ขึ้นก่อน) */}
                     <div className="flex flex-wrap items-baseline gap-x-2">
                       <p className="text-lg font-bold text-neutral-800">
                         {displayName}
@@ -230,6 +226,17 @@ export default async function ProjectReportPage({
                       {facts.join(" · ")}
                     </p>
 
+                    {/* 2) คอมการ์ด */}
+                    {mainImg && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={getPhotoProxyUrl(mainImg)}
+                        alt={displayName}
+                        className="mt-3 max-h-72 w-full rounded-lg bg-neutral-50 object-contain"
+                      />
+                    )}
+
+                    {/* 3) รูปเพิ่มเติม */}
                     {extraPhotos.length > 0 && (
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         {extraPhotos.map((p) => (
@@ -244,10 +251,11 @@ export default async function ProjectReportPage({
                       </div>
                     )}
 
+                    {/* 4) คลิปแนะนำตัว */}
                     {introVideo && (
                       <p className="mt-3 text-sm">
                         <span className="font-semibold text-neutral-700">
-                          🎬 คลิปแนะนำตัว:{" "}
+                          🎬 คลิปแนะนำตัว (Intro Clip):{" "}
                         </span>
                         <a
                           href={introVideo}
