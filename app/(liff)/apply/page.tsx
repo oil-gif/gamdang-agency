@@ -12,6 +12,13 @@ export default function ApplyPage() {
   useEffect(() => {
     let cancelled = false;
 
+    // ล็อกอิน LINE ใหม่โดยพา ?relogin=1 กลับมาด้วย (กันลูป: ทำได้ครั้งเดียว)
+    function relogin() {
+      const url = new URL(window.location.href);
+      url.searchParams.set("relogin", "1");
+      liff.login({ redirectUri: url.toString() });
+    }
+
     async function run() {
       try {
         const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
@@ -24,14 +31,28 @@ export default function ApplyPage() {
           return;
         }
 
+        const params = new URLSearchParams(window.location.search);
+        const triedRelogin = params.get("relogin") === "1";
+
+        // บนเบราว์เซอร์เดสก์ท็อป/เว็บ ID token ที่แคชไว้อาจหมดอายุ ทั้งที่
+        // isLoggedIn() ยัง true (ในแอป LINE จะรีเฟรชให้เอง) → ขอ token สดก่อน
+        const decoded = liff.getDecodedIDToken() as { exp?: number } | null;
+        const expired = !decoded || (decoded.exp ?? 0) * 1000 < Date.now() + 5000;
+        if (expired && !triedRelogin) {
+          relogin();
+          return;
+        }
+
         const idToken = liff.getIDToken();
-        if (!idToken) throw new Error("ไม่พบข้อมูลยืนยันตัวตนจาก LINE");
+        if (!idToken) {
+          if (!triedRelogin) return relogin();
+          throw new Error("ไม่พบข้อมูลยืนยันตัวตนจาก LINE");
+        }
 
         // liff.login() carries the current URL (including this) through
         // the redirect back here, so a link sent by an admin to bind this
         // login to a specific existing talent record survives the login
         // round-trip.
-        const params = new URLSearchParams(window.location.search);
         const linkToken = params.get("link");
         // ?next=/casting/xxx → หลัง login เด้งกลับไปหน้านั้น (เฉพาะ path
         // ภายในเว็บ กัน open-redirect) ไม่งั้นไปหน้าจัดการโปรไฟล์ตามเดิม
@@ -47,6 +68,8 @@ export default function ApplyPage() {
           body: JSON.stringify({ idToken, linkToken }),
         });
         if (!res.ok) {
+          // 401 = token ไม่ผ่าน (มักเพราะหมดอายุ) → ขอ token สดแล้วลองอีกครั้ง
+          if (res.status === 401 && !triedRelogin) return relogin();
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error ?? "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่");
         }
@@ -70,12 +93,27 @@ export default function ApplyPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
-      <div className="text-center text-neutral-600">
-        <p>{message}</p>
+      <div className="max-w-sm text-center text-neutral-600">
+        <p className={isError ? "font-semibold text-neutral-800" : ""}>{message}</p>
         {isError && (
-          <p className="mt-2 text-sm text-red-600">
-            กรุณาเปิดลิงก์นี้จากแอป LINE เท่านั้น
-          </p>
+          <>
+            <p className="mt-2 text-sm text-neutral-500">
+              เซสชัน LINE หมดอายุหรือยังไม่ได้เข้าสู่ระบบ — กดปุ่มด้านล่างเพื่อเข้าสู่ระบบใหม่ค่ะ
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  liff.login();
+                } catch {
+                  window.location.reload();
+                }
+              }}
+              className="mt-4 rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+            >
+              เข้าสู่ระบบด้วย LINE อีกครั้ง
+            </button>
+          </>
         )}
       </div>
     </div>

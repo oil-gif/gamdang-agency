@@ -22,7 +22,17 @@ export async function POST(req: NextRequest) {
   });
 
   if (!verifyRes.ok) {
-    return NextResponse.json({ error: "invalid LINE token" }, { status: 401 });
+    // LINE ตอบเหตุผลจริงมาด้วย (เช่น token หมดอายุ / aud ไม่ตรง channel) —
+    // log ไว้ diagnose ถ้าปัญหายังอยู่หลังล็อกอินใหม่
+    const detail = await verifyRes.json().catch(() => null);
+    console.error("[line/verify] token rejected:", verifyRes.status, detail);
+    return NextResponse.json(
+      {
+        error: "invalid LINE token",
+        detail: detail?.error_description ?? detail?.error ?? null,
+      },
+      { status: 401 },
+    );
   }
 
   const profile = (await verifyRes.json()) as {
