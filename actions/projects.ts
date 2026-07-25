@@ -97,16 +97,44 @@ export async function getProjectTalents(projectId: string) {
     .in("talent_id", talentIds)
     .order("display_order", { ascending: true });
 
-  return rows.map((r) => {
+  // แม็พ role_id → ชื่อ Role (ถ้ามี — migration 017)
+  const roleIds = [
+    ...new Set(
+      rows
+        .map((r) => (r as { role_id?: string | null }).role_id)
+        .filter((v): v is string => Boolean(v)),
+    ),
+  ];
+  const roleMap = new Map<string, string>();
+  if (roleIds.length > 0) {
+    const { data: rr } = await supabase
+      .from("project_roles")
+      .select("id, title")
+      .in("id", roleIds);
+    for (const r of rr ?? []) roleMap.set(r.id, r.title);
+  }
+
+  const result = rows.map((r) => {
     const mine = (photos ?? []).filter((p) => p.talent_id === r.talent_id);
+    const roleId = (r as { role_id?: string | null }).role_id ?? null;
     return {
       ...r,
+      role_title: roleId ? (roleMap.get(roleId) ?? null) : null,
       compcard_path: mine.find((p) => p.kind === "compcard")?.storage_path ?? null,
       gallery_paths: mine
         .filter((p) => p.kind === "gallery")
         .map((p) => p.storage_path),
     };
   });
+
+  // จัดกลุ่มตาม Role (คนไม่มี role ไปท้ายสุด) แล้วเรียงตาม display_order ในกลุ่ม
+  result.sort((a, b) => {
+    const ra = a.role_title ?? "￿";
+    const rb = b.role_title ?? "￿";
+    if (ra !== rb) return ra.localeCompare(rb, "th");
+    return (a.display_order ?? 0) - (b.display_order ?? 0);
+  });
+  return result;
 }
 
 // Candidates for the "เพิ่ม Talent" picker: active talents matching the
@@ -360,7 +388,7 @@ export async function approveApplication(formData: FormData) {
   const projectId = String(formData.get("project_id"));
   const { data: app } = await supabase
     .from("project_applications")
-    .select("talent_id")
+    .select("talent_id, role_id")
     .eq("id", id)
     .maybeSingle();
   if (!app) return;
@@ -381,12 +409,20 @@ export async function approveApplication(formData: FormData) {
     .maybeSingle();
 
   // เพิ่มเข้า proposal (ถ้ายังไม่มี) แล้ว mark ใบสมัครเป็น approved
-  await supabase.from("project_talents").insert({
+  // เก็บ role_id ที่สมัครมาด้วย (defensive: ถ้ายังไม่รัน migration 017 → ใส่ base)
+  const ptRow = {
     project_id: projectId,
     talent_id: app.talent_id,
     card_type: cardType,
     display_order: (maxRow?.display_order ?? -1) + 1,
-  });
+    role_id: (app as { role_id?: string | null }).role_id ?? null,
+  };
+  const { error: insErr } = await supabase.from("project_talents").insert(ptRow);
+  if (isMissingColumn(insErr)) {
+    const { role_id: _role, ...base } = ptRow;
+    void _role;
+    await supabase.from("project_talents").insert(base);
+  }
   await supabase
     .from("project_applications")
     .update({ status: "approved" })

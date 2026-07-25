@@ -285,10 +285,10 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
   return (
     <div className="flex gap-3 overflow-hidden rounded-xl border border-neutral-200 bg-white p-3">
       {/* งาน influ = กรอบแนวตั้ง 3:4 เห็นหน้าชัด · งาน model = กรอบแนวนอนกว้าง
-          object-contain เห็นคอมการ์ดเต็มใบไม่โดน crop */}
+          object-contain เห็นคอมการ์ดเต็มใบไม่โดน crop · ขยายให้รูปเด่นขึ้น */}
       <div
         className={`shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 ${
-          isInflu ? "aspect-[3/4] w-24" : "h-28 w-44"
+          isInflu ? "aspect-[3/4] w-32" : "h-40 w-64"
         }`}
       >
         {img ? (

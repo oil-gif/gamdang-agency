@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import {
   addProjectRole,
@@ -400,11 +401,21 @@ export default async function ProjectDetailPage({
             const responseChip = pt.talent_response
               ? RESPONSE_CHIP[pt.talent_response]
               : null;
+            const prevRole = i > 0 ? projectTalents[i - 1].role_title : undefined;
+            const showRoleHeader = pt.role_title !== prevRole;
             return (
-              <div
-                key={pt.id}
-                className="space-y-2.5 rounded-xl border bg-white p-3 shadow-sm"
-              >
+              <Fragment key={pt.id}>
+              {showRoleHeader && (
+                <div className="flex items-center gap-2 pt-2 first:pt-0">
+                  <span className="rounded-full bg-[#B82233]/10 px-3 py-1 text-sm font-bold text-[#B82233]">
+                    🎭 {pt.role_title ?? "ไม่ระบุ Role"}
+                  </span>
+                  <span className="text-xs text-neutral-400">
+                    {projectTalents.filter((x) => x.role_title === pt.role_title).length} คน
+                  </span>
+                </div>
+              )}
+              <div className="space-y-2.5 rounded-xl border bg-white p-3 shadow-sm">
               <div className="flex items-center gap-3">
                 <span className="w-6 text-center font-mono text-sm text-neutral-400">
                   {i + 1}
@@ -644,6 +655,7 @@ export default async function ProjectDetailPage({
                 />
               </div>
               </div>
+              </Fragment>
             );
           })}
         </div>

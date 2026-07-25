@@ -5,9 +5,9 @@ import { PrintMiniCard } from "@/components/public/TalentCards";
 
 import { CONTACT } from "@/lib/constants";
 
-// การ์ดสูง ~40มม. → A4 แนวตั้ง (พื้นที่ใช้งาน ~277มม.) ใส่ได้เต็มที่ 5 แถว
-// = 10 ใบ/หน้า (ยืนยันกับพี่เจ้าของแล้ว 2026-07-14)
-const CARDS_PER_PAGE = 10;
+// การ์ดใหญ่ขึ้น (รูปคอมการ์ดเด่นขึ้น) → A4 แนวตั้ง 2 คอลัมน์ × 3 แถว
+// = 6 ใบ/หน้า (ปรับ 2026-07-25 ตามที่พี่ขอ — การ์ดรูปใหญ่ขึ้น)
+const CARDS_PER_PAGE = 6;
 
 function chunk<T>(arr: T[], size: number) {
   const out: T[][] = [];
@@ -63,7 +63,7 @@ export default async function ProjectPrintPage({
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-neutral-700">
             ตัวอย่าง PDF: หน้าปก + {projectTalents.length} การ์ด ({pages.length}{" "}
-            หน้า, 10 ใบ/หน้า)
+            หน้า, 6 ใบ/หน้า)
           </p>
           <Link
             href={`/admin/projects/${id}`}
