@@ -59,7 +59,7 @@ export default async function SubmitWorkPage({
   const { data: pt } = await supabase
     .from("project_talents")
     .select(
-      "id, project_id, submission_links, submission_note, submitted_at, extra_photo_paths, intro_video_url, talent:talents(nickname_th, nickname_en), project:projects(name, client_name, project_type)",
+      "id, project_id, submission_links, submission_note, submitted_at, extra_photo_paths, intro_video_url, talent:talents(nickname_th, nickname_en, portfolio_links, intro_video_url), project:projects(name, client_name, project_type)",
     )
     .eq("id", verified.projectTalentId)
     .maybeSingle();
@@ -80,8 +80,15 @@ export default async function SubmitWorkPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const project = pt.project as any;
   const isModel = project.project_type === "model";
-  const name = talent?.nickname_th || talent?.nickname_en || "";
-  const existing: string[] = pt.submission_links ?? [];
+  const name = talent?.nickname_en || talent?.nickname_th || "";
+  // เติมลิงก์ที่ส่งไว้ก่อน — ถ้ายังไม่เคยส่งงานนี้ ใช้ผลงานที่กรอกไว้ตอนสมัคร
+  // (talent.portfolio_links / intro) เพื่อไม่ต้องกรอกซ้ำ ส่งลูกค้าได้เลย
+  const existing: string[] =
+    (pt.submission_links ?? []).length > 0
+      ? pt.submission_links
+      : (talent?.portfolio_links ?? []);
+  const existingIntro: string =
+    pt.intro_video_url || talent?.intro_video_url || "";
   const extraPhotos: string[] = pt.extra_photo_paths ?? [];
 
   return (
@@ -146,7 +153,7 @@ export default async function SubmitWorkPage({
               type="url"
               inputMode="url"
               placeholder="https://..."
-              defaultValue={pt.intro_video_url ?? ""}
+              defaultValue={existingIntro}
               className="h-11 w-full rounded-xl border border-neutral-300 px-3 text-sm outline-none transition focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
             />
           </div>

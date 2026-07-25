@@ -273,41 +273,48 @@ export function TalentForm({
         </CardContent>
       </Card>
 
-      {mode === "admin" && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-[#1D4ED8]">
-              ผลงาน &amp; คลิปแนะนำตัว{" "}
-              <span className="font-normal text-[#1D4ED8]/60">(Portfolio)</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="portfolio_links">
-                ลิงก์ผลงาน (บรรทัดละ 1 ลิงก์ สูงสุด 5 — talent ส่งเองผ่านฟอร์ม casting ได้ด้วย)
-              </Label>
-              <Textarea
-                id="portfolio_links"
-                name="portfolio_links"
-                rows={4}
-                placeholder={"https://...\nhttps://..."}
-                defaultValue={(talent?.portfolio_links ?? []).join("\n")}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="intro_video_url">
-                ลิงก์คลิปแนะนำตัว (TikTok / YouTube / Drive)
-              </Label>
-              <Input
-                id="intro_video_url"
-                name="intro_video_url"
-                placeholder="https://..."
-                defaultValue={talent?.intro_video_url ?? ""}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-[#1D4ED8]">
+            ผลงาน &amp; คลิปแนะนำตัว{" "}
+            <span className="font-normal text-[#1D4ED8]/60">(Portfolio)</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {mode === "self" && (
+            <p className="rounded-xl bg-[#1D4ED8]/5 px-3.5 py-2.5 text-xs leading-5 text-neutral-500">
+              💼 ใส่ไว้ก่อนได้เลย (ไม่บังคับ) — <b>ทีมงานจะส่งให้ลูกค้าดูทันทีตอนเสนองาน</b>{" "}
+              ไม่ต้องมากรอกใหม่ตอนตามแคส ถ้ายังไม่มีเว้นว่างได้ค่ะ
+            </p>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="intro_video_url">
+              ลิงก์คลิปแนะนำตัว (Intro Clip — TikTok / YouTube / Drive)
+            </Label>
+            <Input
+              id="intro_video_url"
+              name="intro_video_url"
+              inputMode="url"
+              placeholder="https://..."
+              defaultValue={talent?.intro_video_url ?? ""}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="portfolio_links">
+              {mode === "self"
+                ? "ลิงก์ผลงานที่เคยทำ (บรรทัดละ 1 ลิงก์ สูงสุด 5 — ถ้ามี)"
+                : "ลิงก์ผลงาน (บรรทัดละ 1 ลิงก์ สูงสุด 5 — talent ส่งเองผ่านฟอร์ม casting ได้ด้วย)"}
+            </Label>
+            <Textarea
+              id="portfolio_links"
+              name="portfolio_links"
+              rows={4}
+              placeholder={"https://...\nhttps://..."}
+              defaultValue={(talent?.portfolio_links ?? []).join("\n")}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

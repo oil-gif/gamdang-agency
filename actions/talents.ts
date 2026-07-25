@@ -325,6 +325,23 @@ function str(formData: FormData, key: string) {
   return value === "" ? null : value;
 }
 
+// เติม https:// ให้ลิงก์ที่ไม่มี scheme (คนกรอกมักลืม)
+function normUrl(v: string | null) {
+  if (!v) return null;
+  return /^https?:\/\//i.test(v) ? v : `https://${v}`;
+}
+// textarea หลายบรรทัด → array ลิงก์ (สูงสุด 5, เติม https ให้)
+function parseLinks(v: string | null): string[] {
+  if (!v) return [];
+  return v
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 5)
+    .map((l) => normUrl(l)!)
+    .filter(Boolean);
+}
+
 export async function saveTalent(formData: FormData) {
   const id = str(formData, "id");
   const backTo = id ? `/admin/talents/${id}` : "/admin/talents/new";
@@ -571,6 +588,9 @@ export async function saveTalentSelf(formData: FormData) {
     max_followers,
     tier,
     categories,
+    // ผลงาน/คลิปแนะนำตัว — เก็บที่ตัว talent เพื่อส่งลูกค้าได้เลยตอนเสนองาน
+    portfolio_links: parseLinks(str(formData, "portfolio_links")),
+    intro_video_url: normUrl(str(formData, "intro_video_url")),
   };
 
   if (isNew) {
