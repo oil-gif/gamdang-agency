@@ -73,7 +73,7 @@ export function genderAgeLabel(gender: string | null | undefined, age: number | 
 export const COMPCARD_CTA = {
   brand: "GAMDANG AGENCY",
   tagline: "Modeling & Influencer Agency",
-  contact: "LINE @gamdangmodeling · www.gamdangagency.com",
+  contact: "Official LINE @gamdangmodeling · www.gamdangagency.com",
 };
 
 // โลโก้แก้มแดง (2 หน้าน้อง) — ต้องเป็น PNG พื้นหลังโปร่ง วางที่ public/

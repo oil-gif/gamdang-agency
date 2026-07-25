@@ -141,39 +141,36 @@ export function CompcardGenerator({
       ctx.fillRect(INFO_BOX.x, INFO_BOX.y, INFO_BOX.w, INFO_BOX.h);
 
       const F = "Kanit, 'Helvetica Neue', Arial, sans-serif";
-      const px = INFO_BOX.x + 28;
+      // จัดชิดขวา ให้ดูพรีเมียม (ลำดับตามการ์ดตัวอย่าง: รหัสใหญ่ → ชื่อ → รายละเอียด)
+      const rx = INFO_BOX.x + INFO_BOX.w - 34; // ขอบขวา (เว้น padding)
+      const maxW = INFO_BOX.w - 68;
       ctx.fillStyle = "#ffffff";
       ctx.textBaseline = "alphabetic";
-      // รหัส — น้ำหนักปกติ (ไม่หนามาก) + จัดกึ่งกลาง
-      ctx.font = `500 62px ${F}`;
-      ctx.textAlign = "center";
-      ctx.fillText(
-        talent.code ?? "",
-        INFO_BOX.x + INFO_BOX.w / 2,
-        INFO_BOX.y + 80,
-        INFO_BOX.w - 48,
-      );
-      ctx.textAlign = "left";
+      ctx.textAlign = "right";
+      // รหัส — ใหญ่ชัด แต่ไม่หนาจัด
+      ctx.font = `600 86px ${F}`;
+      ctx.fillText(talent.code ?? "", rx, INFO_BOX.y + 96, maxW);
       // ชื่อ EN
-      ctx.font = `600 40px ${F}`;
+      ctx.font = `600 42px ${F}`;
       const name = talent.nickname_en || talent.nickname_th || "";
-      ctx.fillText(name, px, INFO_BOX.y + 148, INFO_BOX.w - 56);
-      // เพศ/อายุ · สูง/หนัก · สัญชาติ
+      ctx.fillText(name, rx, INFO_BOX.y + 152, maxW);
+      // เพศ/อายุ · สูง/หนัก · สัญชาติ (สามบรรทัด เว้นระยะสม่ำเสมอ)
       const age = talent.dob ? calculateAge(talent.dob) : null;
       const lines = [
         genderAgeLabel(talent.gender, age),
         [
-          talent.height_cm ? `${talent.height_cm}cm` : null,
-          talent.weight_kg ? `${talent.weight_kg}kg` : null,
+          talent.height_cm ? `${talent.height_cm} cm` : null,
+          talent.weight_kg ? `${talent.weight_kg} kg` : null,
         ]
           .filter(Boolean)
-          .join(", "),
+          .join(" · "),
         talent.nationality ?? "",
       ].filter((l) => l && l.length > 0);
-      ctx.font = `400 30px ${F}`;
+      ctx.font = `400 32px ${F}`;
       lines.forEach((line, i) => {
-        ctx.fillText(line, px, INFO_BOX.y + 200 + i * 44, INFO_BOX.w - 56);
+        ctx.fillText(line, rx, INFO_BOX.y + 208 + i * 44, maxW);
       });
+      ctx.textAlign = "left";
 
       // ===== แถบ CTA ล่าง =====
       const barY = CARD_H - BOTTOM_BAR_H;
