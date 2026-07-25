@@ -107,7 +107,7 @@ export default async function ProjectPrintPage({
           <div className="mt-8 space-y-2 text-sm text-white/85">
             {project.client_name && (
               <p>
-                <span className="text-white/55">ลูกค้า / Client:</span>{" "}
+                <span className="text-white/55">Client:</span>{" "}
                 <span className="font-semibold">{project.client_name}</span>
               </p>
             )}
@@ -115,7 +115,7 @@ export default async function ProjectPrintPage({
               <p>
                 <span className="text-white/55">Shooting Date:</span>{" "}
                 <span className="font-semibold">
-                  {new Date(project.shooting_date).toLocaleDateString("th-TH", {
+                  {new Date(project.shooting_date).toLocaleDateString("en-GB", {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
@@ -124,15 +124,15 @@ export default async function ProjectPrintPage({
               </p>
             )}
             <p>
-              <span className="text-white/55">จำนวนที่นำเสนอ:</span>{" "}
-              <span className="font-semibold">{projectTalents.length} Talents</span>
+              <span className="text-white/55">Talents:</span>{" "}
+              <span className="font-semibold">{projectTalents.length}</span>
             </p>
           </div>
         </div>
 
         <div className="border-t border-white/25 pt-4">
           <p className="text-sm font-semibold">
-            สนใจจองคิว / สอบถามรายละเอียด — LINE Official:{" "}
+            สนใจจองคิว / สอบถามรายละเอียด (Booking &amp; Enquiry) — LINE Official:{" "}
             <a href={CONTACT.lineUrl} className="underline underline-offset-2">
               {CONTACT.lineId}
             </a>
@@ -145,8 +145,8 @@ export default async function ProjectPrintPage({
             ))}
           </p>
           <p className="mt-3 text-[11px] leading-5 text-white/60">
-            จัดทำเมื่อ{" "}
-            {new Date().toLocaleDateString("th-TH", {
+            จัดทำเมื่อ (Prepared){" "}
+            {new Date().toLocaleDateString("en-GB", {
               day: "numeric",
               month: "long",
               year: "numeric",

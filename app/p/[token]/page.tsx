@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { Metadata } from "next";
 import { getProjectTalents } from "@/actions/projects";
 import { acceptProjectLinkTC } from "@/actions/public-link";
@@ -152,13 +153,13 @@ export default async function ClientPortfolioPage({
           <div className="mt-5 flex flex-wrap gap-2 text-sm">
             {project.client_name && (
               <span className="rounded-full bg-white/15 px-3 py-1">
-                ลูกค้า: {project.client_name}
+                Client: {project.client_name}
               </span>
             )}
             {project.shooting_date && (
               <span className="rounded-full bg-white/15 px-3 py-1">
                 Shooting:{" "}
-                {new Date(project.shooting_date).toLocaleDateString("th-TH", {
+                {new Date(project.shooting_date).toLocaleDateString("en-GB", {
                   day: "numeric",
                   month: "long",
                   year: "numeric",
@@ -176,17 +177,34 @@ export default async function ClientPortfolioPage({
 
         {/* คำแนะนำการเลือก */}
         {projectTalents.length > 0 && (
-          <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-800">
-            กดปุ่ม <span className="font-semibold">&quot;+ สนใจคนนี้&quot;</span>{" "}
-            บนการ์ดเพื่อเลือกคนที่ต้องการ — ตัวเลือกจะถูกส่งถึงทีมงาน GAMDANG
-            อัตโนมัติ (กดซ้ำเพื่อยกเลิก)
-          </p>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-800">
+            <p>
+              กดปุ่ม <span className="font-semibold">&quot;+ สนใจคนนี้&quot;</span>{" "}
+              บนการ์ดเพื่อเลือกคนที่ต้องการ — ตัวเลือกจะถูกส่งถึงทีมงาน GAMDANG
+              อัตโนมัติ (กดซ้ำเพื่อยกเลิก)
+            </p>
+            <p className="mt-1 text-xs text-emerald-700/80">
+              (Tap &quot;+ Select&quot; on a card to shortlist — your picks are
+              sent to the GAMDANG team automatically; tap again to remove.)
+            </p>
+          </div>
         )}
 
-        {/* Model comp cards — full width */}
-        {modelTalents.map((pt) => (
-          <ModelCard key={pt.id} pt={pt} selectToken={token} />
-        ))}
+        {/* Model comp cards — full width · แบ่งกลุ่มตาม Role */}
+        {modelTalents.map((pt, idx) => {
+          const prevRole = idx > 0 ? modelTalents[idx - 1].role_title : undefined;
+          const showHeader = pt.role_title !== prevRole;
+          return (
+            <Fragment key={pt.id}>
+              {showHeader && (pt.role_title || idx > 0) && (
+                <h2 className="mt-2 flex items-center gap-2 text-lg font-bold text-[#B82233]">
+                  🎭 {pt.role_title ?? "อื่นๆ (Others)"}
+                </h2>
+              )}
+              <ModelCard pt={pt} selectToken={token} />
+            </Fragment>
+          );
+        })}
 
         {/* Influencer cards — compact grid */}
         {influTalents.length > 0 && (
@@ -205,9 +223,18 @@ export default async function ClientPortfolioPage({
 
         {/* CTA ติดต่อ agency */}
         <section className="print-break overflow-hidden rounded-3xl bg-gradient-to-br from-[#1D4ED8] via-[#5b2b8f] to-[#B82233] px-8 py-10 text-center text-white shadow-md">
-          <h2 className="text-2xl font-bold">สนใจจองคิว / สอบถามรายละเอียด</h2>
+          <h2 className="text-2xl font-bold">
+            สนใจจองคิว / สอบถามรายละเอียด{" "}
+            <span className="block text-base font-semibold text-white/80">
+              (Booking &amp; Enquiry)
+            </span>
+          </h2>
           <p className="mt-2 text-sm text-white/75">
             การติดต่อและจ้างงานทุกกรณี ดำเนินการผ่าน GAMDANG AGENCY เท่านั้น
+            <span className="mt-0.5 block text-xs text-white/60">
+              (All bookings and hiring are handled exclusively through GAMDANG
+              AGENCY.)
+            </span>
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <a
