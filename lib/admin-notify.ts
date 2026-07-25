@@ -18,3 +18,17 @@ export async function notifyAdmin(lines: string[]) {
     console.error("admin notify failed", e);
   }
 }
+
+// แจ้งเตือน "งาน Casting" เข้ากลุ่มทีม — ผ่าน OA ที่ 3 "Gamdang Casting"
+// (แยกโควตาจาก OA หลัก + OA gamdangprofile) ใช้ CASTING_LINE_GROUP_ID +
+// CASTING_LINE_ACCESS_TOKEN · best-effort — พังก็ไม่ทำให้ flow หลักล้ม
+export async function notifyCasting(lines: string[]) {
+  const to = process.env.CASTING_LINE_GROUP_ID;
+  const token = process.env.CASTING_LINE_ACCESS_TOKEN;
+  if (!to || !token) return;
+  try {
+    await pushLineMessage(to, [{ type: "text", text: lines.join("\n") }], token);
+  } catch (e) {
+    console.error("casting notify failed", e);
+  }
+}

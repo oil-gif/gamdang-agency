@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { notifyCasting } from "@/lib/admin-notify";
 import { yearsAgo } from "@/lib/age";
+import { SITE_URL } from "@/lib/site";
 import { supabase } from "@/lib/supabase/server";
 
 export async function getProjects() {
@@ -222,11 +224,31 @@ export async function saveProject(formData: FormData) {
   };
   const payload = { ...base, ...casting };
 
+  // ข้อความแจ้งงาน Casting เข้ากลุ่มทีม (พร้อมลิงก์สาธารณะ)
+  const castingLines = (pid: string) =>
+    [
+      "📣 มีงาน Casting ใหม่เปิดรับสมัคร!",
+      `งาน: ${name}`,
+      base.client_name ? `ลูกค้า: ${base.client_name}` : "",
+      base.shooting_date ? `วันถ่าย: ${base.shooting_date}` : "",
+      "",
+      `ดู/แชร์ลิงก์รับสมัคร: ${SITE_URL}/casting/${pid}`,
+    ].filter(Boolean);
+
   if (id) {
+    // เช็คสถานะเผยแพร่เดิม เพื่อแจ้งกลุ่มเฉพาะตอน "เพิ่งเผยแพร่" (ไม่ซ้ำทุกครั้งที่แก้)
+    const { data: prev } = await supabase
+      .from("projects")
+      .select("is_published")
+      .eq("id", id)
+      .maybeSingle();
+    const wasPublished = prev?.is_published === true;
     let { error } = await supabase.from("projects").update(payload).eq("id", id);
     // ยังไม่ได้ run migration 013 → column ยังไม่มี, บันทึกเฉพาะ base ไปก่อน
     if (isMissingColumn(error)) {
       ({ error } = await supabase.from("projects").update(base).eq("id", id));
+    } else if (!error && casting.is_published && !wasPublished) {
+      await notifyCasting(castingLines(id));
     }
     if (error) throw new Error(error.message);
     revalidatePath("/admin/projects");
@@ -244,6 +266,8 @@ export async function saveProject(formData: FormData) {
       .insert(base)
       .select("id")
       .single());
+  } else if (!error && created && casting.is_published) {
+    await notifyCasting(castingLines(created.id));
   }
   if (error) throw new Error(error.message);
   revalidatePath("/admin/projects");

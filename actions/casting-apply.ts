@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getMyTalents } from "@/actions/talents";
-import { notifyAdmin } from "@/lib/admin-notify";
+import { notifyCasting } from "@/lib/admin-notify";
 import { getTalentSession } from "@/lib/auth/talent-session";
 import { verifyLineIdToken } from "@/lib/line-verify";
 import { SITE_URL } from "@/lib/site";
@@ -118,7 +118,7 @@ export async function applyAsMembers(formData: FormData) {
     .map((n) => n.nickname_en || n.nickname_th || "-")
     .join(", ");
   const role = await roleTitle(roleId);
-  await notifyAdmin([
+  await notifyCasting([
     "🎬 มีผู้สมัคร Casting ใหม่! (สมาชิก)",
     `งาน: ${project.name}`,
     role ? `Role: ${role}` : "",
@@ -203,9 +203,9 @@ export async function applyToCasting(formData: FormData) {
     redirect(`/casting/${projectId}?error=${encodeURIComponent("สมัครไม่สำเร็จ กรุณาลองใหม่")}`);
   }
 
-  // แจ้งเตือน admin เข้ากลุ่ม
+  // แจ้งเตือนเข้ากลุ่ม Casting
   const role = await roleTitle(roleId);
-  await notifyAdmin([
+  await notifyCasting([
     "🎬 มีผู้สมัคร Casting ใหม่! (กรอกเอง)",
     `งาน: ${project.name}`,
     role ? `Role: ${role}` : "",
