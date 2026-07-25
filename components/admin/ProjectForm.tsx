@@ -151,6 +151,13 @@ export function ProjectForm({
           </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {!project?.id && (
+            <div className="rounded-xl border border-dashed border-[#1D4ED8]/30 bg-[#1D4ED8]/5 px-4 py-3 text-sm text-neutral-600 sm:col-span-2">
+              💡 <b>เพิ่ม &quot;Role ที่เปิดรับ&quot; ได้ในหน้าถัดไป</b> หลังกดบันทึก —
+              ระบบจะพาไปหน้ารายละเอียดโปรเจกต์ที่มีช่องเพิ่ม Role (ต้องสร้างโปรเจกต์ก่อน
+              ถึงจะผูก Role ได้)
+            </div>
+          )}
           <div className="space-y-1.5 sm:col-span-2">
             <Label>รูปปกงาน (Cover — 1200 × 630 px สำหรับแชร์ FB/LINE)</Label>
             <ProjectCoverUploader name="cover_path" defaultPath={project?.cover_path} />
