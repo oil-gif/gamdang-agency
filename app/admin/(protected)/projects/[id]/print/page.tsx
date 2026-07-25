@@ -89,23 +89,27 @@ export default async function ProjectPrintPage({
       {/* ===== หน้าปก Report ===== */}
       <section className="pdf-page pdf-cover mb-6 flex flex-col justify-between rounded-lg bg-gradient-to-br from-[#1D4ED8] via-[#5b2b8f] to-[#B82233] p-14 text-white shadow-sm">
         <div>
-          {/* โลโก้แก้มแดง (mascot) ด้านบนสุด */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/gamdang-logo.png"
-            alt="GAMDANG"
-            className="mb-4 h-20 w-auto"
-            style={{
-              WebkitPrintColorAdjust: "exact",
-              printColorAdjust: "exact",
-            }}
-          />
-          <p className="text-xl font-extrabold tracking-[0.25em]">
-            GAMDANG AGENCY
-          </p>
-          <p className="mt-1 text-xs tracking-widest text-white/60">
-            MODELING &amp; INFLUENCER AGENCY
-          </p>
+          {/* โลโก้ Gamdang Modeling + Influencer วางติดกันบนการ์ดขาว */}
+          <div
+            className="inline-flex items-center gap-4 rounded-2xl bg-white px-5 py-3 shadow-sm"
+            style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/gamdang-modeling.png"
+              alt="GAMDANG Modeling Agency"
+              className="h-14 w-auto"
+              style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+            />
+            <span className="h-12 w-px bg-neutral-200" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/gamdang-influencer.png"
+              alt="GAMDANG Influencer Agency"
+              className="h-14 w-auto"
+              style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+            />
+          </div>
         </div>
 
         <div>
