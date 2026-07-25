@@ -15,6 +15,7 @@ import {
   rejectApplication,
   removeTalentFromProject,
   setProjectTalentCardType,
+  setProjectTalentRole,
   setTalentResponseAdmin,
   toggleClientInterestAdmin,
 } from "@/actions/projects";
@@ -465,6 +466,36 @@ export default async function ProjectDetailPage({
                     {t.dob ? ` · ${calculateAge(t.dob)} ปี` : ""}
                     {t.is_influencer ? ` · ${TIER_LABEL[t.tier] ?? t.tier}` : ""}
                   </p>
+                  {/* เปลี่ยน/ย้าย Role ได้ (งานที่มีหลาย Role) */}
+                  {roles.length > 0 && (
+                    <form
+                      action={setProjectTalentRole}
+                      className="mt-1 flex items-center gap-1.5"
+                    >
+                      <input type="hidden" name="id" value={pt.id} />
+                      <input type="hidden" name="project_id" value={id} />
+                      <span className="text-[11px] text-neutral-400">🎭</span>
+                      <select
+                        name="role_id"
+                        defaultValue={pt.role_id ?? ""}
+                        className="max-w-[10rem] rounded-md border border-neutral-300 bg-white px-1.5 py-0.5 text-[11px] text-neutral-700"
+                        aria-label="Role"
+                      >
+                        <option value="">— ไม่ระบุ Role —</option>
+                        {roles.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.title}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="submit"
+                        className="text-[11px] font-medium text-[#1D4ED8] hover:underline"
+                      >
+                        ย้าย
+                      </button>
+                    </form>
+                  )}
                 </div>
 
                 <CardTypeSwitch ptId={pt.id} projectId={id} current={pt.card_type} />
@@ -836,9 +867,27 @@ export default async function ProjectDetailPage({
                     </div>
                   )}
                 </div>
-                <form action={addTalentToProject} className="self-center">
+                <form
+                  action={addTalentToProject}
+                  className="flex flex-col items-stretch gap-1.5 self-center"
+                >
                   <input type="hidden" name="project_id" value={id} />
                   <input type="hidden" name="talent_id" value={t.id} />
+                  {roles.length > 0 && (
+                    <select
+                      name="role_id"
+                      defaultValue={roles[0].id}
+                      className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-700"
+                      aria-label="เลือก Role"
+                    >
+                      <option value="">— ไม่ระบุ Role —</option>
+                      {roles.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.title}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <Button type="submit" size="sm">
                     + เพิ่ม
                   </Button>

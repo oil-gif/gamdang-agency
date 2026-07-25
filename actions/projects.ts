@@ -453,6 +453,8 @@ export async function deleteProject(formData: FormData) {
 export async function addTalentToProject(formData: FormData) {
   const projectId = String(formData.get("project_id"));
   const talentId = String(formData.get("talent_id"));
+  // แอดมินเลือก Role ที่จะเอา talent เข้า (ถ้างานมีหลาย Role) — ว่างได้
+  const roleId = String(formData.get("role_id") ?? "").trim() || null;
 
   // Default the card type to the project's job type (งาน Model → comp card,
   // งาน Influencer → influ card). Admin can flip it per talent afterwards.
@@ -473,12 +475,20 @@ export async function addTalentToProject(formData: FormData) {
     .maybeSingle();
   const nextOrder = (maxRow?.display_order ?? -1) + 1;
 
-  const { error } = await supabase.from("project_talents").insert({
+  const row = {
     project_id: projectId,
     talent_id: talentId,
     card_type: cardType,
     display_order: nextOrder,
-  });
+    role_id: roleId,
+  };
+  let { error } = await supabase.from("project_talents").insert(row);
+  // ยังไม่รัน migration 017 → column role_id ยังไม่มี, ใส่ base ไปก่อน
+  if (isMissingColumn(error)) {
+    const { role_id: _r, ...base } = row;
+    void _r;
+    ({ error } = await supabase.from("project_talents").insert(base));
+  }
   // Ignore duplicate (talent already in project) — unique constraint.
   if (error && !error.message.includes("duplicate")) throw new Error(error.message);
   revalidatePath(`/admin/projects/${projectId}`);
@@ -500,6 +510,19 @@ export async function setProjectTalentCardType(formData: FormData) {
   const { error } = await supabase
     .from("project_talents")
     .update({ card_type: cardType })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/projects/${projectId}`);
+}
+
+// เปลี่ยน/กำหนด Role ของ talent ที่อยู่ในโปรเจกต์แล้ว (ย้ายกลุ่ม Role)
+export async function setProjectTalentRole(formData: FormData) {
+  const id = String(formData.get("id"));
+  const projectId = String(formData.get("project_id"));
+  const roleId = String(formData.get("role_id") ?? "").trim() || null;
+  const { error } = await supabase
+    .from("project_talents")
+    .update({ role_id: roleId })
     .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath(`/admin/projects/${projectId}`);
