@@ -5,18 +5,19 @@
 
 export const CARD_W = 1800;
 export const CARD_H = 1272;
-const M = 24; // margin/gap
 export const BOTTOM_BAR_H = 84;
+// เส้นคั่นระหว่างรูปบาง (gap) — ให้เหมือน comp card ตัวอย่าง
+const G = 12;
 
-// กรอบรูปทั้ง 4 บนการ์ด (พิกัด canvas)
+// กรอบรูปทั้ง 4 บนการ์ด (พิกัด canvas) — gap 12
 export const FRAMES = {
-  headshot: { x: M, y: M, w: 770, h: 1140 },
-  half: { x: 818, y: M, w: 460, h: 558 },
-  lifestyle: { x: 818, y: 606, w: 460, h: 558 },
-  full: { x: 1302, y: 354, w: 474, h: 810 },
+  headshot: { x: G, y: G, w: 774, h: 1164 },
+  half: { x: 798, y: G, w: 450, h: 576 },
+  lifestyle: { x: 798, y: 600, w: 450, h: 576 },
+  full: { x: 1260, y: 324, w: 528, h: 852 },
 } as const;
 
-export const INFO_BOX = { x: 1302, y: M, w: 474, h: 306 } as const;
+export const INFO_BOX = { x: 1260, y: G, w: 528, h: 300 } as const;
 
 export type SlotKey =
   | "headshot"
@@ -40,10 +41,10 @@ export type SlotDef = {
 };
 
 export const SLOTS: SlotDef[] = [
-  { key: "headshot", labelTh: "หน้าตรง", labelEn: "Headshot", required: true, outW: 1155, outH: 1710, hint: "เห็นใบหน้าชัด มองกล้อง" },
-  { key: "half", labelTh: "ครึ่งตัว", labelEn: "Half Body", required: true, outW: 920, outH: 1116, hint: "เห็นตั้งแต่ศีรษะถึงเอว" },
-  { key: "lifestyle", labelTh: "ไลฟ์สไตล์", labelEn: "Lifestyle", required: true, outW: 920, outH: 1116, hint: "ท่าธรรมชาติ สไตล์ของหนูเอง" },
-  { key: "full", labelTh: "เต็มตัว", labelEn: "Full Body", required: true, outW: 711, outH: 1215, hint: "เห็นเต็มตัว ศีรษะถึงปลายเท้า" },
+  { key: "headshot", labelTh: "หน้าตรง", labelEn: "Headshot", required: true, outW: 1161, outH: 1746, hint: "เห็นใบหน้าชัด มองกล้อง" },
+  { key: "half", labelTh: "ครึ่งตัว", labelEn: "Half Body", required: true, outW: 900, outH: 1152, hint: "เห็นตั้งแต่ศีรษะถึงเอว" },
+  { key: "lifestyle", labelTh: "ไลฟ์สไตล์", labelEn: "Lifestyle", required: true, outW: 900, outH: 1152, hint: "ท่าธรรมชาติ สไตล์ของหนูเอง" },
+  { key: "full", labelTh: "เต็มตัว", labelEn: "Full Body", required: true, outW: 792, outH: 1278, hint: "เห็นเต็มตัว ศีรษะถึงปลายเท้า" },
   { key: "extra1", labelTh: "เพิ่มเติม", labelEn: "Extra", required: false, outW: 900, outH: 1200, hint: "มุมอื่นๆ ที่อยากโชว์" },
   { key: "extra2", labelTh: "เพิ่มเติม", labelEn: "Extra", required: false, outW: 900, outH: 1200, hint: "มุมอื่นๆ ที่อยากโชว์" },
   { key: "extra3", labelTh: "เพิ่มเติม", labelEn: "Extra", required: false, outW: 900, outH: 1200, hint: "มุมอื่นๆ ที่อยากโชว์" },
@@ -74,3 +75,7 @@ export const COMPCARD_CTA = {
   tagline: "Modeling & Influencer Agency",
   contact: "LINE @gamdangmodeling · www.gamdangagency.com",
 };
+
+// โลโก้แก้มแดง (2 หน้าน้อง) — ต้องเป็น PNG พื้นหลังโปร่ง วางที่ public/
+// ใช้เป็น icon หน้า CTA + ลายน้ำมุมขวาล่างของรูปหลัก/เต็มตัว
+export const LOGO_SRC = "/gamdang-logo.png";

@@ -9,6 +9,7 @@ import {
   COMPCARD_CTA,
   FRAMES,
   INFO_BOX,
+  LOGO_SRC,
   genderAgeLabel,
   infoBoxColors,
 } from "@/lib/compcard";
@@ -63,6 +64,13 @@ export function CompcardGenerator({
         load(slots.lifestyle),
         load(slots.full),
       ]);
+      // โลโก้แก้มแดง (ถ้ายังไม่มีไฟล์ → ข้าม ไม่ให้การ์ดพัง)
+      const logo = await new Promise<HTMLImageElement | null>((resolve) => {
+        const im = new Image();
+        im.onload = () => resolve(im);
+        im.onerror = () => resolve(null);
+        im.src = LOGO_SRC;
+      });
       // รอฟอนต์ Kanit โหลดก่อนวาดตัวหนังสือ
       try {
         await Promise.all([
@@ -101,6 +109,24 @@ export function CompcardGenerator({
       cover(lifestyle, FRAMES.lifestyle);
       cover(full, FRAMES.full);
 
+      // ลายน้ำโลโก้ (กลมๆ โปร่งแสง) มุมขวาล่างของรูปหลัก + เต็มตัว
+      const watermark = (f: { x: number; y: number; w: number; h: number }) => {
+        if (!logo) return;
+        const size = Math.min(f.w, f.h) * 0.16;
+        const pad = size * 0.35;
+        const cx = f.x + f.w - size / 2 - pad;
+        const cy = f.y + f.h - size / 2 - pad;
+        const s = Math.min(size / logo.naturalWidth, size / logo.naturalHeight);
+        const dw = logo.naturalWidth * s;
+        const dh = logo.naturalHeight * s;
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ctx.drawImage(logo, cx - dw / 2, cy - dh / 2, dw, dh);
+        ctx.restore();
+      };
+      watermark(FRAMES.headshot);
+      watermark(FRAMES.full);
+
       // ===== กล่องข้อมูล (สีตามเพศ) =====
       const [c1, c2] = infoBoxColors(talent.gender);
       const g = ctx.createLinearGradient(
@@ -118,9 +144,16 @@ export function CompcardGenerator({
       const px = INFO_BOX.x + 28;
       ctx.fillStyle = "#ffffff";
       ctx.textBaseline = "alphabetic";
-      // รหัส (ใหญ่สุด)
-      ctx.font = `bold 72px ${F}`;
-      ctx.fillText(talent.code ?? "", px, INFO_BOX.y + 88, INFO_BOX.w - 56);
+      // รหัส — น้ำหนักปกติ (ไม่หนามาก) + จัดกึ่งกลาง
+      ctx.font = `500 62px ${F}`;
+      ctx.textAlign = "center";
+      ctx.fillText(
+        talent.code ?? "",
+        INFO_BOX.x + INFO_BOX.w / 2,
+        INFO_BOX.y + 80,
+        INFO_BOX.w - 48,
+      );
+      ctx.textAlign = "left";
       // ชื่อ EN
       ctx.font = `600 40px ${F}`;
       const name = talent.nickname_en || talent.nickname_th || "";
@@ -153,19 +186,28 @@ export function CompcardGenerator({
       ctx.lineTo(CARD_W - 24, barY);
       ctx.stroke();
 
-      // แบรนด์ gradient ซ้าย
-      const bg = ctx.createLinearGradient(24, 0, 460, 0);
+      // ไอคอนโลโก้แก้มแดง หน้าชื่อแบรนด์ (ถ้ามีไฟล์)
+      let brandX = 28;
+      if (logo) {
+        const ih = 56;
+        const iw = logo.naturalWidth * (ih / logo.naturalHeight);
+        ctx.drawImage(logo, 28, barY + (BOTTOM_BAR_H - ih) / 2, iw, ih);
+        brandX = 28 + iw + 16;
+      }
+      // แบรนด์ gradient
+      const bg = ctx.createLinearGradient(brandX, 0, brandX + 320, 0);
       bg.addColorStop(0, "#1D4ED8");
       bg.addColorStop(1, "#B82233");
       ctx.fillStyle = bg;
       ctx.font = `bold 34px ${F}`;
-      ctx.fillText(COMPCARD_CTA.brand, 28, barY + 53);
-      // tagline + ช่องทางติดต่อ
+      ctx.fillText(COMPCARD_CTA.brand, brandX, barY + 53);
+      const brandW = ctx.measureText(COMPCARD_CTA.brand).width;
+      // tagline + ช่องทางติดต่อ (วางต่อจากชื่อแบรนด์ กัน overlap)
       ctx.fillStyle = "#525252";
       ctx.font = `400 26px ${F}`;
       ctx.fillText(
         `${COMPCARD_CTA.tagline} · ${COMPCARD_CTA.contact}`,
-        480,
+        brandX + brandW + 28,
         barY + 53,
       );
       // เดือน/ปี ขวาสุด
