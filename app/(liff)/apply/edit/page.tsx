@@ -2,9 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getOwnedTalent } from "@/actions/talents";
+import { CompcardSlots } from "@/components/compcard/CompcardSlots";
+import { ConfirmStep } from "@/components/compcard/ConfirmStep";
 import { TalentForm } from "@/components/talent/TalentForm";
-import { TalentPhotos } from "@/components/talent/TalentPhotos";
 import { getTalentSession } from "@/lib/auth/talent-session";
+import { REQUIRED_SLOTS } from "@/lib/compcard";
+import { formatFollowers, topSocial } from "@/lib/social";
 
 const STATUS: Record<string, { label: string; className: string }> = {
   pending: { label: "รออนุมัติ", className: "bg-amber-100 text-amber-700" },
@@ -13,31 +16,53 @@ const STATUS: Record<string, { label: string; className: string }> = {
   inactive: { label: "พักการใช้งาน", className: "bg-neutral-200 text-neutral-600" },
 };
 
+const STEPS = [
+  { n: 1, label: "ข้อมูล" },
+  { n: 2, label: "รูปถ่าย" },
+  { n: 3, label: "ยืนยัน" },
+];
+
 export default async function ApplyEditPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; error?: string; saved?: string }>;
+  searchParams: Promise<{ id?: string; step?: string; error?: string; saved?: string }>;
 }) {
   const session = await getTalentSession();
   if (!session) redirect("/apply");
 
-  const { id, error, saved } = await searchParams;
+  const { id, step: stepRaw, error, saved } = await searchParams;
   // มี id → ต้องเป็นโปรไฟล์ของบัญชี LINE นี้จริง (กันแก้ข้ามบัญชี)
   // ไม่มี id → โหมด "เพิ่มโปรไฟล์ใหม่" ยังไม่สร้าง row จนกว่าจะกดบันทึก
   const talent = id ? await getOwnedTalent(id) : null;
   if (id && !talent) redirect("/apply/profiles");
 
   const isNew = !talent;
+  // step: ใหม่ = ได้แค่ 1 · step 3 ต้องมีรูปบังคับครบ 4 ไม่งั้นเด้งกลับ step 2
+  let step = Math.min(3, Math.max(1, parseInt(stepRaw ?? "1", 10) || 1));
+  if (isNew) step = 1;
+  const slots: Record<string, string> = (talent?.compcard_slots ?? {}) as Record<
+    string,
+    string
+  >;
+  if (step === 3 && !REQUIRED_SLOTS.every((k) => slots[k])) {
+    redirect(`/apply/edit?id=${id}&step=2&error=${encodeURIComponent("อัพโหลดรูปบังคับให้ครบ 4 ช่องก่อนค่ะ")}`);
+  }
+
   const status = talent ? (STATUS[talent.status] ?? STATUS.pending) : null;
   const displayName = isNew
     ? "โปรไฟล์ใหม่"
-    : talent!.nickname_th || talent!.nickname_en || "โปรไฟล์ใหม่";
+    : talent!.nickname_en || talent!.nickname_th || "โปรไฟล์ใหม่";
   const avatarUrl = talent?.line_picture_url ?? session.linePicture;
+
+  const top = talent?.is_influencer ? topSocial(talent) : null;
+  const topSocialText = top
+    ? `${formatFollowers(top.followers)} on ${top.label}`
+    : null;
 
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Brand header */}
-      <header className="bg-gradient-to-br from-[#1D4ED8] to-[#B82233] px-4 pb-8 pt-5 text-white">
+      <header className="bg-gradient-to-br from-[#1D4ED8] to-[#B82233] px-4 pb-6 pt-5 text-white">
         <div className="mx-auto max-w-3xl">
           <Link
             href="/apply/profiles"
@@ -46,13 +71,13 @@ export default async function ApplyEditPage({
             ← โปรไฟล์ทั้งหมดของฉัน
           </Link>
           <div className="mt-3 flex items-center gap-4">
-            <div className="relative size-16 shrink-0 overflow-hidden rounded-full border-2 border-white/70 bg-white/20">
+            <div className="relative size-14 shrink-0 overflow-hidden rounded-full border-2 border-white/70 bg-white/20">
               {avatarUrl ? (
                 <Image
                   src={avatarUrl}
                   alt=""
                   fill
-                  sizes="4rem"
+                  sizes="3.5rem"
                   className="object-cover"
                   unoptimized
                 />
@@ -64,33 +89,57 @@ export default async function ApplyEditPage({
             </div>
             <div className="min-w-0">
               <p className="text-sm text-white/80">
-                {isNew ? "เพิ่มโปรไฟล์ใหม่" : "แก้ไขโปรไฟล์"}
+                {isNew ? "สมัคร/เพิ่มโปรไฟล์ใหม่" : "โปรไฟล์นักแสดง"}
               </p>
               <h1 className="truncate text-xl font-bold">{displayName}</h1>
               {!isNew && (
-                <div className="mt-1.5 flex items-center gap-2">
+                <div className="mt-1 flex items-center gap-2">
                   {talent!.code && (
                     <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-medium">
                       {talent!.code}
                     </span>
                   )}
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status!.className}`}>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${status!.className}`}
+                  >
                     {status!.label}
                   </span>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Step indicator */}
+          <div className="mt-5 flex items-center">
+            {STEPS.map((s, i) => (
+              <div key={s.n} className="flex flex-1 items-center">
+                <div className="flex flex-col items-center">
+                  <span
+                    className={`flex size-8 items-center justify-center rounded-full text-sm font-bold ${
+                      step >= s.n
+                        ? "bg-white text-[#1D4ED8]"
+                        : "bg-white/25 text-white/70"
+                    }`}
+                  >
+                    {step > s.n ? "✓" : s.n}
+                  </span>
+                  <span className="mt-1 text-[11px] text-white/85">{s.label}</span>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div
+                    className={`mx-2 mb-4 h-0.5 flex-1 rounded ${step > s.n ? "bg-white" : "bg-white/25"}`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-3xl space-y-5 px-4 pb-24 pt-5">
-        {saved && (
+        {saved && step === 2 && (
           <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            <svg viewBox="0 0 24 24" className="size-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="m5 13 4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            บันทึกข้อมูลเรียบร้อยแล้ว
+            ✓ บันทึกข้อมูลแล้ว — ต่อไปอัพโหลดรูปเพื่อทำ Comp Card ค่ะ
           </div>
         )}
         {error && (
@@ -99,14 +148,52 @@ export default async function ApplyEditPage({
           </div>
         )}
 
-        {isNew ? (
-          <div className="rounded-2xl border border-dashed border-[#1D4ED8]/30 bg-[#1D4ED8]/5 px-4 py-3 text-sm text-neutral-600">
-            📸 กรอกข้อมูล + กด <b>บันทึก</b> ก่อน แล้วค่อยเพิ่มรูปได้ในขั้นตอนถัดไป
-          </div>
-        ) : (
-          <TalentPhotos talentId={talent!.id} />
+        {step === 1 && (
+          <>
+            {isNew && (
+              <div className="rounded-2xl border border-dashed border-[#1D4ED8]/30 bg-[#1D4ED8]/5 px-4 py-3 text-sm text-neutral-600">
+                📝 กรอกข้อมูล + กด <b>บันทึก</b> แล้วไปขั้นตอนอัพโหลดรูปเพื่อทำ
+                Comp Card ต่อได้เลยค่ะ
+              </div>
+            )}
+            <TalentForm talent={talent ?? undefined} mode="self" />
+          </>
         )}
-        <TalentForm talent={talent ?? undefined} mode="self" />
+
+        {step === 2 && !isNew && (
+          <>
+            <CompcardSlots talentId={talent!.id} initialSlots={slots} />
+            <div className="flex gap-3">
+              <Link
+                href={`/apply/edit?id=${id}&step=1`}
+                className="rounded-full border border-neutral-300 bg-white px-6 py-3 text-sm font-semibold text-neutral-600"
+              >
+                ← ย้อนกลับ
+              </Link>
+              <Link
+                href={`/apply/edit?id=${id}&step=3`}
+                className="flex-1 rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] py-3 text-center text-sm font-bold text-white shadow-md transition hover:opacity-95"
+              >
+                ถัดไป: ยืนยันข้อมูล →
+              </Link>
+            </div>
+            <p className="text-center text-xs text-neutral-400">
+              ต้องมีรูปบังคับครบ 4 ช่องก่อน ถึงจะไปขั้นตอนยืนยันได้
+            </p>
+          </>
+        )}
+
+        {step === 3 && !isNew && (
+          <ConfirmStep
+            talent={talent!}
+            slots={slots}
+            backHref={`/apply/edit?id=${id}&step=2`}
+            doneHref="/apply/profiles"
+            isInfluencer={talent!.is_influencer === true}
+            topSocialText={topSocialText}
+            expertise={(talent!.categories ?? []) as string[]}
+          />
+        )}
       </main>
     </div>
   );

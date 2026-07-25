@@ -511,9 +511,13 @@ export async function saveTalentSelf(formData: FormData) {
   const gender = str(formData, "gender");
   const dob = str(formData, "dob");
   const phone = str(formData, "phone");
-  if (!nicknameEn || !gender || !dob || !phone) {
+  // สูง/หนัก/สัญชาติ บังคับ (ขึ้นบน Comp Card + การ์ด Model)
+  const heightCm = str(formData, "height_cm");
+  const weightKg = str(formData, "weight_kg");
+  const nationality = str(formData, "nationality");
+  if (!nicknameEn || !gender || !dob || !phone || !heightCm || !weightKg || !nationality) {
     redirect(
-      `${backTo}${sep}error=${encodeURIComponent("กรุณากรอกชื่อเล่น (English) เพศ วันเกิด และเบอร์โทร (บังคับ)")}`,
+      `${backTo}${sep}error=${encodeURIComponent("กรุณากรอกให้ครบ: ชื่อเล่น (English) เพศ วันเกิด เบอร์โทร ส่วนสูง น้ำหนัก และสัญชาติ")}`,
     );
   }
 
@@ -589,7 +593,8 @@ export async function saveTalentSelf(formData: FormData) {
       );
     }
     revalidatePath("/apply/profiles");
-    redirect(`/apply/edit?id=${created.id}&saved=1`);
+    // ไปขั้นตอน 2 (อัพโหลดรูปทำ Comp Card) ต่อทันที
+    redirect(`/apply/edit?id=${created.id}&step=2&saved=1`);
   }
 
   const { error } = await supabase
@@ -599,7 +604,7 @@ export async function saveTalentSelf(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath(backTo);
-  redirect(`${backTo}&saved=1`);
+  redirect(`${backTo}&step=2&saved=1`);
 }
 
 export async function deleteTalent(formData: FormData) {

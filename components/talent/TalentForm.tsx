@@ -158,21 +158,29 @@ export function TalentForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="height_cm">ส่วนสูง (Height, ซม.)</Label>
+            <Label htmlFor="height_cm">
+              ส่วนสูง (Height, ซม.){mode === "self" && " *"}
+            </Label>
             <Input
               id="height_cm"
               name="height_cm"
               type="number"
+              placeholder="เช่น 120"
               defaultValue={talent?.height_cm ?? ""}
+              required={mode === "self"}
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="weight_kg">น้ำหนัก (Weight, กก.)</Label>
+            <Label htmlFor="weight_kg">
+              น้ำหนัก (Weight, กก.){mode === "self" && " *"}
+            </Label>
             <Input
               id="weight_kg"
               name="weight_kg"
               type="number"
+              placeholder="เช่น 25"
               defaultValue={talent?.weight_kg ?? ""}
+              required={mode === "self"}
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
@@ -186,12 +194,15 @@ export function TalentForm({
             />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="nationality">สัญชาติ (Nationality)</Label>
+            <Label htmlFor="nationality">
+              สัญชาติ (Nationality){mode === "self" && " *"}
+            </Label>
             <Input
               id="nationality"
               name="nationality"
               placeholder="เช่น Thai, Thai/American"
               defaultValue={talent?.nationality ?? ""}
+              required={mode === "self"}
             />
           </div>
         </CardContent>
@@ -473,7 +484,7 @@ export function TalentForm({
               type="submit"
               className="h-12 w-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] text-base font-semibold text-white shadow-sm hover:opacity-95"
             >
-              บันทึกข้อมูล
+              บันทึก & ถัดไป: รูปถ่าย →
             </Button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { deleteTalent, getTalent } from "@/actions/talents";
 import { LineLinkButton } from "@/components/admin/LineLinkButton";
+import { CompcardStudio } from "@/components/compcard/CompcardStudio";
 import { TalentForm } from "@/components/talent/TalentForm";
 import { TalentPhotos } from "@/components/talent/TalentPhotos";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,28 @@ export default async function EditTalentPage({
         </CardContent>
       </Card>
       <TalentPhotos talentId={id} />
+
+      {/* Comp Card Studio — อัพรูป 4 ช่องบังคับ + สร้างการ์ดอัตโนมัติ
+          (อัพคอมการ์ดจากระบบเก่าได้ที่ส่วน "รูปภาพ" ด้านบนเหมือนเดิม) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-[#1D4ED8]">
+            Comp Card Studio{" "}
+            <span className="font-normal text-[#1D4ED8]/60">
+              — อัพรูป 4 ช่อง แล้วระบบสร้างการ์ดให้
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CompcardStudio
+            talent={talent}
+            initialSlots={
+              (talent.compcard_slots ?? {}) as Record<string, string>
+            }
+          />
+        </CardContent>
+      </Card>
+
       <TalentForm talent={talent} error={error} />
     </div>
   );
