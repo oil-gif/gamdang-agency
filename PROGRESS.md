@@ -2,7 +2,19 @@
 
 > อ่านไฟล์นี้ก่อนเริ่มทำงานเสมอ — สรุปว่าทำอะไรไปแล้ว ทำอะไรค้างอยู่ และต้องทำอะไรต่อ
 
-## ✨ รอบล่าสุด — Comp Card Studio + Portfolio + Report/Proposal (2026-07-25, พี่คอนเฟิร์ม "Perfect")
+## ✨ รอบล่าสุด — สมัครแยกบทบาท Model/Influencer + คอมการ์ดแก้มแดงเดิม (2026-07-25)
+
+> **⚠️ รอพี่รัน migration 015** (`talents.legacy_code`) — โค้ด defensive ไม่พังถ้ายังไม่รัน แต่รหัสแก้มแดงเดิมจะยังไม่ถูกบันทึกจนกว่าจะรัน
+
+- **เลือกบทบาทก่อน** (บนสุดของฟอร์มสมัคร self, `TalentForm`): 🎬 Model / ⭐ Influencer (เลือกได้ทั้งคู่) — กำหนดว่าจะต้องกรอก/อัพอะไรต่อ · **สูง/หนัก/สัญชาติ บังคับเฉพาะ Model** (Influencer ล้วนไม่ต้องกรอก → สมัครง่ายขึ้น)
+- **step 2 แยกเส้นทางตามบทบาท** (`app/(liff)/apply/edit/page.tsx`):
+  - **Influencer ล้วน** → `SinglePhotoUpload` (รูปเดียว crop 3:4 → `/api/single-photo` เก็บเป็น gallery ตัวเดียว จำที่ `compcard_slots.single` อัพซ้ำแทนที่) — ไม่ต้องทำคอมการ์ด
+  - **Model** → `ModelPhotoStep` toggle 2 ทาง: ✨ สร้างคอมการ์ดใหม่ (`CompcardSlots` เดิม 8 ช่อง) · 🪪 มีคอมการ์ดแก้มแดงแล้ว (`LegacyCompcard` — กรอกรหัสแก้มแดงเดิม + อัพรูปคอมการ์ดเก่า ผ่าน `/api/compcard-upload`, **เน้นย้ำเฉพาะของแก้มแดง ทำภายใน 1 ปี**) รองรับช่วงเปลี่ยนถ่ายจากระบบเก่า
+  - **Model + Influencer** → ใช้ข้อมูลชุดเดียว กรอกเพิ่มแค่โซเชียล · การ์ด Influencer ใช้รูปหลักจากคอมการ์ดอัตโนมัติ (gallery[0]) ไม่ต้องอัพซ้ำ
+- **gate step 3 + `ConfirmStep` รู้ variant** (compcard/legacy/influencer): compcard=วาดใหม่ · legacy=โชว์รูปคอมการ์ดที่อัพ · influencer=โชว์รูปเดียว · ข้อยินยอมข้อ 2 ปรับถ้อยคำตาม variant
+- รหัสแก้มแดงเดิมเก็บที่ `talents.legacy_code` ผ่าน action `saveLegacyCompcardCode` (ownership-checked, defensive) — แอดมินตรวจ/โอนรหัสตอนอนุมัติ
+
+## ✨ Comp Card Studio + Portfolio + Report/Proposal (2026-07-25, พี่คอนเฟิร์ม "Perfect")
 
 **Comp Card Studio (commits `43ff349`→`1b1b376`, migration 014 รันแล้ว ✓):**
 - **สมัคร LIFF = wizard 3 ขั้น** (`app/(liff)/apply/edit/page.tsx` + progress bar): (1) ข้อมูล (ฟอร์ม TalentForm — โหมด self บังคับ ชื่อเล่นEN/สูง/หนัก/สัญชาติ + Portfolio) (2) รูป (`CompcardSlots` — กติกาถ่ายรูปฉบับแก้มแดง gradient CI + ติ๊กยอมรับก่อน → 8 ช่อง บังคับ 4 [headshot/half/lifestyle/full] + extra 4, แต่ละช่อง crop เลื่อน-ซูม-pinch ผ่าน `CropperModal` แบบ WYSIWYG = สัดส่วน crop ตรงกรอบการ์ด) (3) ยืนยัน (`ConfirmStep` — สรุป + ยินยอม PDPA 3 ข้อฉบับทางการ รวม "คอมการ์ดใช้นำเสนองานในเครือแก้มแดงเท่านั้น" + "รูปจริงไม่ใช่ AI")
