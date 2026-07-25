@@ -13,9 +13,14 @@ export default function ApplyPage() {
     let cancelled = false;
 
     // ล็อกอิน LINE ใหม่โดยพา ?relogin=1 กลับมาด้วย (กันลูป: ทำได้ครั้งเดียว)
+    // logout ก่อน — บังคับให้ได้ ID token สดจริง (ในแอป LINE liff.login() เฉยๆ
+    // อาจคืน token เก่าที่แคชไว้ เช่นตอนเคยเปิดตอน channel ยัง Developing)
     function relogin() {
       const url = new URL(window.location.href);
       url.searchParams.set("relogin", "1");
+      try {
+        liff.logout();
+      } catch {}
       liff.login({ redirectUri: url.toString() });
     }
 
@@ -71,7 +76,11 @@ export default function ApplyPage() {
           // 401 = token ไม่ผ่าน (มักเพราะหมดอายุ) → ขอ token สดแล้วลองอีกครั้ง
           if (res.status === 401 && !triedRelogin) return relogin();
           const body = await res.json().catch(() => ({}));
-          throw new Error(body.error ?? "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่");
+          // แสดงเหตุผลจริงจาก LINE (เช่น IdToken expired) ไว้ diagnose ด้วย
+          throw new Error(
+            [body.error, body.detail].filter(Boolean).join(" — ") ||
+              "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่",
+          );
         }
 
         if (!cancelled) router.replace(next);
@@ -103,6 +112,10 @@ export default function ApplyPage() {
             <button
               type="button"
               onClick={() => {
+                // logout ก่อน login — ล้าง token เก่าที่ค้าง แล้วขอสดใหม่
+                try {
+                  liff.logout();
+                } catch {}
                 try {
                   liff.login();
                 } catch {
