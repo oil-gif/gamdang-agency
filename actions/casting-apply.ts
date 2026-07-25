@@ -126,16 +126,25 @@ export async function applyAsMembers(formData: FormData) {
     role_id: roleId,
     note,
   }));
-  // upsert + ignoreDuplicates → กดซ้ำไม่ error (unique project_id+talent_id)
-  await supabase
+  // upsert ignoreDuplicates = INSERT ... ON CONFLICT DO NOTHING RETURNING →
+  // คืนเฉพาะแถวที่ "เพิ่งเพิ่มจริง" (race-safe ระดับ DB) · แจ้งเตือน/นับเฉพาะคนใหม่
+  // กันเคสกดส่งซ้ำหลายรอบแล้วกลุ่มเด้งซ้ำ
+  const { data: inserted } = await supabase
     .from("project_applications")
-    .upsert(rows, { onConflict: "project_id,talent_id", ignoreDuplicates: true });
+    .upsert(rows, { onConflict: "project_id,talent_id", ignoreDuplicates: true })
+    .select("talent_id");
+  const newIds = (inserted ?? []).map((r) => r.talent_id);
 
-  // แจ้งเตือน admin เข้ากลุ่ม
+  // ทุกคนสมัครไปแล้ว → ไม่ต้องแจ้งซ้ำ (ถือว่าสำเร็จ)
+  if (newIds.length === 0) {
+    redirect(`/casting/${projectId}?applied=1`);
+  }
+
+  // แจ้งเตือนเข้ากลุ่ม — เฉพาะคนใหม่
   const { data: names } = await supabase
     .from("talents")
     .select("nickname_th, nickname_en")
-    .in("id", validIds);
+    .in("id", newIds);
   const who = (names ?? [])
     .map((n) => n.nickname_en || n.nickname_th || "-")
     .join(", ");
@@ -144,7 +153,7 @@ export async function applyAsMembers(formData: FormData) {
     "🎬 มีผู้สมัคร Casting ใหม่! (สมาชิก)",
     `งาน: ${project.name}`,
     role ? `Role: ${role}` : "",
-    `ผู้สมัคร: ${who} (${validIds.length} คน)`,
+    `ผู้สมัคร: ${who} (${newIds.length} คน)`,
     "",
     `ดูผู้สมัคร: ${BASE}/admin/projects/${projectId}`,
   ].filter(Boolean));
