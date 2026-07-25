@@ -2,15 +2,37 @@
 
 > อ่านไฟล์นี้ก่อนเริ่มทำงานเสมอ — สรุปว่าทำอะไรไปแล้ว ทำอะไรค้างอยู่ และต้องทำอะไรต่อ
 
-## ✨ รอบล่าสุด — OA ที่ 3 "Gamdang Casting" + ขอลบประวัติ (2026-07-25)
+## ✨ รอบล่าสุด — LINE login แข็งแรง + กันสมัครซ้ำ + แยก Role + PDF (2026-07-25)
+
+> **migration 016 + 017 รันแล้ว ✓** (`talents.deletion_requested_at`, `project_talents.role_id` + backfill role เก่าครบแล้ว 0 ค้าง) · **env OA Casting ตั้งครบ 3 ตัวใน Vercel แล้ว** (`CASTING_LINE_*`) + บอทเข้ากลุ่ม (group id `Cc8862...`) — งาน Casting + สมัคร เด้งเข้ากลุ่มจริงแล้ว
+
+**🔑 แก้ LINE login เข้าไม่ได้ (หลายคน) — สำคัญมาก:**
+- ต้นเหตุจริง: **LIFF app scope `profile`+`openid`** ถูกปิด → `getIDToken()` คืน null + `/v2/profile` 403 · พี่เปิด scope แล้วใน LINE Console
+- โค้ดทำให้ทน: `/api/line/verify` รับ **access token เป็นตัวสำรอง** (verify + `/v2/profile`) เมื่อไม่มี id token · หน้า `/apply` ถ้า token เก่าใช้ไม่ได้ → **logout+login บังคับ re-consent** ขอ token สด (ทำเฉพาะตอน fail ไม่ใช่ทุกโหลด) · error โชว์เหตุผลจริง (scope/detail)
+- **⚠️ อย่าใส่ `liff.logout()` ใน flow ปกติ** — เคยพังทั้งระบบ (getIDToken null) ตอน scope ยังปิด · ใช้เฉพาะตอน relogin หลัง fail
+- **LINE Login channel ต้อง Published** (ไม่ใช่ Developing) ไม่งั้นคนไม่ใช่ dev เจอ 400
+
+**🚫 กันสมัคร/โปรไฟล์ซ้ำ:**
+- **Casting กรอกเอง** (`applyToCasting`): เบอร์เดิมสมัครงานเดิมแล้ว → บล็อก ไม่สร้าง talent/แจ้งซ้ำ
+- **Casting สมาชิก** (`applyAsMembers`): ใช้ upsert `ON CONFLICT DO NOTHING` + `.select()` → แจ้งเตือน **เฉพาะแถวที่เพิ่งเพิ่มจริง** (race-safe) · กดซ้ำกี่รอบกลุ่มเด้งครั้งเดียว · เช็คทุกคนที่เลือกต้องมีรูป (gallery/compcard) ไม่งั้นบล็อก
+- **เพิ่มโปรไฟล์ซ้ำ** (`saveTalentSelf` isNew): บัญชี LINE เดิมมีชื่อเล่น EN ซ้ำ → บล็อก ให้ไปแก้ของเดิม · ปุ่ม "เพิ่มโปรไฟล์" (`AddProfileButton`) เด้ง modal เตือนถ้ามีโปรไฟล์อยู่แล้ว
+
+**🎭 แยก Role ในหลังบ้าน + เสนอลูกค้า (migration 017):** `project_talents.role_id` เก็บ role ที่สมัคร (approveApplication carry + backfill) · `getProjectTalents` แนบ `role_title` + เรียง/จัดกลุ่มตาม role · หัวข้อ **"🎭 [ชื่อ Role]"** คั่นกลุ่มใน หน้าโปรเจกต์ + ลิงก์ proposal `/p` + PDF (คนไม่มี role = "อื่นๆ/Others")
+
+**🖼️ รูปตัวแทน + PDF/Proposal:**
+- `pickPrimaryPhoto` เลือกรูปตัวแทน: `compcard_slots.single → headshot → gallery แรก → compcard` (กันหยิบรูปเต็มตัว/คอมการ์ดมาเป็นรูปการ์ด) — ใช้ทุก list
+- PDF (`print`) + proposal `/p`: หน้าปก **ภาษาอังกฤษ** (Client / วันที่ en-GB "14 August 2026") · คำแนะนำไทยมีวงเล็บอังกฤษ · `PrintMiniCard` = รหัสบนสุด(เล็กบาง)→ชื่อหนา→Age/Height/Weight แยกบรรทัด nowrap 11px · รูป model h32/w48 · 8 ใบ/หน้า
+- **ลบ Jacob ซ้ำ 17 ตัว** (walk-in ที่ปฏิเสธ) ออกจาก prod แล้ว
+
+## ✨ OA ที่ 3 "Gamdang Casting" + ขอลบประวัติ (2026-07-25)
 
 **OA ที่ 3 แจ้งงาน Casting เข้ากลุ่มทีม (แยกโควตา):** `notifyCasting()` (lib/admin-notify.ts) push เข้า `CASTING_LINE_GROUP_ID` ผ่าน `CASTING_LINE_ACCESS_TOKEN`
 - **โปรเจกต์ใหม่เผยแพร่** → `saveProject` ยิงลิงก์ `/casting/{id}` เข้ากลุ่ม (เฉพาะตอนเพิ่งเปลี่ยนเป็น published ไม่ซ้ำทุกครั้งที่แก้)
 - **สมัคร Casting** (ทั้งสมาชิก + กรอกเอง) ย้ายจาก OA gamdangprofile → กลุ่ม Casting
 - webhook `/api/line/webhook-casting` (พิมพ์ "id" ในกลุ่ม → ตอบ group id)
-- **⚠️ ยังไม่ตั้ง env 3 ตัว**: `CASTING_LINE_ACCESS_TOKEN` / `CASTING_LINE_CHANNEL_SECRET` / `CASTING_LINE_GROUP_ID` (best-effort — ไม่ตั้งก็ไม่ยิง ไม่พัง) · การจองถ่ายยังอยู่ OA gamdangprofile เหมือนเดิม
+- **env 3 ตัวตั้งครบใน Vercel แล้ว** ✓: `CASTING_LINE_ACCESS_TOKEN` / `CASTING_LINE_CHANNEL_SECRET` / `CASTING_LINE_GROUP_ID` (group `Cc8862...`) · การจองถ่ายยังอยู่ OA gamdangprofile เหมือนเดิม
 
-**ขอลบประวัติ (self-service PDPA, migration 016):** talent กดขอลบในหน้า /apply/profiles (ปุ่มถังขยะ + modal ยืนยัน) → ตั้ง `deletion_requested_at` → ซ่อนจาก /talents ทันที · แอดมิน approve ที่ Dashboard (tile + section "🗑️ คำขอลบประวัติ") ปุ่ม "ลบถาวร" (ลบรูป storage + row) / "ยกเลิกคำขอ" · ไม่แจ้ง LINE (ตามที่พี่สั่ง) · **⚠️ migration 016 = `talents.deletion_requested_at timestamptz`**
+**ขอลบประวัติ (self-service PDPA, migration 016 รันแล้ว ✓):** talent กดขอลบในหน้า /apply/profiles (ปุ่มถังขยะ + modal ยืนยัน) → ตั้ง `deletion_requested_at` → ซ่อนจาก /talents ทันที · แอดมิน approve ที่ Dashboard (tile + section "🗑️ คำขอลบประวัติ") ปุ่ม "ลบถาวร" (ลบรูป storage + row) / "ยกเลิกคำขอ" · ไม่แจ้ง LINE (ตามที่พี่สั่ง)
 
 ## ✨ สมัครแยกบทบาท Model/Influencer + คอมการ์ดแก้มแดงเดิม (2026-07-25)
 
