@@ -2,7 +2,15 @@
 
 > อ่านไฟล์นี้ก่อนเริ่มทำงานเสมอ — สรุปว่าทำอะไรไปแล้ว ทำอะไรค้างอยู่ และต้องทำอะไรต่อ
 
-## ✨ รอบล่าสุด — LINE login แข็งแรง + กันสมัครซ้ำ + แยก Role + PDF (2026-07-25)
+## ✨ รอบล่าสุด (ต่อ) — Role picker + FB funnel + PDF logo (2026-07-25 เย็น)
+
+- **แอดมินเลือก/ย้าย Role ตอนเพิ่ม Model เอง**: picker "เพิ่ม" มี dropdown เลือก Role (`addTalentToProject` เก็บ role_id) · การ์ดที่รับเข้าแล้วมี "🎭 [Role] ▸ ย้าย" (`setProjectTalentRole`) ย้ายกลุ่ม/เก็บกวาดพวก "อื่นๆ" ได้
+- **Facebook funnel** (`CastingApply`): ตรวจ UA ว่าเปิดจาก FB/IG/TikTok webview → โชว์กล่องเตือน + เปิดฟอร์ม "กรอกเอง (ไม่ต้อง login)" ให้เลย (LINE login เป็นตัวรอง) เพราะ FB browser login LINE = email/password/CAPTCHA
+- **ทาง B: เชื่อม LINE เองหลังกรอกเอง**: `applyToCasting` (ที่ยังไม่ผูก LINE) สร้าง link token → หน้าสำเร็จโชว์ปุ่ม "🔗 เชื่อมกับ LINE ของฉัน" (`liff.line.me?link=`) → ผูกโปรไฟล์ที่เพิ่งกรอกกับ LINE เอง ไม่ต้องรอแอดมิน (funnel: FB → กรอกเอง → เชื่อม LINE → สมาชิก)
+- **ซ่อนสมัครค้างไม่มีรูป**: `getPendingTalents`/`getPendingCount` กรองเฉพาะ pending ที่มีรูป (สมัครขั้น 1 แล้วทิ้ง = ไม่โผล่คิวอนุมัติ ยังอยู่ในระบบ กลับมาอัพรูปแล้วโผล่เอง)
+- **PDF/Report หน้าปก**: ใส่โลโก้ Gamdang **Modeling + Influencer** 2 อันติดกันบนการ์ดขาว (ลบพื้นขาว→โปร่งใส: `public/gamdang-modeling.png`/`gamdang-influencer.png`) · กติกาถ่ายรูปคอมการ์ด "ไม่เกิน 6 เดือน"
+
+## ✨ LINE login แข็งแรง + กันสมัครซ้ำ + แยก Role + PDF (2026-07-25)
 
 > **migration 016 + 017 รันแล้ว ✓** (`talents.deletion_requested_at`, `project_talents.role_id` + backfill role เก่าครบแล้ว 0 ค้าง) · **env OA Casting ตั้งครบ 3 ตัวใน Vercel แล้ว** (`CASTING_LINE_*`) + บอทเข้ากลุ่ม (group id `Cc8862...`) — งาน Casting + สมัคร เด้งเข้ากลุ่มจริงแล้ว
 
