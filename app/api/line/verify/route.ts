@@ -61,7 +61,9 @@ export async function POST(req: NextRequest) {
           };
           profile = { sub: p.userId, name: p.displayName, picture: p.pictureUrl };
         } else {
-          lastDetail = "profile fetch failed";
+          // 403 = access token ไม่มี scope "profile" (ต้องเปิดใน LIFF app)
+          lastDetail = `profile fetch failed (${pr.status})`;
+          console.error("[line/verify] /v2/profile failed:", pr.status);
         }
       } else {
         lastDetail = "access token channel mismatch";
