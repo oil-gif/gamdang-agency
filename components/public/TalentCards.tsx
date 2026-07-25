@@ -288,7 +288,7 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
           object-contain เห็นคอมการ์ดเต็มใบไม่โดน crop · ขยายให้รูปเด่นขึ้น */}
       <div
         className={`shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 ${
-          isInflu ? "aspect-[3/4] w-32" : "h-40 w-64"
+          isInflu ? "aspect-[3/4] w-28" : "h-32 w-48"
         }`}
       >
         {img ? (
@@ -305,12 +305,13 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
         )}
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-baseline gap-1.5">
-          <p className="truncate text-base font-bold text-neutral-800">
-            {displayName}
-          </p>
-          <span className="font-mono text-[9px] text-neutral-400">{t.code}</span>
-        </div>
+        {/* รหัสบนสุด (เล็ก บาง) → ชื่อตัวหนา (ไม่ตัดคำ) */}
+        <span className="font-mono text-[10px] font-normal text-neutral-400">
+          {t.code}
+        </span>
+        <p className="text-lg font-bold leading-tight text-neutral-800">
+          {displayName}
+        </p>
 
         {isInflu ? (
           <>
@@ -361,16 +362,24 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
           </>
         ) : (
           <>
-            <p className="mt-0.5 text-[13px] leading-5 text-neutral-600">
-              {t.dob && <span className="block">Age {calculateAge(t.dob)}</span>}
+            <p className="mt-1 text-[11px] leading-[1.35] text-neutral-600">
+              {t.dob && (
+                <span className="block whitespace-nowrap">
+                  Age {calculateAge(t.dob)}
+                </span>
+              )}
               {t.height_cm && (
-                <span className="block">Height {t.height_cm} cm</span>
+                <span className="block whitespace-nowrap">
+                  Height {t.height_cm} cm
+                </span>
               )}
               {t.weight_kg && (
-                <span className="block">Weight {t.weight_kg} kg</span>
+                <span className="block whitespace-nowrap">
+                  Weight {t.weight_kg} kg
+                </span>
               )}
               {nationalityTextEn(t) && (
-                <span className="block text-[11px] text-neutral-400">
+                <span className="block whitespace-nowrap text-[10px] text-neutral-400">
                   {nationalityTextEn(t)}
                 </span>
               )}
