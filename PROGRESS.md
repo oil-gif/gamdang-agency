@@ -2,7 +2,17 @@
 
 > อ่านไฟล์นี้ก่อนเริ่มทำงานเสมอ — สรุปว่าทำอะไรไปแล้ว ทำอะไรค้างอยู่ และต้องทำอะไรต่อ
 
-## ✨ รอบล่าสุด — สมัครแยกบทบาท Model/Influencer + คอมการ์ดแก้มแดงเดิม (2026-07-25)
+## ✨ รอบล่าสุด — OA ที่ 3 "Gamdang Casting" + ขอลบประวัติ (2026-07-25)
+
+**OA ที่ 3 แจ้งงาน Casting เข้ากลุ่มทีม (แยกโควตา):** `notifyCasting()` (lib/admin-notify.ts) push เข้า `CASTING_LINE_GROUP_ID` ผ่าน `CASTING_LINE_ACCESS_TOKEN`
+- **โปรเจกต์ใหม่เผยแพร่** → `saveProject` ยิงลิงก์ `/casting/{id}` เข้ากลุ่ม (เฉพาะตอนเพิ่งเปลี่ยนเป็น published ไม่ซ้ำทุกครั้งที่แก้)
+- **สมัคร Casting** (ทั้งสมาชิก + กรอกเอง) ย้ายจาก OA gamdangprofile → กลุ่ม Casting
+- webhook `/api/line/webhook-casting` (พิมพ์ "id" ในกลุ่ม → ตอบ group id)
+- **⚠️ ยังไม่ตั้ง env 3 ตัว**: `CASTING_LINE_ACCESS_TOKEN` / `CASTING_LINE_CHANNEL_SECRET` / `CASTING_LINE_GROUP_ID` (best-effort — ไม่ตั้งก็ไม่ยิง ไม่พัง) · การจองถ่ายยังอยู่ OA gamdangprofile เหมือนเดิม
+
+**ขอลบประวัติ (self-service PDPA, migration 016):** talent กดขอลบในหน้า /apply/profiles (ปุ่มถังขยะ + modal ยืนยัน) → ตั้ง `deletion_requested_at` → ซ่อนจาก /talents ทันที · แอดมิน approve ที่ Dashboard (tile + section "🗑️ คำขอลบประวัติ") ปุ่ม "ลบถาวร" (ลบรูป storage + row) / "ยกเลิกคำขอ" · ไม่แจ้ง LINE (ตามที่พี่สั่ง) · **⚠️ migration 016 = `talents.deletion_requested_at timestamptz`**
+
+## ✨ สมัครแยกบทบาท Model/Influencer + คอมการ์ดแก้มแดงเดิม (2026-07-25)
 
 > **migration 015 รันแล้ว 2026-07-25** (`talents.legacy_code`) — เก็บรหัสแก้มแดงเดิมที่คนสมัครกรอก
 >
