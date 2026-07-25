@@ -34,10 +34,13 @@ export function CastingApply({
   const [inFbBrowser, setInFbBrowser] = useState(false);
 
   useEffect(() => {
+    // ตรวจ UA ได้เฉพาะฝั่ง client (ไม่มีตอน SSR) → ต้องเช็คใน effect
     const ua = navigator.userAgent || "";
     const bad = /FBAN|FBAV|FB_IAB|Instagram|Messenger|MessengerLite|TikTok/i.test(ua);
     if (bad) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInFbBrowser(true);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setManualOpen(true); // เปิดฟอร์มกรอกเองให้เลย จะได้ไม่ติด LINE login
     }
   }, []);
