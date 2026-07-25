@@ -177,7 +177,19 @@ export default async function ProjectReportPage({
                   : links;
               const introVideo = t.intro_video_url ?? pt.intro_video_url ?? null;
               const mainImg = pt.compcard_path ?? pt.gallery_paths[0] ?? null;
-              const extraPhotos: string[] = pt.extra_photo_paths ?? [];
+              // รูปเพิ่มเติม = รูปที่ขอส่งงาน + รูป extra ตอนสมัคร (gallery ที่ไม่ได้
+              // อยู่ใน 4 ช่องคอมการ์ด และไม่ใช่รูปหลัก) — ไม่ต้องอัพซ้ำ
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const slots = (t.compcard_slots ?? {}) as Record<string, any>;
+              const usedInCard = ["headshot", "half", "lifestyle", "full"]
+                .map((k) => slots[k] as string | undefined)
+                .filter(Boolean) as string[];
+              const galleryExtras = (pt.gallery_paths ?? []).filter(
+                (p: string) => !usedInCard.includes(p) && p !== mainImg,
+              );
+              const extraPhotos: string[] = Array.from(
+                new Set([...(pt.extra_photo_paths ?? []), ...galleryExtras]),
+              ).slice(0, 8);
               const facts = [
                 t.dob ? `อายุ ${calculateAge(t.dob)} ปี` : null,
                 t.height_cm ? `สูง ${t.height_cm} ซม.` : null,
