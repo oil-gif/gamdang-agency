@@ -622,6 +622,20 @@ export async function saveTalentSelf(formData: FormData) {
   };
 
   if (isNew) {
+    // กันสร้างโปรไฟล์ซ้ำ: บัญชี LINE นี้มีโปรไฟล์ชื่อ (EN) เดียวกันอยู่แล้วหรือยัง
+    // (เคสกดย้อนกลับมากรอกใหม่ แล้วเผลอสร้างโปรไฟล์ใหม่แทนที่จะแก้ของเดิม)
+    const { data: dupName } = await supabase
+      .from("talents")
+      .select("id")
+      .eq("line_user_id", session.lineUserId)
+      .ilike("nickname_en", nicknameEn)
+      .limit(1);
+    if (dupName && dupName.length > 0) {
+      redirect(
+        `/apply/profiles?error=${encodeURIComponent(`คุณมีโปรไฟล์ชื่อ "${nicknameEn}" อยู่แล้วค่ะ — ถ้าจะแก้ไข กดที่การ์ดโปรไฟล์เดิมด้านล่าง · ถ้าเป็นคนละคน (เช่นลูกอีกคน) กรุณาใช้ชื่อที่ไม่ซ้ำกันนะคะ`)}`,
+      );
+    }
+
     // สร้าง row ใหม่ผูกกับบัญชี LINE นี้ (พร้อมข้อมูลที่กรอก) — pending รออนุมัติ
     const { data: created, error } = await supabase
       .from("talents")

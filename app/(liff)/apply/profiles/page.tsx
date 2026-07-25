@@ -1,8 +1,8 @@
 import Image from "next/image";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getMyTalents } from "@/actions/talents";
 import { LiffBackButton } from "@/components/LiffBackButton";
+import { AddProfileButton } from "@/components/talent/AddProfileButton";
 import { ProfileCard } from "@/components/talent/ProfileCard";
 import { getTalentSession } from "@/lib/auth/talent-session";
 import { getPhotoProxyUrl } from "@/lib/storage";
@@ -86,19 +86,12 @@ export default async function ApplyProfilesPage({
             );
           })}
 
-          {/* เพิ่มลูกอีกคน — เปิดฟอร์มเปล่า ยังไม่สร้าง row จนกว่าจะกดบันทึก */}
-          <Link
-            href="/apply/edit"
-            className="flex aspect-[3/4] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#1D4ED8]/40 bg-white text-[#1D4ED8] transition hover:bg-[#1D4ED8]/5"
-          >
-            <span className="text-3xl">+</span>
-            <span className="px-2 text-center text-sm font-medium">
-              เพิ่มโปรไฟล์
-              <span className="block text-xs font-normal text-neutral-400">
-                (Add Profile)
-              </span>
-            </span>
-          </Link>
+          {/* เพิ่มลูกอีกคน — เปิดฟอร์มเปล่า (ถ้ามีโปรไฟล์แล้วจะเตือนกันซ้ำก่อน) */}
+          <AddProfileButton
+            existingNames={talents.map(
+              (t) => t.nickname_en || t.nickname_th || t.code,
+            )}
+          />
         </div>
 
         {talents.length === 0 && (

@@ -178,6 +178,27 @@ export async function applyToCasting(formData: FormData) {
     redirect(`/casting/${projectId}?error=${encodeURIComponent("งานนี้ปิดรับสมัครแล้ว")}`);
   }
 
+  // กันสมัครซ้ำ: เบอร์นี้เคยสมัครงานนี้ไปแล้วหรือยัง (talent เบอร์เดียวกัน
+  // + มี application ในงานนี้) → ไม่สร้าง talent/แจ้งเตือนซ้ำ
+  const { data: samePhone } = await supabase
+    .from("talents")
+    .select("id")
+    .eq("phone", phone);
+  const phoneIds = (samePhone ?? []).map((t) => t.id);
+  if (phoneIds.length > 0) {
+    const { data: dupApp } = await supabase
+      .from("project_applications")
+      .select("id")
+      .eq("project_id", projectId)
+      .in("talent_id", phoneIds)
+      .limit(1);
+    if (dupApp && dupApp.length > 0) {
+      redirect(
+        `/casting/${projectId}?error=${encodeURIComponent("เบอร์นี้สมัครงานนี้ไว้แล้วค่ะ 🙏 ไม่ต้องสมัครซ้ำ ทีมงานจะติดต่อกลับนะคะ")}`,
+      );
+    }
+  }
+
   // เชื่อม LINE ถ้าเปิดในแอป LINE (เผื่อกรอกเองแต่อยู่ใน LINE)
   const lineToken = str(formData, "line_id_token");
   const lineProfile = lineToken ? await verifyLineIdToken(lineToken) : null;
