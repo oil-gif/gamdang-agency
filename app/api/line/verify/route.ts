@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       `https://api.line.me/oauth2/v2.1/verify?access_token=${encodeURIComponent(accessToken)}`,
     );
     if (vr.ok) {
-      const v = (await vr.json()) as { client_id?: string };
+      const v = (await vr.json()) as { client_id?: string; scope?: string };
       if (v.client_id === channelId) {
         const pr = await fetch("https://api.line.me/v2/profile", {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -61,9 +61,10 @@ export async function POST(req: NextRequest) {
           };
           profile = { sub: p.userId, name: p.displayName, picture: p.pictureUrl };
         } else {
-          // 403 = access token ไม่มี scope "profile" (ต้องเปิดใน LIFF app)
-          lastDetail = `profile fetch failed (${pr.status})`;
-          console.error("[line/verify] /v2/profile failed:", pr.status);
+          // 403 = access token ไม่มี scope "profile" — โชว์ scope จริงของ token
+          // ไว้ยืนยัน (ถ้าไม่มี "profile" = token เก่าที่ออกก่อนเปิด scope)
+          lastDetail = `profile ${pr.status} · scope=[${v.scope ?? "?"}]`;
+          console.error("[line/verify] /v2/profile failed:", pr.status, "scope:", v.scope);
         }
       } else {
         lastDetail = "access token channel mismatch";
