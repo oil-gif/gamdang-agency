@@ -96,6 +96,28 @@ export async function applyAsMembers(formData: FormData) {
     redirect(`/casting/${projectId}?error=${encodeURIComponent("ไม่พบโปรไฟล์ที่เลือก")}`);
   }
 
+  // กันสมัครโดยไม่มีรูป — ทุกโปรไฟล์ที่เลือกต้องมีรูปตัวแทน (gallery/compcard)
+  // ก่อน ไม่งั้นเข้าไปในงานแบบไม่มีรูปให้ลูกค้าดู
+  const { data: photoRows } = await supabase
+    .from("talent_photos")
+    .select("talent_id")
+    .in("talent_id", validIds)
+    .in("kind", ["gallery", "compcard"]);
+  const hasPhoto = new Set((photoRows ?? []).map((p) => p.talent_id));
+  const missing = validIds.filter((id) => !hasPhoto.has(id));
+  if (missing.length > 0) {
+    const { data: missNames } = await supabase
+      .from("talents")
+      .select("nickname_en, nickname_th")
+      .in("id", missing);
+    const names = (missNames ?? [])
+      .map((n) => n.nickname_en || n.nickname_th || "-")
+      .join(", ");
+    redirect(
+      `/casting/${projectId}?error=${encodeURIComponent(`โปรไฟล์ ${names} ยังไม่มีรูป — กรุณาไปที่ "โปรไฟล์ของฉัน" อัพรูปให้ครบก่อนสมัครนะคะ`)}`,
+    );
+  }
+
   const roleId = str(formData, "role_id");
   const note = str(formData, "note");
   const rows = validIds.map((tid) => ({
