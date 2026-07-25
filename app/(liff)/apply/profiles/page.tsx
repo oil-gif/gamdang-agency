@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getMyTalents } from "@/actions/talents";
 import { LiffBackButton } from "@/components/LiffBackButton";
+import { ProfileCard } from "@/components/talent/ProfileCard";
 import { getTalentSession } from "@/lib/auth/talent-session";
 import { getPhotoProxyUrl } from "@/lib/storage";
 
@@ -69,37 +70,19 @@ export default async function ApplyProfilesPage({
           {talents.map((t) => {
             const status = STATUS[t.status] ?? STATUS.pending;
             return (
-              <Link
+              <ProfileCard
                 key={t.id}
-                href={`/apply/edit?id=${t.id}`}
-                className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#1D4ED8]/40 hover:shadow-md"
-              >
-                <div className="relative aspect-[3/4] overflow-hidden bg-neutral-100">
-                  {t.photo_path ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={getPhotoProxyUrl(t.photo_path, 320)}
-                      alt=""
-                      className="size-full object-cover object-top"
-                    />
-                  ) : (
-                    <div className="flex size-full items-center justify-center text-xs text-neutral-400">
-                      ยังไม่มีรูป
-                    </div>
-                  )}
-                  <span
-                    className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.className}`}
-                  >
-                    {status.label}
-                  </span>
-                </div>
-                <div className="p-2.5">
-                  <p className="truncate text-sm font-semibold text-neutral-800">
-                    {t.nickname_en || t.nickname_th || "ยังไม่ตั้งชื่อ"}
-                  </p>
-                  <p className="font-mono text-[10px] text-neutral-400">{t.code}</p>
-                </div>
-              </Link>
+                id={t.id}
+                name={t.nickname_en || t.nickname_th || "ยังไม่ตั้งชื่อ"}
+                code={t.code}
+                statusLabel={status.label}
+                statusClassName={status.className}
+                photoUrl={t.photo_path ? getPhotoProxyUrl(t.photo_path, 320) : null}
+                deletionRequested={
+                  !!(t as { deletion_requested_at?: string | null })
+                    .deletion_requested_at
+                }
+              />
             );
           })}
 

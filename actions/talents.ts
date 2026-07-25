@@ -162,12 +162,18 @@ export async function getPublicTalents(filters: TalentFilters = {}, page = 1) {
     )
     .order("display_order", { ascending: true });
 
-  const withPhoto = talents.map((t) => {
-    const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
-    const gallery = mine.find((p) => p.kind === "gallery")?.storage_path ?? null;
-    const compcard = mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
-    return { ...t, photo_path: gallery ?? compcard };
-  });
+  const withPhoto = talents
+    // ซ่อนคนที่ขอลบประวัติออกจากหน้าสาธารณะทันที (defensive: ถ้ายังไม่รัน
+    // migration 016 field จะเป็น undefined → ไม่กรองใคร)
+    .filter(
+      (t) => !(t as { deletion_requested_at?: string | null }).deletion_requested_at,
+    )
+    .map((t) => {
+      const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
+      const gallery = mine.find((p) => p.kind === "gallery")?.storage_path ?? null;
+      const compcard = mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
+      return { ...t, photo_path: gallery ?? compcard };
+    });
 
   // เรียง: มีรูปก่อน → follower มากสุดก่อน → ใหม่สุด
   withPhoto.sort((a, b) => {
@@ -664,4 +670,77 @@ export async function deleteTalent(formData: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath("/admin/talents");
   redirect("/admin/talents");
+}
+
+// ===== คำขอลบประวัติ (self-service PDPA) =====
+// talent (แม่) กดขอลบโปรไฟล์ลูกเอง → ตั้ง deletion_requested_at → ซ่อนจาก
+// หน้าสาธารณะทันที (getPublicTalents กรองออก) แต่ข้อมูลยังอยู่จนแอดมิน approve
+
+export async function requestProfileDeletion(talentId: string) {
+  const owned = await getOwnedTalent(talentId);
+  if (!owned) return { ok: false as const, error: "forbidden" };
+  const { error } = await supabase
+    .from("talents")
+    .update({ deletion_requested_at: new Date().toISOString() })
+    .eq("id", talentId);
+  if (error) {
+    // คอลัมน์ยังไม่มี (ยังไม่รัน migration 016) — ไม่ให้ flow พัง
+    return { ok: false as const, error: error.message };
+  }
+  revalidatePath("/apply/profiles");
+  return { ok: true as const };
+}
+
+export async function cancelProfileDeletion(talentId: string) {
+  const owned = await getOwnedTalent(talentId);
+  if (!owned) return { ok: false as const, error: "forbidden" };
+  const { error } = await supabase
+    .from("talents")
+    .update({ deletion_requested_at: null })
+    .eq("id", talentId);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/apply/profiles");
+  return { ok: true as const };
+}
+
+// แอดมิน: คิวคำขอลบประวัติ (หน้า Dashboard)
+export async function getDeletionRequests() {
+  const { data, error } = await supabase
+    .from("talents")
+    .select("id, code, nickname_th, nickname_en, status, deletion_requested_at")
+    .not("deletion_requested_at", "is", null)
+    .order("deletion_requested_at", { ascending: true });
+  if (error) return []; // คอลัมน์ยังไม่มี (ยังไม่รัน migration 016)
+  return data ?? [];
+}
+
+// แอดมิน approve ลบถาวร — ลบไฟล์รูปใน storage ก่อน (PDPA) แล้วค่อยลบ row
+// (rows ที่อ้าง talent_id จะ cascade ตาม schema)
+export async function approveDeletion(formData: FormData) {
+  const id = String(formData.get("id"));
+  const { data: photos } = await supabase
+    .from("talent_photos")
+    .select("storage_path")
+    .eq("talent_id", id);
+  const paths = (photos ?? [])
+    .map((p) => p.storage_path)
+    .filter((p): p is string => Boolean(p));
+  if (paths.length > 0) {
+    await supabase.storage.from("talent-photos").remove(paths);
+  }
+  const { error } = await supabase.from("talents").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  revalidatePath("/admin/talents");
+}
+
+// แอดมินปฏิเสธคำขอ (คืนสภาพ) — เคลียร์ flag
+export async function rejectDeletionRequest(formData: FormData) {
+  const id = String(formData.get("id"));
+  const { error } = await supabase
+    .from("talents")
+    .update({ deletion_requested_at: null })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
 }

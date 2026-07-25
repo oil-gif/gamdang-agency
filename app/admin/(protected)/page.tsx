@@ -1,24 +1,34 @@
 import Link from "next/link";
 import {
+  approveDeletion,
   deleteStaleTalent,
+  getDeletionRequests,
   getPendingCount,
   getStaleTalents,
   getTalentCounts,
   keepTalent,
+  rejectDeletionRequest,
 } from "@/actions/talents";
 import { getProjectCounts } from "@/actions/projects";
 import { getBookingPendingCount } from "@/actions/shoots";
 import { Button } from "@/components/ui/button";
 
 export default async function AdminDashboardPage() {
-  const [talentCounts, pendingCount, projectCounts, bookingPending, stale] =
-    await Promise.all([
-      getTalentCounts(),
-      getPendingCount(),
-      getProjectCounts(),
-      getBookingPendingCount(),
-      getStaleTalents(),
-    ]);
+  const [
+    talentCounts,
+    pendingCount,
+    projectCounts,
+    bookingPending,
+    stale,
+    deletionRequests,
+  ] = await Promise.all([
+    getTalentCounts(),
+    getPendingCount(),
+    getProjectCounts(),
+    getBookingPendingCount(),
+    getStaleTalents(),
+    getDeletionRequests(),
+  ]);
 
   const stats = [
     {
@@ -63,6 +73,12 @@ export default async function AdminDashboardPage() {
       href: "/admin/shoots",
       accent: "text-amber-500",
     },
+    {
+      label: "คำขอลบประวัติ",
+      value: deletionRequests.length,
+      href: "#deletion-requests",
+      accent: "text-rose-600",
+    },
   ];
 
   return (
@@ -82,6 +98,71 @@ export default async function AdminDashboardPage() {
           </Link>
         ))}
       </div>
+
+      {/* คำขอลบประวัติจาก talent (self-service) — แอดมิน approve ลบถาวร */}
+      <section
+        id="deletion-requests"
+        className="scroll-mt-20 rounded-2xl border border-rose-200 bg-white p-5 shadow-sm"
+      >
+        <h2 className="text-lg font-semibold text-rose-600">
+          🗑️ คำขอลบประวัติ ({deletionRequests.length})
+        </h2>
+        <p className="mt-1 text-sm text-neutral-500">
+          Talent กดขอลบประวัติเอง — โปรไฟล์ถูกซ่อนจากหน้าสาธารณะแล้ว เลือก
+          &quot;ลบถาวร&quot; (ลบข้อมูล+รูปออกจากระบบ กู้คืนไม่ได้) หรือ &quot;ยกเลิกคำขอ&quot;
+          (คืนสภาพให้ talent ใช้งานต่อ)
+        </p>
+
+        {deletionRequests.length === 0 ? (
+          <p className="mt-4 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center text-sm text-neutral-400">
+            ไม่มีคำขอลบประวัติ ✓
+          </p>
+        ) : (
+          <div className="mt-4 space-y-2">
+            {deletionRequests.map((t) => (
+              <div
+                key={t.id}
+                className="flex flex-wrap items-center gap-3 rounded-xl border border-rose-200 bg-rose-50/40 p-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/admin/talents/${t.id}`}
+                    className="font-medium text-neutral-800 hover:text-[#1D4ED8]"
+                  >
+                    {t.nickname_en ?? t.nickname_th ?? "(ไม่มีชื่อ)"}
+                  </Link>
+                  <p className="text-xs text-neutral-400">
+                    {t.code} · ขอลบเมื่อ{" "}
+                    {t.deletion_requested_at
+                      ? new Date(t.deletion_requested_at).toLocaleDateString("th-TH", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "-"}
+                  </p>
+                </div>
+                <form action={rejectDeletionRequest}>
+                  <input type="hidden" name="id" value={t.id} />
+                  <Button type="submit" size="sm" variant="outline">
+                    ยกเลิกคำขอ
+                  </Button>
+                </form>
+                <form action={approveDeletion}>
+                  <input type="hidden" name="id" value={t.id} />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="bg-rose-600 text-white hover:bg-rose-700"
+                  >
+                    ลบถาวร
+                  </Button>
+                </form>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Cleanup: ไม่มีการอัพเดทเกิน 3 ปี */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
