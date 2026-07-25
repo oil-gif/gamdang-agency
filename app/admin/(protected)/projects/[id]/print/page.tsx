@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { getProject, getProjectTalents } from "@/actions/projects";
 import { PrintButton } from "@/components/public/PrintButton";
@@ -5,9 +6,9 @@ import { PrintMiniCard } from "@/components/public/TalentCards";
 
 import { CONTACT } from "@/lib/constants";
 
-// การ์ดใหญ่ขึ้น (รูปคอมการ์ดเด่นขึ้น) → A4 แนวตั้ง 2 คอลัมน์ × 3 แถว
-// = 6 ใบ/หน้า (ปรับ 2026-07-25 ตามที่พี่ขอ — การ์ดรูปใหญ่ขึ้น)
-const CARDS_PER_PAGE = 6;
+// การ์ดใหญ่ขึ้น (รูปคอมการ์ดเด่นขึ้น) → A4 แนวตั้ง 2 คอลัมน์ × 4 แถว
+// = 8 ใบ/หน้า (เก็บจำนวนไว้เท่าที่พอดี ไม่ลดเยอะ ตามที่พี่ขอ)
+const CARDS_PER_PAGE = 8;
 
 function chunk<T>(arr: T[], size: number) {
   const out: T[][] = [];
@@ -63,7 +64,7 @@ export default async function ProjectPrintPage({
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-neutral-700">
             ตัวอย่าง PDF: หน้าปก + {projectTalents.length} การ์ด ({pages.length}{" "}
-            หน้า, 6 ใบ/หน้า)
+            หน้า, 8 ใบ/หน้า)
           </p>
           <Link
             href={`/admin/projects/${id}`}
@@ -183,9 +184,27 @@ export default async function ProjectPrintPage({
           </header>
 
           <div className="grid grid-cols-2 gap-3">
-            {pageTalents.map((pt) => (
-              <PrintMiniCard key={pt.id} pt={pt} />
-            ))}
+            {pageTalents.map((pt, idx) => {
+              // หัวข้อ Role คั่นกลุ่ม (เต็มแถว) เมื่อ role เปลี่ยน — ลูกค้าแยกออก
+              const prevRole = idx > 0 ? pageTalents[idx - 1].role_title : undefined;
+              const showHeader = pt.role_title !== prevRole;
+              return (
+                <Fragment key={pt.id}>
+                  {showHeader && (
+                    <div
+                      className="col-span-2 mt-1 rounded-md bg-[#B82233]/8 px-3 py-1.5 text-sm font-bold text-[#B82233] first:mt-0"
+                      style={{
+                        WebkitPrintColorAdjust: "exact",
+                        printColorAdjust: "exact",
+                      }}
+                    >
+                      🎭 {pt.role_title ?? "ไม่ระบุ Role"}
+                    </div>
+                  )}
+                  <PrintMiniCard pt={pt} />
+                </Fragment>
+              );
+            })}
           </div>
 
           <footer className="mt-4 space-y-1.5 border-t border-neutral-200 pt-2.5 text-center">

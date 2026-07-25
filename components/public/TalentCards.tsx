@@ -361,22 +361,16 @@ export function PrintMiniCard({ pt }: { pt: ProjectTalentCard }) {
           </>
         ) : (
           <>
-            <p className="mt-0.5 text-[11px] leading-4 text-neutral-500">
-              {t.dob && (
-                <span className="block">Age {calculateAge(t.dob)}</span>
+            <p className="mt-0.5 text-[13px] leading-5 text-neutral-600">
+              {t.dob && <span className="block">Age {calculateAge(t.dob)}</span>}
+              {t.height_cm && (
+                <span className="block">Height {t.height_cm} cm</span>
               )}
-              {(t.height_cm || t.weight_kg) && (
-                <span className="block whitespace-nowrap">
-                  {[
-                    t.height_cm ? `Height ${t.height_cm} cm` : null,
-                    t.weight_kg ? `Weight ${t.weight_kg} kg` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
+              {t.weight_kg && (
+                <span className="block">Weight {t.weight_kg} kg</span>
               )}
               {nationalityTextEn(t) && (
-                <span className="block text-[10px] text-neutral-400">
+                <span className="block text-[11px] text-neutral-400">
                   {nationalityTextEn(t)}
                 </span>
               )}
