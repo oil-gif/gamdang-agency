@@ -2,7 +2,16 @@
 
 > อ่านไฟล์นี้ก่อนเริ่มทำงานเสมอ — สรุปว่าทำอะไรไปแล้ว ทำอะไรค้างอยู่ และต้องทำอะไรต่อ
 
-## ✨ รอบล่าสุด (ต่อ) — Role picker + FB funnel + PDF logo (2026-07-25 เย็น)
+## ✨ รอบล่าสุด — "รอคอมการ์ดจากแก้มแดง" + คิวหลังบ้าน (2026-07-25)
+
+> **⚠️ ต้องรัน migration 018**: `alter table talents add column if not exists compcard_awaiting_at timestamptz;` (โค้ด defensive ไม่พังถ้ายังไม่รัน แต่ตัวเลือกที่ 3 จะยังไม่ทำงาน)
+
+- **ขั้นรูปของ Model มี 3 ทางแล้ว** (`ModelPhotoStep`): ✨ สร้างคอมการ์ดใหม่ · 🪪 มีคอมการ์ดแก้มแดงแล้ว · **⏳ รอคอมการ์ดจากแก้มแดง** (ใหม่ — คนเพิ่งจองถ่ายโปรไฟล์)
+- **โหมด awaiting** (`AwaitingCompcard`): อัพ **รูปหลัก 1 รูปพอ** ก็สมัครจบได้ · เลือกโหมดปุ๊บ `setAwaitingCompcard` ตั้ง `compcard_awaiting_at` = เข้าคิวทันที · สลับไปโหมดอื่นจะเคลียร์ flag ให้ · gate step 3 ยอมผ่านถ้ามี singlePath · `ConfirmStep` variant `awaiting` โชว์รูปหลัก + ป้าย "อยู่ในคิวรอคอมการ์ด"
+- **คิวหลังบ้าน `/admin/compcards`**: ลิสต์คนรอ (รอนานสุดก่อน) + จำนวนวันที่รอ + ป้าย "✓ มีคอมการ์ดแล้ว" + ปุ่มไป Comp Card Studio (`/admin/talents/[id]#compcard`) + ปุ่ม "เสร็จแล้ว" (`clearAwaitingCompcard`) · มี **เมนู "รอคอมการ์ด" + badge** และ **tile ใน Dashboard**
+- **เคลียร์คิวอัตโนมัติ**: พออัพคอมการ์ด (ทั้ง `/api/compcard-upload` และ `/api/upload` kind=compcard) ระบบล้าง `compcard_awaiting_at` ให้เอง → คิวหายเองเมื่องานเสร็จ
+
+## ✨ Role picker + FB funnel + PDF logo (2026-07-25 เย็น)
 
 - **แอดมินเลือก/ย้าย Role ตอนเพิ่ม Model เอง**: picker "เพิ่ม" มี dropdown เลือก Role (`addTalentToProject` เก็บ role_id) · การ์ดที่รับเข้าแล้วมี "🎭 [Role] ▸ ย้าย" (`setProjectTalentRole`) ย้ายกลุ่ม/เก็บกวาดพวก "อื่นๆ" ได้
 - **Facebook funnel** (`CastingApply`): ตรวจ UA ว่าเปิดจาก FB/IG/TikTok webview → โชว์กล่องเตือน + เปิดฟอร์ม "กรอกเอง (ไม่ต้อง login)" ให้เลย (LINE login เป็นตัวรอง) เพราะ FB browser login LINE = email/password/CAPTCHA
