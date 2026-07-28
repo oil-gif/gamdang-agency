@@ -80,5 +80,12 @@ export async function POST(req: NextRequest) {
     .update({ compcard_photo_id: photoRow.id })
     .eq("id", talentId);
 
+  // มีคอมการ์ดแล้ว → เอาออกจากคิว "รอคอมการ์ดจากแก้มแดง" อัตโนมัติ
+  // (best-effort — ถ้ายังไม่รัน migration 018 ก็ข้ามไป ไม่ทำให้อัพโหลดล้ม)
+  await supabase
+    .from("talents")
+    .update({ compcard_awaiting_at: null })
+    .eq("id", talentId);
+
   return NextResponse.json({ ok: true, path });
 }

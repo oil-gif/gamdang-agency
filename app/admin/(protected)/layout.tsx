@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { signOutAdmin } from "@/actions/auth";
-import { getPendingCount } from "@/actions/talents";
+import {
+  getAwaitingCompcardCount,
+  getPendingCount,
+} from "@/actions/talents";
 import { getBookingPendingCount } from "@/actions/shoots";
 import { createAdminAuthClient } from "@/lib/supabase/auth-server";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -21,9 +24,10 @@ export default async function AdminProtectedLayout({
     redirect("/admin/login");
   }
 
-  const [pendingCount, bookingPending] = await Promise.all([
+  const [pendingCount, bookingPending, awaitingCompcards] = await Promise.all([
     getPendingCount(),
     getBookingPendingCount(),
+    getAwaitingCompcardCount(),
   ]);
   const navLinks = [
     { href: "/admin", label: "Dashboard", badge: 0 },
@@ -31,6 +35,7 @@ export default async function AdminProtectedLayout({
     { href: "/admin/projects", label: "Projects", badge: 0 },
     { href: "/admin/shoots", label: "จองถ่าย", badge: bookingPending },
     { href: "/admin/photos", label: "รูปภาพ", badge: 0 },
+    { href: "/admin/compcards", label: "รอคอมการ์ด", badge: awaitingCompcards },
     { href: "/admin/approvals", label: "รออนุมัติ", badge: pendingCount },
   ];
 

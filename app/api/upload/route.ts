@@ -105,9 +105,15 @@ export async function POST(req: NextRequest) {
       .from("talents")
       .update({ compcard_photo_id: photoRow.id })
       .eq("id", talentId);
+    // มีคอมการ์ดแล้ว → เอาออกจากคิว "รอคอมการ์ดจากแก้มแดง" อัตโนมัติ
+    await supabase
+      .from("talents")
+      .update({ compcard_awaiting_at: null })
+      .eq("id", talentId);
   }
 
   revalidatePath(`/admin/talents/${talentId}`);
+  revalidatePath("/admin/compcards");
 
   return NextResponse.json({ ok: true, photo: photoRow });
 }

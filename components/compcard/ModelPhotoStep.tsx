@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { setAwaitingCompcard } from "@/actions/talents";
+import { AwaitingCompcard } from "@/components/compcard/AwaitingCompcard";
 import { CompcardSlots } from "@/components/compcard/CompcardSlots";
 import { LegacyCompcard } from "@/components/compcard/LegacyCompcard";
 
-// ขั้นรูปของ Model — เลือก 2 ทาง: สร้างคอมการ์ดใหม่ (8 ช่อง) หรือ
-// อัพคอมการ์ดแก้มแดงเดิม (ช่วงเปลี่ยนถ่ายจากระบบเก่า)
+export type ModelPhotoMode = "new" | "legacy" | "awaiting";
+
+// ขั้นรูปของ Model — เลือก 3 ทาง: สร้างคอมการ์ดใหม่ (8 ช่อง) ·
+// อัพคอมการ์ดแก้มแดงเดิม (ช่วงเปลี่ยนถ่าย) · รอคอมการ์ดจากแก้มแดง (เพิ่งจองถ่าย)
 export function ModelPhotoStep({
   talentId,
   initialSlots,
@@ -16,17 +20,25 @@ export function ModelPhotoStep({
 }: {
   talentId: string;
   initialSlots: Record<string, string>;
-  initialMode: "new" | "legacy";
+  initialMode: ModelPhotoMode;
   legacyCode?: string | null;
   legacyPath?: string | null;
   legacySinglePath?: string | null;
 }) {
-  const [mode, setMode] = useState<"new" | "legacy">(initialMode);
+  const [mode, setMode] = useState<ModelPhotoMode>(initialMode);
+
+  function pick(next: ModelPhotoMode) {
+    setMode(next);
+    // ออกจากโหมด "รอคอมการ์ด" → เอาออกจากคิวหลังบ้าน (best-effort)
+    if (mode === "awaiting" && next !== "awaiting") {
+      void setAwaitingCompcard(talentId, false);
+    }
+  }
 
   return (
     <div className="space-y-5">
-      {/* ตัวเลือก 2 ทาง */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {/* ตัวเลือก 3 ทาง */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {(
           [
             {
@@ -41,12 +53,18 @@ export function ModelPhotoStep({
               title: "มีคอมการ์ดแก้มแดงแล้ว",
               desc: "อัพคอมการ์ดเดิมของแก้มแดง (ทำภายใน 1 ปี)",
             },
+            {
+              key: "awaiting",
+              emoji: "⏳",
+              title: "รอคอมการ์ดจากแก้มแดง",
+              desc: "เพิ่งจองถ่ายโปรไฟล์ — อัพรูปหลัก 1 รูปพอ",
+            },
           ] as const
         ).map((opt) => (
           <button
             key={opt.key}
             type="button"
-            onClick={() => setMode(opt.key)}
+            onClick={() => pick(opt.key)}
             className={`rounded-2xl border-2 p-4 text-left transition ${
               mode === opt.key
                 ? "border-[#1D4ED8] bg-[#1D4ED8]/5 shadow-sm"
@@ -55,9 +73,9 @@ export function ModelPhotoStep({
           >
             <div className="flex items-center gap-2">
               <span className="text-xl">{opt.emoji}</span>
-              <span className="font-bold text-neutral-800">{opt.title}</span>
+              <span className="text-sm font-bold text-neutral-800">{opt.title}</span>
               <span
-                className={`ml-auto flex size-5 items-center justify-center rounded-full border-2 ${
+                className={`ml-auto flex size-5 shrink-0 items-center justify-center rounded-full border-2 ${
                   mode === opt.key
                     ? "border-[#1D4ED8] bg-[#1D4ED8] text-white"
                     : "border-neutral-300"
@@ -75,15 +93,19 @@ export function ModelPhotoStep({
         ))}
       </div>
 
-      {mode === "new" ? (
+      {mode === "new" && (
         <CompcardSlots talentId={talentId} initialSlots={initialSlots} />
-      ) : (
+      )}
+      {mode === "legacy" && (
         <LegacyCompcard
           talentId={talentId}
           initialCode={legacyCode}
           initialPath={legacyPath}
           initialSinglePath={legacySinglePath}
         />
+      )}
+      {mode === "awaiting" && (
+        <AwaitingCompcard talentId={talentId} initialSinglePath={legacySinglePath} />
       )}
     </div>
   );

@@ -30,8 +30,8 @@ export function ConfirmStep({
   topSocialText: string | null;
   expertise: string[];
   // compcard = สร้างใหม่ด้วยระบบ · legacy = อัพคอมการ์ดแก้มแดงเดิม ·
-  // influencer = รูปเดียว (Influencer ล้วน ไม่ทำคอมการ์ด)
-  variant?: "compcard" | "legacy" | "influencer";
+  // influencer = รูปเดียว (Influencer ล้วน) · awaiting = รอคอมการ์ดจากแก้มแดง
+  variant?: "compcard" | "legacy" | "influencer" | "awaiting";
   compcardPath?: string | null;
   singlePhotoPath?: string | null;
 }) {
@@ -89,7 +89,7 @@ export function ConfirmStep({
             <h3 className="mb-2 text-base font-bold text-neutral-800">🪪 My Compcard</h3>
             <CompcardGenerator talent={talent} slots={slots} />
           </div>
-        ) : variant === "influencer" ? (
+        ) : variant === "influencer" || variant === "awaiting" ? (
           <div>
             <h3 className="mb-2 text-base font-bold text-neutral-800">
               🖼️ รูปโปรไฟล์ของฉัน
@@ -100,6 +100,12 @@ export function ConfirmStep({
               alt="รูปโปรไฟล์"
               className="max-h-[520px] w-full rounded-xl border border-neutral-200 bg-neutral-50 object-contain"
             />
+            {variant === "awaiting" && (
+              <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-[13px] leading-5 text-amber-900">
+                ⏳ <b>อยู่ในคิวรอคอมการ์ดจากแก้มแดง</b> — เมื่อถ่าย/ตัดต่อเสร็จ
+                ทีมงานจะอัพคอมการ์ดเข้าโปรไฟล์นี้ให้อัตโนมัติค่ะ
+              </p>
+            )}
           </div>
         ) : (
           // legacy — รูปหลัก = การ์ดหน้าบ้าน · คอมการ์ดแก้มแดง = แนบให้ลูกค้า

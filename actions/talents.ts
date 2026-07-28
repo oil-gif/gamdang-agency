@@ -706,6 +706,72 @@ export async function deleteTalent(formData: FormData) {
   redirect("/admin/talents");
 }
 
+// ===== รอคอมการ์ดจากแก้มแดง (คนเพิ่งจองถ่ายโปรไฟล์ ยังไม่มีคอมการ์ด) =====
+
+// talent เลือก "รอคอมการ์ดจากแก้มแดง" ในขั้นรูป → เข้าคิวให้แอดมินอัพให้ทีหลัง
+export async function setAwaitingCompcard(talentId: string, on: boolean) {
+  const owned = await getOwnedTalent(talentId);
+  if (!owned) return { ok: false as const, error: "forbidden" };
+  const { error } = await supabase
+    .from("talents")
+    .update({ compcard_awaiting_at: on ? new Date().toISOString() : null })
+    .eq("id", talentId);
+  // คอลัมน์ยังไม่มี (ยังไม่รัน migration 018) — ไม่ให้ flow สมัครพัง
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/admin/compcards");
+  return { ok: true as const };
+}
+
+// คิวหลังบ้าน: คนที่รอคอมการ์ด (รอนานสุดขึ้นก่อน) + รูปตัวแทน + มีคอมการ์ดยัง
+export async function getAwaitingCompcardTalents() {
+  const { data: talents, error } = await supabase
+    .from("talents")
+    .select("*")
+    .not("compcard_awaiting_at", "is", null)
+    .order("compcard_awaiting_at", { ascending: true });
+  if (error) return []; // ยังไม่รัน migration 018
+  if (!talents || talents.length === 0) return [];
+
+  const { data: photos } = await supabase
+    .from("talent_photos")
+    .select("talent_id, kind, storage_path, display_order")
+    .in(
+      "talent_id",
+      talents.map((t) => t.id),
+    )
+    .order("display_order", { ascending: true });
+
+  return talents.map((t) => {
+    const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
+    return {
+      ...t,
+      photo_path: pickPrimaryPhoto(t, mine),
+      has_compcard: mine.some((p) => p.kind === "compcard"),
+    };
+  });
+}
+
+export async function getAwaitingCompcardCount() {
+  const { count, error } = await supabase
+    .from("talents")
+    .select("id", { count: "exact", head: true })
+    .not("compcard_awaiting_at", "is", null);
+  if (error) return 0; // ยังไม่รัน migration 018
+  return count ?? 0;
+}
+
+// แอดมินกด "เสร็จแล้ว / เอาออกจากคิว" — เคลียร์สถานะรอ
+export async function clearAwaitingCompcard(formData: FormData) {
+  const id = String(formData.get("id"));
+  const { error } = await supabase
+    .from("talents")
+    .update({ compcard_awaiting_at: null })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/compcards");
+  revalidatePath("/admin");
+}
+
 // ===== คำขอลบประวัติ (self-service PDPA) =====
 // talent (แม่) กดขอลบโปรไฟล์ลูกเอง → ตั้ง deletion_requested_at → ซ่อนจาก
 // หน้าสาธารณะทันที (getPublicTalents กรองออก) แต่ข้อมูลยังอยู่จนแอดมิน approve

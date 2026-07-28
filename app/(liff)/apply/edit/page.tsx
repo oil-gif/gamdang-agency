@@ -66,24 +66,36 @@ export default async function ApplyEditPage({
     compcardPath = cc?.storage_path ?? null;
   }
 
-  // variant ตอนยืนยัน: influencer / compcard(สร้างใหม่) / legacy(อัพเดิม)
-  const variant: "compcard" | "legacy" | "influencer" = influencerOnly
+  // "รอคอมการ์ดจากแก้มแดง" (เพิ่งจองถ่าย ยังไม่มีคอมการ์ด) — migration 018
+  const awaitingCompcard = !!(talent as { compcard_awaiting_at?: string | null })
+    ?.compcard_awaiting_at;
+
+  // variant ตอนยืนยัน: influencer / compcard(สร้างใหม่) / legacy(อัพเดิม) /
+  // awaiting(รอคอมการ์ด — โชว์รูปหลัก + บอกว่ากำลังรอ)
+  const variant: "compcard" | "legacy" | "influencer" | "awaiting" = influencerOnly
     ? "influencer"
     : hasRequiredSlots
       ? "compcard"
       : compcardPath
         ? "legacy"
-        : "compcard";
+        : awaitingCompcard
+          ? "awaiting"
+          : "compcard";
 
   // gate ก่อนไปหน้ายืนยัน (step 3)
   // legacy ต้องมี "รูปหลัก" (singlePath) ด้วย — ใช้เป็นการ์ดหน้าบ้านแทนคอมการ์ด
+  // awaiting ใช้รูปหลัก 1 รูปพอ (คอมการ์ดค่อยตามมาทีหลัง)
   const gateOk = influencerOnly
     ? !!singlePath
-    : hasRequiredSlots || (!!compcardPath && !!singlePath);
+    : hasRequiredSlots ||
+      (!!compcardPath && !!singlePath) ||
+      (awaitingCompcard && !!singlePath);
   if (step === 3 && !gateOk) {
     const msg = influencerOnly
       ? "อัพโหลดรูปโปรไฟล์ก่อนค่ะ"
-      : "อัพโหลดรูปให้ครบก่อนค่ะ (คอมการ์ดใหม่ 4 รูป · หรือคอมการ์ดแก้มแดงเดิม + รูปหลัก 1 รูป)";
+      : awaitingCompcard
+        ? "อัพโหลดรูปหลัก 1 รูปก่อนค่ะ"
+        : "อัพโหลดรูปให้ครบก่อนค่ะ (คอมการ์ดใหม่ 4 รูป · หรือคอมการ์ดแก้มแดงเดิม + รูปหลัก 1 รูป · หรือเลือก 'รอคอมการ์ด' แล้วอัพรูปหลัก 1 รูป)";
     redirect(`/apply/edit?id=${id}&step=2&error=${encodeURIComponent(msg)}`);
   }
 
@@ -206,7 +218,13 @@ export default async function ApplyEditPage({
               <ModelPhotoStep
                 talentId={talent!.id}
                 initialSlots={slots}
-                initialMode={compcardPath && !hasRequiredSlots ? "legacy" : "new"}
+                initialMode={
+                  compcardPath && !hasRequiredSlots
+                    ? "legacy"
+                    : awaitingCompcard && !hasRequiredSlots
+                      ? "awaiting"
+                      : "new"
+                }
                 legacyCode={
                   (talent as { legacy_code?: string | null }).legacy_code ?? null
                 }
@@ -231,7 +249,7 @@ export default async function ApplyEditPage({
             <p className="text-center text-xs text-neutral-400">
               {influencerOnly
                 ? "อัพโหลดรูปโปรไฟล์ก่อน ถึงจะไปขั้นตอนยืนยันได้"
-                : "ทำคอมการ์ดใหม่ให้ครบ 4 รูป · หรืออัพคอมการ์ดแก้มแดงเดิม + รูปหลัก 1 รูป ก่อนไปยืนยัน"}
+                : "ทำคอมการ์ดใหม่ครบ 4 รูป · หรืออัพคอมการ์ดเดิม + รูปหลัก · หรือเลือก “รอคอมการ์ด” แล้วอัพรูปหลัก 1 รูป"}
             </p>
           </>
         )}

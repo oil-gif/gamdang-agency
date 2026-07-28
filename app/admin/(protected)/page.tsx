@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   approveDeletion,
   deleteStaleTalent,
+  getAwaitingCompcardCount,
   getDeletionRequests,
   getPendingCount,
   getStaleTalents,
@@ -21,6 +22,7 @@ export default async function AdminDashboardPage() {
     bookingPending,
     stale,
     deletionRequests,
+    awaitingCompcards,
   ] = await Promise.all([
     getTalentCounts(),
     getPendingCount(),
@@ -28,6 +30,7 @@ export default async function AdminDashboardPage() {
     getBookingPendingCount(),
     getStaleTalents(),
     getDeletionRequests(),
+    getAwaitingCompcardCount(),
   ]);
 
   const stats = [
@@ -71,6 +74,12 @@ export default async function AdminDashboardPage() {
       label: "จองถ่าย — สลิปรอตรวจ",
       value: bookingPending,
       href: "/admin/shoots",
+      accent: "text-amber-500",
+    },
+    {
+      label: "รอคอมการ์ดจากแก้มแดง",
+      value: awaitingCompcards,
+      href: "/admin/compcards",
       accent: "text-amber-500",
     },
     {

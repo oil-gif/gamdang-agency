@@ -55,7 +55,7 @@ export default async function EditTalentPage({
 
       {/* Comp Card Studio — อัพรูป 4 ช่องบังคับ + สร้างการ์ดอัตโนมัติ
           (อัพคอมการ์ดจากระบบเก่าได้ที่ส่วน "รูปภาพ" ด้านบนเหมือนเดิม) */}
-      <Card>
+      <Card id="compcard" className="scroll-mt-20">
         <CardHeader>
           <CardTitle className="text-[#1D4ED8]">
             Comp Card Studio{" "}
