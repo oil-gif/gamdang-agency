@@ -19,6 +19,8 @@ export const FRAMES = {
 
 export const INFO_BOX = { x: 1260, y: G, w: 528, h: 300 } as const;
 
+// extra3/extra4 เลิกใช้แล้ว (ลดเหลือ 2 รูปเพิ่มเติม เพื่อประหยัดพื้นที่)
+// — คงชนิดไว้เพื่ออ่านข้อมูลเก่าที่เคยอัพไว้ได้ แต่ไม่มีช่องให้อัพใหม่
 export type SlotKey =
   | "headshot"
   | "half"
@@ -47,8 +49,6 @@ export const SLOTS: SlotDef[] = [
   { key: "full", labelTh: "เต็มตัว", labelEn: "Full Body", required: true, outW: 792, outH: 1278, hint: "เห็นเต็มตัว ศีรษะถึงปลายเท้า" },
   { key: "extra1", labelTh: "เพิ่มเติม", labelEn: "Extra", required: false, outW: 900, outH: 1200, hint: "มุมอื่นๆ ที่อยากโชว์" },
   { key: "extra2", labelTh: "เพิ่มเติม", labelEn: "Extra", required: false, outW: 900, outH: 1200, hint: "มุมอื่นๆ ที่อยากโชว์" },
-  { key: "extra3", labelTh: "เพิ่มเติม", labelEn: "Extra", required: false, outW: 900, outH: 1200, hint: "มุมอื่นๆ ที่อยากโชว์" },
-  { key: "extra4", labelTh: "เพิ่มเติม", labelEn: "Extra", required: false, outW: 900, outH: 1200, hint: "มุมอื่นๆ ที่อยากโชว์" },
 ];
 
 export const REQUIRED_SLOTS: SlotKey[] = ["headshot", "half", "lifestyle", "full"];

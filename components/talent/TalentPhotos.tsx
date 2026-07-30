@@ -20,7 +20,31 @@ function DeleteButton({ id, talentId }: { id: string; talentId: string }) {
   );
 }
 
-export async function TalentPhotos({ talentId }: { talentId: string }) {
+// บันทึกรูปลงเครื่อง (ส่งให้ลูกค้าโดยตรงได้เลย ไม่ต้องทำ Report)
+// ใช้ ?dl= → เซิร์ฟเวอร์ส่ง Content-Disposition: attachment (ทำงานบนมือถือด้วย)
+function DownloadButton({ path, name }: { path: string; name: string }) {
+  return (
+    <a
+      href={`${getPhotoProxyUrl(path)}${getPhotoProxyUrl(path).includes("?") ? "&" : "?"}dl=${encodeURIComponent(name)}`}
+      aria-label="บันทึกรูป"
+      title="บันทึกรูปลงเครื่อง"
+      className="absolute left-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition hover:bg-[#1D4ED8]"
+    >
+      <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </a>
+  );
+}
+
+export async function TalentPhotos({
+  talentId,
+  label = "gamdang",
+}: {
+  talentId: string;
+  // ใช้ตั้งชื่อไฟล์ตอนบันทึก เช่น "GC669Z-Oil"
+  label?: string;
+}) {
   const photos = await getTalentPhotos(talentId);
   const compcard = photos.find((p) => p.kind === "compcard");
   const gallery = photos.filter((p) => p.kind === "gallery");
@@ -32,7 +56,10 @@ export async function TalentPhotos({ talentId }: { talentId: string }) {
           รูปภาพ <span className="font-normal text-[#1D4ED8]/60">(Photos)</span>
         </h2>
         <p className="mt-0.5 text-sm text-neutral-500">
-          Comp Card คือรูปหลัก (แนวนอน) ส่วน Gallery เพิ่มได้หลายรูป
+          Comp Card คือรูปหลัก (แนวนอน) ส่วน Gallery เพิ่มได้หลายรูป ·{" "}
+          <span className="font-medium text-neutral-600">
+            กดปุ่ม ⬇ มุมซ้ายบนของรูปเพื่อบันทึกลงเครื่อง (ส่งให้ลูกค้าได้เลย)
+          </span>
         </p>
       </div>
 
@@ -45,6 +72,10 @@ export async function TalentPhotos({ talentId }: { talentId: string }) {
               src={getPhotoProxyUrl(compcard.storage_path)}
               alt="Comp Card"
               className="absolute inset-0 size-full object-cover"
+            />
+            <DownloadButton
+              path={compcard.storage_path}
+              name={`${label}-compcard`}
             />
             <DeleteButton id={compcard.id} talentId={talentId} />
           </div>
@@ -65,7 +96,7 @@ export async function TalentPhotos({ talentId }: { talentId: string }) {
           Gallery ({gallery.length})
         </h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {gallery.map((p) => (
+          {gallery.map((p, i) => (
             <div
               key={p.id}
               className="group relative aspect-square overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100"
@@ -76,6 +107,7 @@ export async function TalentPhotos({ talentId }: { talentId: string }) {
                 alt=""
                 className="absolute inset-0 size-full object-cover"
               />
+              <DownloadButton path={p.storage_path} name={`${label}-${i + 1}`} />
               <DeleteButton id={p.id} talentId={talentId} />
             </div>
           ))}

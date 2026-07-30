@@ -23,8 +23,9 @@ export async function POST(req: NextRequest) {
   try {
     outputBuffer = await sharp(inputBuffer)
       .rotate()
-      .resize({ width: 1600, withoutEnlargement: true })
-      .webp({ quality: 72 })
+      // มาตรฐานเก็บรูป: ด้านยาวไม่เกิน 1600px + WebP q80 (ไม่เก็บไฟล์ต้นฉบับเต็ม)
+      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 80 })
       .toBuffer();
   } catch {
     return NextResponse.json({ error: "ไฟล์นี้ไม่ใช่รูปภาพที่รองรับ" }, { status: 400 });

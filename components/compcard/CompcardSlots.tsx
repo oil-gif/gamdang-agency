@@ -197,9 +197,9 @@ export function CompcardSlots({
         </div>
 
         <p className="mt-5 text-sm font-semibold text-neutral-700">
-          รูปเพิ่มเติม (ไม่บังคับ สูงสุด 4 รูป)
+          รูปเพิ่มเติม (ไม่บังคับ สูงสุด 2 รูป)
         </p>
-        <div className="mt-2 grid grid-cols-4 gap-2">
+        <div className="mt-2 grid grid-cols-2 gap-3">
           {SLOTS.filter((s) => !s.required).map((def) => (
             <SlotBox key={def.key} def={def} />
           ))}

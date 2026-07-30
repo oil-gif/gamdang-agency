@@ -19,9 +19,16 @@ export async function GET(
 ) {
   const { path } = await params;
   const storagePath = path.join("/");
-  const wRaw = new URL(req.url).searchParams.get("w");
+  const sp = new URL(req.url).searchParams;
+  const wRaw = sp.get("w");
   const width = wRaw
     ? Math.min(Math.max(parseInt(wRaw, 10) || 0, 64), 1600)
+    : null;
+  // ?dl=<ชื่อไฟล์> → บังคับดาวน์โหลด (แอดมินกด "บันทึกรูป" ส่งให้ลูกค้าได้เลย)
+  // ใช้ Content-Disposition แทน attribute download — ทำงานบนมือถือด้วย
+  const dlRaw = sp.get("dl");
+  const dlName = dlRaw
+    ? `${dlRaw.replace(/[^\w\-. ]/g, "").slice(0, 60) || "gamdang"}.jpg`
     : null;
 
   // Only ever serve from the known layouts: {talentId}/{kind}/{file},
@@ -57,6 +64,9 @@ export async function GET(
     headers: {
       "Content-Type": "image/jpeg",
       "Cache-Control": "public, max-age=31536000, immutable",
+      ...(dlName
+        ? { "Content-Disposition": `attachment; filename="${dlName}"` }
+        : {}),
     },
   });
 }

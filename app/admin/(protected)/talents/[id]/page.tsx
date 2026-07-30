@@ -51,7 +51,12 @@ export default async function EditTalentPage({
           )}
         </CardContent>
       </Card>
-      <TalentPhotos talentId={id} />
+      <TalentPhotos
+        talentId={id}
+        label={[talent.code, talent.nickname_en || talent.nickname_th]
+          .filter(Boolean)
+          .join("-")}
+      />
 
       {/* Comp Card Studio — อัพรูป 4 ช่องบังคับ + สร้างการ์ดอัตโนมัติ
           (อัพคอมการ์ดจากระบบเก่าได้ที่ส่วน "รูปภาพ" ด้านบนเหมือนเดิม) */}

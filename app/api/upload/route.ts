@@ -43,14 +43,14 @@ export async function POST(req: NextRequest) {
 
   const base64 = data.includes(",") ? data.slice(data.indexOf(",") + 1) : data;
   const inputBuffer = Buffer.from(base64, "base64");
-  const maxWidth = kind === "compcard" ? 1200 : 1600;
 
   let outputBuffer: Buffer;
   try {
     outputBuffer = await sharp(inputBuffer)
       .rotate()
-      .resize({ width: maxWidth, withoutEnlargement: true })
-      .webp({ quality: 72 })
+      // มาตรฐานเก็บรูป: ด้านยาวไม่เกิน 1600px + WebP q80 (ไม่เก็บไฟล์ต้นฉบับเต็ม)
+      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 80 })
       .toBuffer();
   } catch {
     return NextResponse.json({ error: "ไฟล์นี้ไม่ใช่รูปภาพที่รองรับ" }, { status: 400 });
