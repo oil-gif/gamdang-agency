@@ -285,7 +285,7 @@ export default async function ProjectDetailPage({
       </section>
 
       {/* ===== ผู้สมัครเข้าร่วม (จากหน้าประกาศ) ===== */}
-      <section className="max-w-3xl space-y-3">
+      <section id="applications" className="max-w-3xl space-y-3 scroll-mt-20">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-[#1D4ED8]">
             ผู้สมัครเข้าร่วม (Applications)
@@ -319,8 +319,8 @@ export default async function ProjectDetailPage({
                 </div>
                 <div className="min-w-0 flex-1">
                   <Link
-                    href={`/admin/talents/${t?.id}`}
-                    className="font-medium text-neutral-800 hover:text-[#1D4ED8]"
+                    href={`/admin/talents/${t?.id}?from=${encodeURIComponent(`/admin/projects/${id}#applications`)}`}
+                    className="font-medium text-neutral-800 hover:text-[#1D4ED8] hover:underline"
                   >
                     {t?.nickname_en || t?.nickname_th || "(ไม่มีชื่อ)"}
                   </Link>

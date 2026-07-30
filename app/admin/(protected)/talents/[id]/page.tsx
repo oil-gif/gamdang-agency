@@ -24,7 +24,13 @@ export default async function EditTalentPage({
     from && from.startsWith("/") && !from.startsWith("//") ? from : null;
   const backLabel = backHref?.startsWith("/admin/projects")
     ? "← กลับหน้าโปรเจกต์"
-    : "← กลับรายการ Talent";
+    : backHref?.startsWith("/admin/approvals")
+      ? "← กลับหน้ารออนุมัติ"
+      : backHref?.startsWith("/admin/compcards")
+        ? "← กลับคิวรอคอมการ์ด"
+        : backHref === "/admin"
+          ? "← กลับ Dashboard"
+          : "← กลับรายการ Talent";
 
   return (
     <div className="max-w-3xl space-y-6">

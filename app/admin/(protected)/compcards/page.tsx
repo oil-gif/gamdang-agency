@@ -70,7 +70,7 @@ export default async function CompcardQueuePage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline gap-2">
                     <Link
-                      href={`/admin/talents/${t.id}`}
+                      href={`/admin/talents/${t.id}?from=/admin/compcards`}
                       className="font-semibold text-neutral-800 hover:text-[#1D4ED8]"
                     >
                       {t.nickname_en || t.nickname_th || "(ไม่มีชื่อ)"}
@@ -99,7 +99,7 @@ export default async function CompcardQueuePage() {
 
                   <div className="mt-2.5 flex flex-wrap items-center gap-2">
                     <Button asChild size="sm">
-                      <Link href={`/admin/talents/${t.id}#compcard`}>
+                      <Link href={`/admin/talents/${t.id}?from=/admin/compcards#compcard`}>
                         {t.has_compcard ? "ดู/เปลี่ยนคอมการ์ด" : "+ อัพคอมการ์ด"}
                       </Link>
                     </Button>

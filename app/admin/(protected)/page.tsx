@@ -135,7 +135,7 @@ export default async function AdminDashboardPage() {
               >
                 <div className="min-w-0 flex-1">
                   <Link
-                    href={`/admin/talents/${t.id}`}
+                    href={`/admin/talents/${t.id}?from=/admin`}
                     className="font-medium text-neutral-800 hover:text-[#1D4ED8]"
                   >
                     {t.nickname_en ?? t.nickname_th ?? "(ไม่มีชื่อ)"}
@@ -196,7 +196,7 @@ export default async function AdminDashboardPage() {
               >
                 <div className="min-w-0 flex-1">
                   <Link
-                    href={`/admin/talents/${t.id}`}
+                    href={`/admin/talents/${t.id}?from=/admin`}
                     className="font-medium text-neutral-800 hover:text-[#1D4ED8]"
                   >
                     {t.nickname_en ?? t.nickname_th ?? "(ไม่มีชื่อ)"}
