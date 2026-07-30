@@ -51,16 +51,29 @@ export async function TalentPhotos({
 
   return (
     <section className="space-y-6 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
-      <div>
-        <h2 className="text-lg font-semibold text-[#1D4ED8]">
-          รูปภาพ <span className="font-normal text-[#1D4ED8]/60">(Photos)</span>
-        </h2>
-        <p className="mt-0.5 text-sm text-neutral-500">
-          Comp Card คือรูปหลัก (แนวนอน) ส่วน Gallery เพิ่มได้หลายรูป ·{" "}
-          <span className="font-medium text-neutral-600">
-            กดปุ่ม ⬇ มุมซ้ายบนของรูปเพื่อบันทึกลงเครื่อง (ส่งให้ลูกค้าได้เลย)
-          </span>
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-[#1D4ED8]">
+            รูปภาพ <span className="font-normal text-[#1D4ED8]/60">(Photos)</span>
+          </h2>
+          <p className="mt-0.5 text-sm text-neutral-500">
+            Comp Card คือรูปหลัก (แนวนอน) ส่วน Gallery เพิ่มได้หลายรูป ·{" "}
+            <span className="font-medium text-neutral-600">
+              กดปุ่ม ⬇ มุมซ้ายบนของรูปเพื่อบันทึกทีละรูป
+            </span>
+          </p>
+        </div>
+        {photos.length > 0 && (
+          <a
+            href={`/api/talent-photos-zip?talent_id=${talentId}`}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#1D4ED8] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+          >
+            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            บันทึกทั้งหมด ({photos.length} รูป)
+          </a>
+        )}
       </div>
 
       <div className="space-y-3">

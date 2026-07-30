@@ -12,19 +12,27 @@ export default async function EditTalentPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; from?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, from } = await searchParams;
   const talent = await getTalent(id);
+
+  // ?from=/admin/projects/xxx → ปุ่มกลับไปหน้าที่มา (เฉพาะ path ภายในเว็บ
+  // กัน open-redirect) ไม่งั้นกลับรายการ Talent ตามเดิม
+  const backHref =
+    from && from.startsWith("/") && !from.startsWith("//") ? from : null;
+  const backLabel = backHref?.startsWith("/admin/projects")
+    ? "← กลับหน้าโปรเจกต์"
+    : "← กลับรายการ Talent";
 
   return (
     <div className="max-w-3xl space-y-6">
       <Link
-        href="/admin/talents"
+        href={backHref ?? "/admin/talents"}
         className="inline-block text-sm font-medium text-[#1D4ED8] hover:underline"
       >
-        ← กลับรายการ Talent
+        {backLabel}
       </Link>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-neutral-800">

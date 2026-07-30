@@ -450,10 +450,10 @@ export default async function ProjectDetailPage({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <Link
-                      href={`/admin/talents/${t.id}`}
-                      className="font-medium text-neutral-800 hover:text-[#1D4ED8]"
+                      href={`/admin/talents/${t.id}?from=${encodeURIComponent(`/admin/projects/${id}`)}`}
+                      className="font-medium text-neutral-800 hover:text-[#1D4ED8] hover:underline"
                     >
-                      {t.nickname_th}
+                      {t.nickname_en || t.nickname_th}
                     </Link>
                     {pt.client_interested && (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -840,9 +840,13 @@ export default async function ProjectDetailPage({
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-1.5">
-                    <p className="truncate font-medium text-neutral-800">
+                    {/* กดชื่อ → เปิดโปรไฟล์ (มีปุ่มกลับมาโปรเจกต์นี้) */}
+                    <Link
+                      href={`/admin/talents/${t.id}?from=${encodeURIComponent(`/admin/projects/${id}#picker`)}`}
+                      className="truncate font-medium text-neutral-800 hover:text-[#1D4ED8] hover:underline"
+                    >
                       {t.nickname_en ?? t.nickname_th}
-                    </p>
+                    </Link>
                     <span className="font-mono text-[10px] text-neutral-400">
                       {t.code}
                     </span>
