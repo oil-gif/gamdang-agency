@@ -298,7 +298,10 @@ export async function createBookingAsAdmin(formData: FormData) {
     p_height: s("height"),
     p_weight: s("weight"),
     p_talents: s("talents_note"),
-    p_slip_path: null,
+    // แอดมินจองแทนไม่มีสลิป — คอลัมน์ slip_path เป็น NOT NULL (migration 007)
+    // จึงส่งสตริงว่าง = "ไม่มีสลิป" · ทุกจุดที่อ่านเช็คแบบ falsy อยู่แล้ว
+    // (ปุ่มดูสลิปไม่ขึ้น, ตอนลบไม่ไปลบไฟล์ผี)
+    p_slip_path: "",
     p_photo_cap: BOOKING.photoCap,
     p_video_cap: BOOKING.videoCap,
   });
