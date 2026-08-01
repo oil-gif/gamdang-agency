@@ -42,6 +42,8 @@ import { SITE_URL } from "@/lib/site";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
 import { getPhotoProxyUrl } from "@/lib/storage";
 import { formatEnDate, formatThaiDate, formatThaiDateTime } from "@/lib/datetime";
+import { DangerConfirmButton } from "@/components/admin/DangerConfirmButton";
+import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
 
 const BASE_URL = SITE_URL;
 
@@ -210,12 +212,16 @@ export default async function ProjectDetailPage({
           <Button asChild variant="outline" size="sm">
             <Link href={`/admin/projects/${id}/report`}>📊 Report ผลงาน</Link>
           </Button>
-          <form action={deleteProject}>
-            <input type="hidden" name="id" value={id} />
-            <Button type="submit" variant="ghost" size="sm">
-              ลบโปรเจกต์
-            </Button>
-          </form>
+          <DangerConfirmButton
+            action={deleteProject}
+            hiddenFields={{ id }}
+            label="ลบโปรเจกต์"
+            title={`ลบโปรเจกต์ "${project.name}"?`}
+            description={`Talent ในงาน ${projectTalents.length} คน · ใบสมัคร ${applications.length} ใบ · ลิงก์ลูกค้าทั้งหมด จะถูกลบถาวร — กู้คืนไม่ได้`}
+            confirmLabel="ลบโปรเจกต์ถาวร"
+            needsCode={hasDangerCode()}
+            fallbackPhrase={FALLBACK_PHRASE}
+          />
         </div>
       </div>
 

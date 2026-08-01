@@ -6,6 +6,7 @@ import { notifyCasting } from "@/lib/admin-notify";
 import { yearsAgo } from "@/lib/age";
 import { SITE_URL } from "@/lib/site";
 import { supabase } from "@/lib/supabase/server";
+import { verifyDangerCode } from "@/lib/danger";
 
 export async function getProjects() {
   const { data, error } = await supabase
@@ -444,6 +445,12 @@ export async function rejectApplication(formData: FormData) {
 
 export async function deleteProject(formData: FormData) {
   const id = String(formData.get("id"));
+  // ⚠️ กู้คืนไม่ได้ (ลบ talent ในงาน/ใบสมัคร/ลิงก์ลูกค้าทั้งหมด) — ต้องมีรหัสยืนยัน
+  if (!verifyDangerCode(String(formData.get("danger_code") ?? ""))) {
+    redirect(
+      `/admin/projects/${id}?error=${encodeURIComponent("รหัสยืนยันไม่ถูกต้อง — ยังไม่ได้ลบโปรเจกต์")}`,
+    );
+  }
   const { error } = await supabase.from("projects").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/projects");

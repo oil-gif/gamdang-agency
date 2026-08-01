@@ -14,6 +14,8 @@ import { getProjectCounts } from "@/actions/projects";
 import { getBookingPendingCount } from "@/actions/shoots";
 import { Button } from "@/components/ui/button";
 import { formatThaiDate } from "@/lib/datetime";
+import { DangerConfirmButton } from "@/components/admin/DangerConfirmButton";
+import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
 
 export default async function AdminDashboardPage() {
   const [
@@ -154,16 +156,16 @@ export default async function AdminDashboardPage() {
                     ยกเลิกคำขอ
                   </Button>
                 </form>
-                <form action={approveDeletion}>
-                  <input type="hidden" name="id" value={t.id} />
-                  <Button
-                    type="submit"
-                    size="sm"
-                    className="bg-rose-600 text-white hover:bg-rose-700"
-                  >
-                    ลบถาวร
-                  </Button>
-                </form>
+                <DangerConfirmButton
+                  action={approveDeletion}
+                  hiddenFields={{ id: t.id }}
+                  label="ลบถาวร"
+                  title={`ลบประวัติ "${t.nickname_en ?? t.nickname_th ?? t.code}" ถาวร?`}
+                  description="ข้อมูลและรูปทั้งหมดจะถูกลบออกจากระบบตามคำขอของเจ้าตัว — กู้คืนไม่ได้"
+                  confirmLabel="ลบประวัติถาวร"
+                  needsCode={hasDangerCode()}
+                  fallbackPhrase={FALLBACK_PHRASE}
+                />
               </div>
             ))}
           </div>
@@ -209,17 +211,16 @@ export default async function AdminDashboardPage() {
                     เก็บไว้
                   </Button>
                 </form>
-                <form action={deleteStaleTalent}>
-                  <input type="hidden" name="id" value={t.id} />
-                  <Button
-                    type="submit"
-                    size="sm"
-                    variant="ghost"
-                    className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                  >
-                    ลบทิ้ง
-                  </Button>
-                </form>
+                <DangerConfirmButton
+                  action={deleteStaleTalent}
+                  hiddenFields={{ id: t.id }}
+                  label="ลบทิ้ง"
+                  title={`ลบประวัติ "${t.nickname_en ?? t.nickname_th ?? t.code}" ถาวร?`}
+                  description="โปรไฟล์ที่ไม่มีการอัพเดทเกิน 3 ปี — ลบแล้วกู้คืนไม่ได้"
+                  confirmLabel="ลบประวัติถาวร"
+                  needsCode={hasDangerCode()}
+                  fallbackPhrase={FALLBACK_PHRASE}
+                />
               </div>
             ))}
           </div>

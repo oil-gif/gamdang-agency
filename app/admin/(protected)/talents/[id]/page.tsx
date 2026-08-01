@@ -4,8 +4,9 @@ import { LineLinkButton } from "@/components/admin/LineLinkButton";
 import { CompcardStudio } from "@/components/compcard/CompcardStudio";
 import { TalentForm } from "@/components/talent/TalentForm";
 import { TalentPhotos } from "@/components/talent/TalentPhotos";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DangerConfirmButton } from "@/components/admin/DangerConfirmButton";
+import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
 
 export default async function EditTalentPage({
   params,
@@ -44,12 +45,16 @@ export default async function EditTalentPage({
         <h1 className="text-2xl font-bold text-neutral-800">
           แก้ไข: {talent.nickname_th}
         </h1>
-        <form action={deleteTalent}>
-          <input type="hidden" name="id" value={id} />
-          <Button type="submit" variant="ghost" size="sm">
-            ลบ Talent
-          </Button>
-        </form>
+        <DangerConfirmButton
+          action={deleteTalent}
+          hiddenFields={{ id }}
+          label="ลบ Talent"
+          title={`ลบประวัติ "${talent.nickname_en || talent.nickname_th || talent.code}" ถาวร?`}
+          description="ข้อมูลโปรไฟล์ รูปภาพ และประวัติงานทั้งหมดจะถูกลบ — กู้คืนไม่ได้"
+          confirmLabel="ลบประวัติถาวร"
+          needsCode={hasDangerCode()}
+          fallbackPhrase={FALLBACK_PHRASE}
+        />
       </div>
       <Card>
         <CardHeader>

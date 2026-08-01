@@ -7,6 +7,7 @@ import { computeTierAndFollowers } from "@/lib/tier";
 import { CATEGORIES, ETHNICITIES, TALENTS_PAGE_SIZE } from "@/lib/constants";
 import { yearsAgo } from "@/lib/age";
 import { getTalentSession } from "@/lib/auth/talent-session";
+import { verifyDangerCode } from "@/lib/danger";
 
 // รูปตัวแทนของ talent สำหรับการ์ด/ลิสต์ — เลือก "รูปหลัก → หน้าตรง" ก่อนเสมอ
 // (compcard_slots.single = รูปหลัก, headshot = หน้าตรง) แล้วค่อย fallback เป็น
@@ -313,6 +314,10 @@ export async function keepTalent(formData: FormData) {
 // ลบจากหน้า cleanup (ไม่ redirect เหมือน deleteTalent)
 export async function deleteStaleTalent(formData: FormData) {
   const id = String(formData.get("id"));
+  // ⚠️ ลบประวัติถาวร — ต้องมีรหัสยืนยัน
+  if (!verifyDangerCode(String(formData.get("danger_code") ?? ""))) {
+    redirect(`/admin?error=${encodeURIComponent("รหัสยืนยันไม่ถูกต้อง — ยังไม่ได้ลบ")}`);
+  }
   const { error } = await supabase.from("talents").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
@@ -700,6 +705,12 @@ export async function saveLegacyCompcardCode(talentId: string, code: string) {
 
 export async function deleteTalent(formData: FormData) {
   const id = String(formData.get("id"));
+  // ⚠️ ลบประวัติถาวร — ต้องมีรหัสยืนยัน
+  if (!verifyDangerCode(String(formData.get("danger_code") ?? ""))) {
+    redirect(
+      `/admin/talents/${id}?error=${encodeURIComponent("รหัสยืนยันไม่ถูกต้อง — ยังไม่ได้ลบโปรไฟล์")}`,
+    );
+  }
   const { error } = await supabase.from("talents").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/talents");
@@ -818,6 +829,10 @@ export async function getDeletionRequests() {
 // (rows ที่อ้าง talent_id จะ cascade ตาม schema)
 export async function approveDeletion(formData: FormData) {
   const id = String(formData.get("id"));
+  // ⚠️ ลบประวัติถาวร (ลบรูปใน storage ด้วย) — ต้องมีรหัสยืนยัน
+  if (!verifyDangerCode(String(formData.get("danger_code") ?? ""))) {
+    redirect(`/admin?error=${encodeURIComponent("รหัสยืนยันไม่ถูกต้อง — ยังไม่ได้ลบประวัติ")}`);
+  }
   const { data: photos } = await supabase
     .from("talent_photos")
     .select("storage_path")
