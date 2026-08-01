@@ -326,6 +326,74 @@ export async function createBookingAsAdmin(formData: FormData) {
   redirect(`${back}?added=1`);
 }
 
+// ย้ายรอบเวลา / เปลี่ยนแพ็กเกจของการจองที่มีอยู่ (ลูกค้าขอเลื่อน)
+// — เช็คที่นั่งปลายทางก่อนย้าย (ไม่นับตัวเองซ้ำ) และเช็คว่ารอบนั้นเปิดอยู่
+export async function moveBooking(formData: FormData) {
+  const id = String(formData.get("id"));
+  const dayId = String(formData.get("day_id"));
+  const toHour = String(formData.get("hour") ?? "");
+  const toPkg = String(formData.get("package") ?? "");
+  const back = `/admin/shoots/${dayId}`;
+
+  const validHours: readonly string[] = BOOKING.hours;
+  if (!validHours.includes(toHour) || !(toPkg in BOOKING.packages)) {
+    redirect(`${back}?error=${encodeURIComponent("รอบเวลาหรือแพ็กเกจไม่ถูกต้อง")}`);
+  }
+
+  const { data: current } = await supabase
+    .from("shoot_bookings")
+    .select("hour, package, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (!current) redirect(`${back}?error=${encodeURIComponent("ไม่พบการจองนี้")}`);
+  if (current.hour === toHour && current.package === toPkg) {
+    redirect(`${back}?moved=1`); // ไม่ได้เปลี่ยนอะไร
+  }
+
+  // รอบปลายทางเปิดรับอยู่ไหม
+  const { data: day } = await supabase
+    .from("shoot_days")
+    .select("slots")
+    .eq("id", dayId)
+    .maybeSingle();
+  const slot = ((day?.slots ?? {}) as Record<string, Record<string, boolean>>)[toHour];
+  const photoOpen = slot?.photo_open ?? true;
+  const videoOpen = slot?.video_open ?? true;
+
+  // นับที่นั่งปลายทาง โดยไม่นับใบนี้ (กันนับซ้ำตอนย้ายภายในรอบเดิม)
+  const { data: others } = await supabase
+    .from("shoot_bookings")
+    .select("id, package")
+    .eq("shoot_day_id", dayId)
+    .eq("hour", toHour)
+    .neq("status", "rejected")
+    .neq("id", id);
+  const photoUsed = (others ?? []).length;
+  const videoUsed = (others ?? []).filter((b) => b.package === "A").length;
+
+  if (!photoOpen || photoUsed >= BOOKING.photoCap) {
+    redirect(
+      `${back}?error=${encodeURIComponent(`ย้ายไม่ได้ — รอบ ${toHour} น. เต็มหรือถูกปิดอยู่`)}`,
+    );
+  }
+  if (toPkg === "A" && (!videoOpen || videoUsed >= BOOKING.videoCap)) {
+    redirect(
+      `${back}?error=${encodeURIComponent(`ย้ายไม่ได้ — ห้องวิดีโอรอบ ${toHour} น. เต็มหรือถูกปิดอยู่`)}`,
+    );
+  }
+
+  const { error } = await supabase
+    .from("shoot_bookings")
+    .update({ hour: toHour, package: toPkg })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(back);
+  revalidatePath("/admin/shoots");
+  revalidatePath("/booking");
+  redirect(`${back}?moved=1`);
+}
+
 // ลบการจองรายคน (เช่น รายการที่แอดมินสร้างไว้เทส) — คืนที่นั่งให้รอบนั้นด้วย
 // ⚠️ กู้คืนไม่ได้ → ต้องผ่านรหัสยืนยันชั้นที่ 2
 export async function deleteBooking(formData: FormData) {

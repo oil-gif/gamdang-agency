@@ -7,6 +7,7 @@ import {
   getShootBookings,
   getShootDay,
   getSlipUrl,
+  moveBooking,
   saveShootDay,
   setBookingArrival,
   resendBookingConfirmLine,
@@ -37,10 +38,10 @@ export default async function ShootDayDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; added?: string }>;
+  searchParams: Promise<{ error?: string; added?: string; moved?: string }>;
 }) {
   const { id } = await params;
-  const { error, added } = await searchParams;
+  const { error, added, moved } = await searchParams;
   const [day, bookings, counts] = await Promise.all([
     getShootDay(id),
     getShootBookings(id),
@@ -101,6 +102,12 @@ export default async function ShootDayDetailPage({
       {added && (
         <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
           ✓ บันทึกการจองแทนลูกค้าเรียบร้อย (สถานะ: อนุมัติแล้ว)
+        </p>
+      )}
+      {moved && (
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          ✓ ย้ายรอบเรียบร้อย — อย่าลืมแจ้งลูกค้า (กด &quot;📨 ส่ง LINE ยืนยันอีกครั้ง&quot;
+          เพื่อส่งรอบใหม่ให้เขา)
         </p>
       )}
 
@@ -559,6 +566,52 @@ export default async function ShootDayDetailPage({
                       </Button>
                     </form>
                   )}
+                  {/* ย้ายรอบ / เปลี่ยนแพ็กเกจ (ลูกค้าขอเลื่อน) */}
+                  <form
+                    action={moveBooking}
+                    className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1"
+                  >
+                    <input type="hidden" name="id" value={b.id} />
+                    <input type="hidden" name="day_id" value={id} />
+                    <span className="text-[11px] text-neutral-400">ย้ายไป</span>
+                    <select
+                      name="hour"
+                      defaultValue={b.hour}
+                      aria-label="รอบเวลา"
+                      className="rounded-md border border-neutral-300 bg-white px-1.5 py-0.5 text-[11px]"
+                    >
+                      {BOOKING.hours.map((h) => {
+                        const c = counts[h] ?? { photo: 0, video: 0 };
+                        const left = Math.max(
+                          BOOKING.photoCap - c.photo + (h === b.hour ? 1 : 0),
+                          0,
+                        );
+                        return (
+                          <option key={h} value={h}>
+                            {h} ({left} ที่ว่าง)
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <select
+                      name="package"
+                      defaultValue={b.package}
+                      aria-label="แพ็กเกจ"
+                      className="rounded-md border border-neutral-300 bg-white px-1.5 py-0.5 text-[11px]"
+                    >
+                      {Object.keys(BOOKING.packages).map((k) => (
+                        <option key={k} value={k}>
+                          Package {k}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="submit"
+                      className="rounded-md bg-[#1D4ED8] px-2 py-0.5 text-[11px] font-semibold text-white hover:opacity-90"
+                    >
+                      ย้าย
+                    </button>
+                  </form>
                   {/* ลบการจองรายคน (เช่นรายการทดสอบ) — ต้องใช้รหัสยืนยัน */}
                   <DangerConfirmButton
                     action={deleteBooking}
