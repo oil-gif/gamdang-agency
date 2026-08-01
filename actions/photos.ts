@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase/server";
 import { getTalentSession } from "@/lib/auth/talent-session";
+import { isAdminAuthed } from "@/lib/supabase/auth-server";
 
 export async function getTalentPhotos(talentId: string) {
   const { data, error } = await supabase
@@ -22,8 +23,10 @@ export async function deletePhoto(formData: FormData) {
 
   // Same reasoning as /api/upload: a logged-in talent (parent) may only
   // delete photos on a talent that belongs to their LINE account.
+  // แอดมิน (Supabase Auth) ผ่านได้เสมอ — กันเคสเบราว์เซอร์แอดมินมี talent
+  // session ค้างจากการทดสอบ แล้วกดลบรูปไม่ได้ (เด้ง server error)
   const talentSession = await getTalentSession();
-  if (talentSession) {
+  if (talentSession && !(await isAdminAuthed())) {
     const { data: owned } = await supabase
       .from("talents")
       .select("id")
@@ -45,6 +48,23 @@ export async function deletePhoto(formData: FormData) {
 
     if (photo.kind === "compcard") {
       await supabase.from("talents").update({ compcard_photo_id: null }).eq("id", talentId);
+    }
+
+    // ถ้ารูปนี้ถูกใช้เป็นช่องใน Comp Card Studio → เอาออกจาก compcard_slots ด้วย
+    // ไม่งั้นสตูดิโอจะยังโชว์ช่องที่ชี้ไปไฟล์ที่ถูกลบ (รูปแตก)
+    const { data: t } = await supabase
+      .from("talents")
+      .select("compcard_slots")
+      .eq("id", talentId)
+      .maybeSingle();
+    const slots = (t?.compcard_slots ?? {}) as Record<string, string>;
+    const keys = Object.keys(slots).filter((k) => slots[k] === photo.storage_path);
+    if (keys.length > 0) {
+      for (const k of keys) delete slots[k];
+      await supabase
+        .from("talents")
+        .update({ compcard_slots: slots })
+        .eq("id", talentId);
     }
   }
 
