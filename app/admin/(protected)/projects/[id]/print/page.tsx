@@ -5,6 +5,7 @@ import { PrintButton } from "@/components/public/PrintButton";
 import { PrintMiniCard } from "@/components/public/TalentCards";
 
 import { CONTACT } from "@/lib/constants";
+import { formatEnDate } from "@/lib/datetime";
 
 // การ์ดใหญ่ขึ้น (รูปคอมการ์ดเด่นขึ้น) → A4 แนวตั้ง 2 คอลัมน์ × 4 แถว
 // = 8 ใบ/หน้า (เก็บจำนวนไว้เท่าที่พอดี ไม่ลดเยอะ ตามที่พี่ขอ)
@@ -130,7 +131,7 @@ export default async function ProjectPrintPage({
               <p>
                 <span className="text-white/55">Shooting Date:</span>{" "}
                 <span className="font-semibold">
-                  {new Date(project.shooting_date).toLocaleDateString("en-GB", {
+                  {formatEnDate(project.shooting_date, {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
@@ -161,7 +162,7 @@ export default async function ProjectPrintPage({
           </p>
           <p className="mt-3 text-[11px] leading-5 text-white/60">
             จัดทำเมื่อ (Prepared){" "}
-            {new Date().toLocaleDateString("en-GB", {
+            {formatEnDate(new Date(), {
               day: "numeric",
               month: "long",
               year: "numeric",

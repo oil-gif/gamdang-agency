@@ -1,6 +1,7 @@
 import "server-only";
 import { BOOKING } from "@/lib/constants";
 import { supabase } from "@/lib/supabase/server";
+import { TH_TZ } from "@/lib/datetime";
 
 // คำนวณ availability ต่อ (วัน, ชั่วโมง, แพกเกจ) — กฎหัวใจของระบบ:
 // ทั้ง A และ B กินที่ห้อง Photo · เฉพาะ A กินที่ห้อง Video เพิ่ม
@@ -53,21 +54,23 @@ export async function getSlotCounts(shootDayId: string) {
 
 // label วันแบบไทย พ.ศ. เช่น "26 กรกฎาคม 2569" (ใช้ในหลังบ้าน)
 export function thaiDateLabel(isoDate: string) {
-  const d = new Date(isoDate + "T00:00:00");
+  const d = new Date(isoDate + "T00:00:00Z");
   return d.toLocaleDateString("th-TH", {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: TH_TZ,
   });
 }
 
 // label วันแบบอังกฤษ ค.ศ. เช่น "26 July 2026" (ใช้หน้าจองสาธารณะ)
 export function enDateLabel(isoDate: string) {
-  const d = new Date(isoDate + "T00:00:00");
+  const d = new Date(isoDate + "T00:00:00Z");
   return d.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: TH_TZ,
   });
 }
 

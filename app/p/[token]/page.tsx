@@ -5,6 +5,7 @@ import { acceptProjectLinkTC } from "@/actions/public-link";
 import { InfluCard, ModelCard } from "@/components/public/TalentCards";
 import { CONTACT } from "@/lib/constants";
 import { bumpViewCount, getLinkWithProject } from "@/lib/public-link";
+import { formatEnDate } from "@/lib/datetime";
 
 export const metadata: Metadata = {
   title: "Talent Proposal — GAMDANG AGENCY",
@@ -159,7 +160,7 @@ export default async function ClientPortfolioPage({
             {project.shooting_date && (
               <span className="rounded-full bg-white/15 px-3 py-1">
                 Shooting:{" "}
-                {new Date(project.shooting_date).toLocaleDateString("en-GB", {
+                {formatEnDate(project.shooting_date, {
                   day: "numeric",
                   month: "long",
                   year: "numeric",

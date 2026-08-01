@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { verifyDangerCode } from "@/lib/danger";
 import { supabase } from "@/lib/supabase/server";
 
 // ===== รอบถ่าย (shooting days) =====
@@ -148,6 +149,12 @@ export async function toggleShootSlot(formData: FormData) {
 
 export async function deleteShootDay(formData: FormData) {
   const id = String(formData.get("id"));
+  // ⚠️ กู้คืนไม่ได้ (ลบการจองทั้งรอบ + สลิป) — ต้องผ่านรหัสยืนยันชั้นที่ 2
+  if (!verifyDangerCode(String(formData.get("danger_code") ?? ""))) {
+    redirect(
+      `/admin/shoots/${id}?error=${encodeURIComponent("รหัสยืนยันไม่ถูกต้อง — ยังไม่ได้ลบรอบถ่าย")}`,
+    );
+  }
   // ลบสลิปทั้งหมดของรอบนี้ออกจาก storage ก่อน (cascade ลบแค่ row)
   const { data: bookings } = await supabase
     .from("shoot_bookings")

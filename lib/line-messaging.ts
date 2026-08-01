@@ -1,4 +1,5 @@
 import "server-only";
+import { TH_TZ } from "@/lib/datetime";
 
 // LINE OA @gamdangmodeling — Messaging API. คนละ channel กับ LIFF/Login
 // (LINE_CHANNEL_ID/SECRET ใช้ verify ID token เท่านั้น ห้ามสลับกัน)
@@ -61,6 +62,7 @@ export function formatDateEN(date: string | null | undefined) {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: TH_TZ,
   });
 }
 

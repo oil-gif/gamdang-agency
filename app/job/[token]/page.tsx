@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { respondToJob } from "@/actions/job-response";
 import { verifyJobToken } from "@/lib/auth/talent-session";
 import { supabase } from "@/lib/supabase/server";
+import { formatEnDate } from "@/lib/datetime";
 
 export const metadata: Metadata = {
   title: "ตอบรับงาน — GAMDANG AGENCY",
@@ -73,7 +74,7 @@ export default async function JobOfferPage({
     [
       "Shooting Date",
       project.shooting_date
-        ? new Date(project.shooting_date).toLocaleDateString("en-GB", {
+        ? formatEnDate(project.shooting_date, {
             day: "numeric",
             month: "short",
             year: "numeric",

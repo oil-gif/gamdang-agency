@@ -5,6 +5,7 @@ import { calculateAge } from "@/lib/age";
 import { CONTACT, ETHNICITIES, TIER_LABEL } from "@/lib/constants";
 import { formatFollowers, topSocial } from "@/lib/social";
 import { getPhotoProxyUrl } from "@/lib/storage";
+import { formatThaiDate } from "@/lib/datetime";
 
 const ETHNICITY_LABEL: Record<string, string> = Object.fromEntries(
   ETHNICITIES.map((e) => [e.value, e.label]),
@@ -149,7 +150,7 @@ export default async function ProjectReportPage({
           </p>
           <p className="mt-3 text-[11px] text-white/60">
             จัดทำเมื่อ{" "}
-            {new Date().toLocaleDateString("th-TH", {
+            {formatThaiDate(new Date(), {
               day: "numeric",
               month: "long",
               year: "numeric",
@@ -384,7 +385,7 @@ export default async function ProjectReportPage({
                   {pt.submitted_at && (
                     <p className="mt-1 text-[10px] text-neutral-400">
                       ส่งเมื่อ{" "}
-                      {new Date(pt.submitted_at).toLocaleDateString("th-TH", {
+                      {formatThaiDate(pt.submitted_at, {
                         day: "numeric",
                         month: "short",
                         year: "numeric",

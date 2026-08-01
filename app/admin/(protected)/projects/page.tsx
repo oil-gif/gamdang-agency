@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PROJECTS_PAGE_SIZE } from "@/lib/constants";
+import { formatThaiDate } from "@/lib/datetime";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -147,7 +148,7 @@ export default async function ProjectsListPage({
                 <TableCell>{p.client_name ?? "-"}</TableCell>
                 <TableCell>
                   {p.shooting_date
-                    ? new Date(p.shooting_date).toLocaleDateString("th-TH", {
+                    ? formatThaiDate(p.shooting_date, {
                         day: "numeric",
                         month: "short",
                         year: "numeric",

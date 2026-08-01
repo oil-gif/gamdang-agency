@@ -13,12 +13,15 @@ import {
 import { getSlotCounts, slotOpen, thaiDateLabel } from "@/lib/booking";
 import { ageLabel } from "@/lib/age";
 import { BookingSearch } from "@/components/admin/BookingSearch";
+import { DangerConfirmButton } from "@/components/admin/DangerConfirmButton";
+import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BOOKING } from "@/lib/constants";
+import { formatThaiDateTime, formatThaiTime } from "@/lib/datetime";
 
 const STATUS_CHIP: Record<string, { label: string; className: string }> = {
   pending: { label: "⏳ รอตรวจ", className: "bg-amber-100 text-amber-700" },
@@ -64,12 +67,17 @@ export default async function ShootDayDetailPage({
             <Badge variant="outline">Draft (ซ่อน)</Badge>
           )}
         </div>
-        <form action={deleteShootDay}>
-          <input type="hidden" name="id" value={id} />
-          <Button type="submit" variant="ghost" size="sm">
-            ลบรอบถ่าย
-          </Button>
-        </form>
+        {/* ลบรอบ = ลบการจอง+สลิปทั้งรอบ กู้คืนไม่ได้ → ต้องกรอกรหัสยืนยันชั้นที่ 2 */}
+        <DangerConfirmButton
+          action={deleteShootDay}
+          hiddenFields={{ id }}
+          label="ลบรอบถ่าย"
+          title={`ลบรอบถ่าย ${thaiDateLabel(day.shoot_date)}?`}
+          description={`การจองทั้งหมด ${bookings.length} คิว และสลิปโอนเงินของรอบนี้จะถูกลบถาวร — กู้คืนไม่ได้`}
+          confirmLabel="ลบรอบถ่ายถาวร"
+          needsCode={hasDangerCode()}
+          fallbackPhrase={FALLBACK_PHRASE}
+        />
       </div>
 
       {/* เช็คอินหน้างาน — ค้นหาคนจองในรอบนี้ (อยู่บนสุด กดเข้ามาแล้วหาได้เลย) */}
@@ -303,10 +311,7 @@ export default async function ShootDayDetailPage({
                   {b.arrived_at && (
                     <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-700">
                       🏁 มาถึงแล้ว{" "}
-                      {new Date(b.arrived_at).toLocaleTimeString("th-TH", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatThaiTime(b.arrived_at)}
                     </span>
                   )}
                   <span className="font-semibold text-neutral-800">
@@ -321,12 +326,7 @@ export default async function ShootDayDetailPage({
                   </span>
                   <span className="ml-auto text-xs text-neutral-400">
                     จองเมื่อ{" "}
-                    {new Date(b.created_at).toLocaleString("th-TH", {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatThaiDateTime(b.created_at, { year: undefined })}
                   </span>
                 </div>
                 <p className="mt-1.5 text-sm text-neutral-500">

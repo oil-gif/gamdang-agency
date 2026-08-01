@@ -41,6 +41,7 @@ import { CATEGORIES, TIER_LABEL } from "@/lib/constants";
 import { SITE_URL } from "@/lib/site";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
 import { getPhotoProxyUrl } from "@/lib/storage";
+import { formatEnDate, formatThaiDate, formatThaiDateTime } from "@/lib/datetime";
 
 const BASE_URL = SITE_URL;
 
@@ -53,7 +54,7 @@ const RESPONSE_CHIP: Record<string, { label: string; className: string }> = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildJobMessage(project: any, jobUrl: string) {
   const dateEN = project.shooting_date
-    ? new Date(project.shooting_date).toLocaleDateString("en-GB", {
+    ? formatEnDate(project.shooting_date, {
         day: "numeric",
         month: "short",
         year: "numeric",
@@ -970,10 +971,10 @@ export default async function ProjectDetailPage({
                     ? "ยกเลิกแล้ว"
                     : expired
                       ? "หมดอายุแล้ว"
-                      : `ใช้ได้ถึง ${new Date(l.expires_at!).toLocaleDateString("th-TH")}`}
+                      : `ใช้ได้ถึง ${formatThaiDate(l.expires_at!)}`}
                   {" · "}เปิดดู {l.view_count} ครั้ง
                   {l.tc_accepted &&
-                    ` · ลูกค้ายอมรับ T&C แล้ว (${new Date(l.tc_accepted_at!).toLocaleString("th-TH")})`}
+                    ` · ลูกค้ายอมรับ T&C แล้ว (${formatThaiDateTime(l.tc_accepted_at!)})`}
                 </p>
               </div>
             );

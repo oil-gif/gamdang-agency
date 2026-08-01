@@ -211,6 +211,7 @@ export function CompcardGenerator({
       const stamp = new Date().toLocaleDateString("en-GB", {
         month: "long",
         year: "numeric",
+        timeZone: "Asia/Bangkok",
       });
       ctx.fillStyle = "#a3a3a3";
       ctx.font = `400 22px ${F}`;

@@ -3,6 +3,7 @@ import { saveSubmission } from "@/actions/submission";
 import { CastingPhotoUploader } from "@/components/talent/CastingPhotoUploader";
 import { verifySubmitToken } from "@/lib/auth/talent-session";
 import { supabase } from "@/lib/supabase/server";
+import { formatThaiDateTime } from "@/lib/datetime";
 
 export const metadata: Metadata = {
   title: "ส่งข้อมูล/ผลงาน — GAMDANG AGENCY",
@@ -203,13 +204,7 @@ export default async function SubmitWorkPage({
       {pt.submitted_at && (
         <p className="mt-3 text-center text-xs text-neutral-400">
           ส่งล่าสุดเมื่อ{" "}
-          {new Date(pt.submitted_at).toLocaleString("th-TH", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {formatThaiDateTime(pt.submitted_at)}
         </p>
       )}
     </Shell>

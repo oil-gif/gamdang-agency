@@ -13,6 +13,7 @@ import {
 import { getProjectCounts } from "@/actions/projects";
 import { getBookingPendingCount } from "@/actions/shoots";
 import { Button } from "@/components/ui/button";
+import { formatThaiDate } from "@/lib/datetime";
 
 export default async function AdminDashboardPage() {
   const [
@@ -143,11 +144,7 @@ export default async function AdminDashboardPage() {
                   <p className="text-xs text-neutral-400">
                     {t.code} · ขอลบเมื่อ{" "}
                     {t.deletion_requested_at
-                      ? new Date(t.deletion_requested_at).toLocaleDateString("th-TH", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })
+                      ? formatThaiDate(t.deletion_requested_at)
                       : "-"}
                   </p>
                 </div>
@@ -203,11 +200,7 @@ export default async function AdminDashboardPage() {
                   </Link>
                   <p className="text-xs text-neutral-400">
                     {t.code} · อัพเดทล่าสุด{" "}
-                    {new Date(t.updated_at).toLocaleDateString("th-TH", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {formatThaiDate(t.updated_at)}
                   </p>
                 </div>
                 <form action={keepTalent}>
