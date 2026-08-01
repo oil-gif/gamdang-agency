@@ -264,6 +264,68 @@ export async function resendBookingConfirmLine(formData: FormData) {
   revalidatePath(`/admin/shoots/${dayId}`);
 }
 
+// แอดมินจองแทนลูกค้า (คนจองเองไม่เป็น / ติดปัญหาอุปกรณ์ / walk-in)
+// — ใช้ RPC ตัวเดียวกับหน้าจองสาธารณะ จึงเช็คที่นั่งเต็ม + กันจองชนเหมือนกัน
+// — ไม่ต้องแนบสลิป (ถือว่าแอดมินตรวจการจ่ายเงินมาแล้ว) → ตั้งเป็น approved เลย
+export async function createBookingAsAdmin(formData: FormData) {
+  const dayId = String(formData.get("day_id"));
+  const s = (k: string) => {
+    const v = formData.get(k);
+    const t = typeof v === "string" ? v.trim() : "";
+    return t === "" ? null : t;
+  };
+  const pkg = String(formData.get("package") ?? "");
+  const hour = String(formData.get("hour") ?? "");
+  const fullName = s("full_name") ?? s("nickname");
+  const phone = s("phone");
+
+  const back = `/admin/shoots/${dayId}`;
+  if (!fullName || !phone || !hour || !(pkg in BOOKING.packages)) {
+    redirect(
+      `${back}?error=${encodeURIComponent("กรอกให้ครบ: ชื่อ เบอร์โทร รอบเวลา และแพ็กเกจ")}`,
+    );
+  }
+
+  const { data: bookingId, error } = await supabase.rpc("book_shoot_slot", {
+    p_day: dayId,
+    p_package: pkg,
+    p_hour: hour,
+    p_full_name: fullName,
+    p_nickname: s("nickname"),
+    p_phone: phone,
+    p_line_id: s("line_id"),
+    p_email: s("email"),
+    p_height: s("height"),
+    p_weight: s("weight"),
+    p_talents: s("talents_note"),
+    p_slip_path: null,
+    p_photo_cap: BOOKING.photoCap,
+    p_video_cap: BOOKING.videoCap,
+  });
+  if (error) {
+    const msg = error.message?.includes("full")
+      ? "รอบนี้เต็มแล้ว (หรือรอบถูกปิด/เป็นวันที่ผ่านมาแล้ว)"
+      : `จองไม่สำเร็จ: ${error.message}`;
+    redirect(`${back}?error=${encodeURIComponent(msg)}`);
+  }
+
+  // แอดมินจองแทน = ตรวจการจ่ายเงินแล้ว → อนุมัติทันที + เก็บข้อมูลเพิ่ม
+  await supabase
+    .from("shoot_bookings")
+    .update({
+      status: "approved",
+      gender: s("gender"),
+      dob: s("dob"),
+      nationality: s("nationality"),
+    })
+    .eq("id", bookingId);
+
+  revalidatePath(back);
+  revalidatePath("/admin/shoots");
+  revalidatePath("/booking");
+  redirect(`${back}?added=1`);
+}
+
 // ลบการจองรายคน (เช่น รายการที่แอดมินสร้างไว้เทส) — คืนที่นั่งให้รอบนั้นด้วย
 // ⚠️ กู้คืนไม่ได้ → ต้องผ่านรหัสยืนยันชั้นที่ 2
 export async function deleteBooking(formData: FormData) {

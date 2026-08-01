@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  createBookingAsAdmin,
   createTalentFromBooking,
   deleteBooking,
   deleteShootDay,
@@ -36,10 +37,10 @@ export default async function ShootDayDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; added?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, added } = await searchParams;
   const [day, bookings, counts] = await Promise.all([
     getShootDay(id),
     getShootBookings(id),
@@ -95,6 +96,11 @@ export default async function ShootDayDetailPage({
       {error && (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
+        </p>
+      )}
+      {added && (
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          ✓ บันทึกการจองแทนลูกค้าเรียบร้อย (สถานะ: อนุมัติแล้ว)
         </p>
       )}
 
@@ -289,6 +295,120 @@ export default async function ShootDayDetailPage({
             </tbody>
           </table>
         </div>
+      </section>
+
+      {/* แอดมินจองแทน — คนจองเองไม่เป็น / ติดปัญหาอุปกรณ์ / walk-in */}
+      <section className="space-y-3">
+        <details className="rounded-2xl border border-[#1D4ED8]/25 bg-white p-4">
+          <summary className="cursor-pointer text-base font-semibold text-[#1D4ED8]">
+            ➕ จองแทนลูกค้า (แอดมินกรอกให้)
+          </summary>
+          <p className="mt-1.5 text-sm text-neutral-500">
+            สำหรับคนที่จองเองไม่เป็นหรือติดปัญหาอุปกรณ์ — ไม่ต้องแนบสลิป ระบบจะ
+            <b> บันทึกเป็น &quot;อนุมัติ&quot; ให้เลย</b> (ถือว่าตรวจการจ่ายเงินแล้ว)
+            และยังเช็คที่นั่งเต็มให้เหมือนจองปกติ
+          </p>
+          <form
+            action={createBookingAsAdmin}
+            className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"
+          >
+            <input type="hidden" name="day_id" value={id} />
+            <div className="space-y-1.5">
+              <Label htmlFor="ab_hour">รอบเวลา *</Label>
+              <select
+                id="ab_hour"
+                name="hour"
+                required
+                className="h-9 w-full rounded-md border border-input bg-white px-2 text-sm shadow-xs"
+              >
+                {BOOKING.hours.map((h) => {
+                  const c = counts[h] ?? { photo: 0, video: 0 };
+                  const full = c.photo >= BOOKING.photoCap;
+                  return (
+                    <option key={h} value={h} disabled={full}>
+                      {h} น. — เหลือ {Math.max(BOOKING.photoCap - c.photo, 0)} ที่
+                      {full ? " (เต็ม)" : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ab_package">แพ็กเกจ *</Label>
+              <select
+                id="ab_package"
+                name="package"
+                required
+                className="h-9 w-full rounded-md border border-input bg-white px-2 text-sm shadow-xs"
+              >
+                {Object.entries(BOOKING.packages).map(([k, p]) => (
+                  <option key={k} value={k}>
+                    {p.name} — {p.subtitle} (฿{p.price.toLocaleString()})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ab_full_name">ชื่อ-นามสกุลจริง *</Label>
+              <Input id="ab_full_name" name="full_name" required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ab_nickname">ชื่อเล่น (อังกฤษ)</Label>
+              <Input id="ab_nickname" name="nickname" placeholder="เช่น Oil" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ab_phone">เบอร์โทร *</Label>
+              <Input id="ab_phone" name="phone" type="tel" required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ab_email">Email</Label>
+              <Input id="ab_email" name="email" type="email" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ab_line">LINE ID</Label>
+              <Input id="ab_line" name="line_id" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ab_gender">เพศ</Label>
+              <select
+                id="ab_gender"
+                name="gender"
+                className="h-9 w-full rounded-md border border-input bg-white px-2 text-sm shadow-xs"
+              >
+                <option value="">— เลือก —</option>
+                <option value="female">หญิง</option>
+                <option value="male">ชาย</option>
+                <option value="other">อื่นๆ / LGBTQ+</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ab_dob">
+                วันเกิด{" "}
+                <span className="font-normal text-neutral-400">(ปี ค.ศ.)</span>
+              </Label>
+              <Input id="ab_dob" name="dob" type="date" lang="en-GB" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ab_nationality">สัญชาติ</Label>
+              <Input id="ab_nationality" name="nationality" placeholder="Thai" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ab_height">ส่วนสูง (ซม.)</Label>
+              <Input id="ab_height" name="height" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ab_weight">น้ำหนัก (กก.)</Label>
+              <Input id="ab_weight" name="weight" />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="ab_talents">ความสามารถพิเศษ</Label>
+              <Textarea id="ab_talents" name="talents_note" rows={2} />
+            </div>
+            <div className="sm:col-span-2">
+              <Button type="submit">➕ บันทึกการจอง (อนุมัติเลย)</Button>
+            </div>
+          </form>
+        </details>
       </section>
 
       {/* คิวตรวจสลิป */}
