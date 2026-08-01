@@ -264,6 +264,34 @@ export async function resendBookingConfirmLine(formData: FormData) {
   revalidatePath(`/admin/shoots/${dayId}`);
 }
 
+// ลบการจองรายคน (เช่น รายการที่แอดมินสร้างไว้เทส) — คืนที่นั่งให้รอบนั้นด้วย
+// ⚠️ กู้คืนไม่ได้ → ต้องผ่านรหัสยืนยันชั้นที่ 2
+export async function deleteBooking(formData: FormData) {
+  const id = String(formData.get("id"));
+  const dayId = String(formData.get("day_id"));
+  if (!verifyDangerCode(String(formData.get("danger_code") ?? ""))) {
+    redirect(
+      `/admin/shoots/${dayId}?error=${encodeURIComponent("รหัสยืนยันไม่ถูกต้อง — ยังไม่ได้ลบการจอง")}`,
+    );
+  }
+
+  // ลบสลิปออกจาก storage ก่อน (ไม่งั้นไฟล์ค้าง)
+  const { data: b } = await supabase
+    .from("shoot_bookings")
+    .select("slip_path")
+    .eq("id", id)
+    .maybeSingle();
+  if (b?.slip_path) {
+    await supabase.storage.from("booking-slips").remove([b.slip_path]);
+  }
+
+  const { error } = await supabase.from("shoot_bookings").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/shoots/${dayId}`);
+  revalidatePath("/admin/shoots");
+  revalidatePath("/booking");
+}
+
 // signed URL ดูสลิป (bucket ส่วนตัว) — อายุ 1 ชม.
 export async function getSlipUrl(path: string) {
   const { data } = await supabase.storage

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   createTalentFromBooking,
+  deleteBooking,
   deleteShootDay,
   getShootBookings,
   getShootDay,
@@ -438,6 +439,17 @@ export default async function ShootDayDetailPage({
                       </Button>
                     </form>
                   )}
+                  {/* ลบการจองรายคน (เช่นรายการทดสอบ) — ต้องใช้รหัสยืนยัน */}
+                  <DangerConfirmButton
+                    action={deleteBooking}
+                    hiddenFields={{ id: b.id, day_id: id }}
+                    label="🗑 ลบการจอง"
+                    title={`ลบการจองของ ${b.full_name}?`}
+                    description={`คิว ${b.hour} น. · Package ${b.package} — ข้อมูลการจองและสลิปจะถูกลบถาวร (ที่นั่งจะถูกคืนให้รอบนี้)`}
+                    confirmLabel="ลบการจองถาวร"
+                    needsCode={hasDangerCode()}
+                    fallbackPhrase={FALLBACK_PHRASE}
+                  />
                 </div>
               </div>
             );
