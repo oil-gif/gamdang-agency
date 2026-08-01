@@ -72,8 +72,18 @@ export function TalentForm({
   // self: สูง/หนัก/สัญชาติ บังคับเฉพาะ Model (Influencer ล้วนไม่ต้องกรอก)
   const modelFieldsRequired = mode === "self" && isModel;
 
+  // หลังบ้าน: จัดการ์ดเป็น 2 คอลัมน์ (จอกว้าง) เลื่อนน้อยลง แก้ไว
+  // ฝั่ง talent (LIFF บนมือถือ) คงเป็นคอลัมน์เดียวเหมือนเดิม
+  const isAdmin = mode === "admin";
   return (
-    <form action={action} className="max-w-3xl space-y-6">
+    <form
+      action={action}
+      className={
+        isAdmin
+          ? "grid grid-cols-1 grid-flow-row-dense items-start gap-6 lg:grid-cols-2"
+          : "max-w-3xl space-y-6"
+      }
+    >
       {mode === "admin" && talent?.id && (
         <input type="hidden" name="id" value={talent.id} />
       )}
@@ -83,7 +93,11 @@ export function TalentForm({
       )}
 
       {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div
+          className={`rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive ${
+            isAdmin ? "lg:col-span-2" : ""
+          }`}
+        >
           {error}
         </div>
       )}
@@ -325,7 +339,7 @@ export function TalentForm({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={isAdmin ? "lg:col-span-2" : ""}>
         <CardHeader>
           <CardTitle className="text-[#1D4ED8]">
             ผลงาน &amp; คลิปแนะนำตัว{" "}
@@ -460,7 +474,7 @@ export function TalentForm({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={isAdmin ? "lg:col-span-2" : ""}>
             <CardHeader>
               <CardTitle className="text-[#1D4ED8]">
                 โซเชียล & ผู้ติดตาม{" "}
@@ -549,8 +563,10 @@ export function TalentForm({
           </div>
         </div>
       ) : (
-        <div className="flex gap-3">
-          <Button type="submit">บันทึก</Button>
+        <div className="sticky bottom-0 z-10 -mx-1 flex gap-3 border-t border-neutral-200 bg-neutral-100/80 px-1 py-3 backdrop-blur lg:col-span-2">
+          <Button type="submit" className="px-8">
+            บันทึกข้อมูล
+          </Button>
         </div>
       )}
     </form>

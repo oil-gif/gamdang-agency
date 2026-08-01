@@ -717,6 +717,41 @@ export async function deleteTalent(formData: FormData) {
   redirect("/admin/talents");
 }
 
+// สรุปโปรไฟล์สำหรับแถบหัวหน้าจัดการ talent (หลังบ้าน):
+// ความครบของข้อมูล · จำนวนรูป/คอมการ์ด · งานที่เคยอยู่ · รูปตัวแทน
+export async function getTalentAdminSummary(talentId: string) {
+  const [{ data: photos }, { data: pts }] = await Promise.all([
+    supabase
+      .from("talent_photos")
+      .select("kind, storage_path, display_order")
+      .eq("talent_id", talentId)
+      .order("display_order", { ascending: true }),
+    supabase
+      .from("project_talents")
+      .select("project_id, project:projects(id, name, shooting_date, project_type)")
+      .eq("talent_id", talentId),
+  ]);
+
+  const all = photos ?? [];
+  const projects = (pts ?? [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((r) => r.project as any)
+    .filter(Boolean)
+    .sort((a, b) =>
+      String(b.shooting_date ?? "").localeCompare(String(a.shooting_date ?? "")),
+    );
+
+  return {
+    photoCount: all.filter((p) => p.kind === "gallery").length,
+    hasCompcard: all.some((p) => p.kind === "compcard"),
+    photoPath:
+      all.find((p) => p.kind === "gallery")?.storage_path ??
+      all.find((p) => p.kind === "compcard")?.storage_path ??
+      null,
+    projects,
+  };
+}
+
 // ===== รอคอมการ์ดจากแก้มแดง (คนเพิ่งจองถ่ายโปรไฟล์ ยังไม่มีคอมการ์ด) =====
 
 // talent เลือก "รอคอมการ์ดจากแก้มแดง" ในขั้นรูป → เข้าคิวให้แอดมินอัพให้ทีหลัง

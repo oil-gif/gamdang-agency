@@ -1,6 +1,10 @@
 import Link from "next/link";
-import { deleteTalent, getTalent } from "@/actions/talents";
-import { LineLinkButton } from "@/components/admin/LineLinkButton";
+import {
+  deleteTalent,
+  getTalent,
+  getTalentAdminSummary,
+} from "@/actions/talents";
+import { TalentProfileHeader } from "@/components/admin/TalentProfileHeader";
 import { CompcardStudio } from "@/components/compcard/CompcardStudio";
 import { TalentForm } from "@/components/talent/TalentForm";
 import { TalentPhotos } from "@/components/talent/TalentPhotos";
@@ -17,7 +21,10 @@ export default async function EditTalentPage({
 }) {
   const { id } = await params;
   const { error, from } = await searchParams;
-  const talent = await getTalent(id);
+  const [talent, summary] = await Promise.all([
+    getTalent(id),
+    getTalentAdminSummary(id),
+  ]);
 
   // ?from=/admin/projects/xxx → ปุ่มกลับไปหน้าที่มา (เฉพาะ path ภายในเว็บ
   // กัน open-redirect) ไม่งั้นกลับรายการ Talent ตามเดิม
@@ -34,17 +41,14 @@ export default async function EditTalentPage({
           : "← กลับรายการ Talent";
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <Link
-        href={backHref ?? "/admin/talents"}
-        className="inline-block text-sm font-medium text-[#1D4ED8] hover:underline"
-      >
-        {backLabel}
-      </Link>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-neutral-800">
-          แก้ไข: {talent.nickname_th}
-        </h1>
+    <div className="max-w-6xl space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href={backHref ?? "/admin/talents"}
+          className="text-sm font-medium text-[#1D4ED8] hover:underline"
+        >
+          {backLabel}
+        </Link>
         <DangerConfirmButton
           action={deleteTalent}
           hiddenFields={{ id }}
@@ -56,20 +60,10 @@ export default async function EditTalentPage({
           fallbackPhrase={FALLBACK_PHRASE}
         />
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>บัญชี LINE</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {talent.line_user_id ? (
-            <p className="text-sm text-neutral-600">
-              ผูกบัญชี LINE แล้ว: {talent.line_display_name ?? "(ไม่มีชื่อ)"}
-            </p>
-          ) : (
-            <LineLinkButton talentId={id} />
-          )}
-        </CardContent>
-      </Card>
+
+      {/* แถบสรุป: รูป/ชื่อ/ป้าย/ความครบ/งานที่เคยอยู่ + ปุ่มที่ใช้บ่อย */}
+      <TalentProfileHeader talent={talent} summary={summary} />
+
       <TalentPhotos
         talentId={id}
         label={[talent.code, talent.nickname_en || talent.nickname_th]
