@@ -411,6 +411,21 @@ export default async function ShootDayDetailPage({
               <Label htmlFor="ab_talents">ความสามารถพิเศษ</Label>
               <Textarea id="ab_talents" name="talents_note" rows={2} />
             </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="ab_slip">
+                สลิปโอนเงิน{" "}
+                <span className="font-normal text-neutral-400">
+                  (ไม่บังคับ — แนบไว้ตรวจสอบย้อนหลังได้)
+                </span>
+              </Label>
+              <Input
+                id="ab_slip"
+                name="slip"
+                type="file"
+                accept="image/*,.pdf"
+                className="file:mr-3 file:rounded-md file:border-0 file:bg-[#1D4ED8]/10 file:px-3 file:py-1 file:text-sm file:font-medium file:text-[#1D4ED8]"
+              />
+            </div>
             <div className="sm:col-span-2">
               <Button type="submit">➕ บันทึกการจอง (อนุมัติเลย)</Button>
             </div>

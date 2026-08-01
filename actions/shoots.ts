@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { thaiDateLabel } from "@/lib/booking";
@@ -286,6 +287,25 @@ export async function createBookingAsAdmin(formData: FormData) {
     );
   }
 
+  // สลิปโอนเงิน (ไม่บังคับ) — เก็บ bucket ส่วนตัวเดียวกับการจองปกติ
+  // เพื่อให้ดูย้อนหลัง/ตรวจสอบได้เหมือนกัน
+  let slipPath = "";
+  const slip = formData.get("slip");
+  if (slip instanceof File && slip.size > 0) {
+    const ext = (slip.name.split(".").pop() ?? "jpg").toLowerCase().slice(0, 5);
+    slipPath = `${dayId}/${randomUUID()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("booking-slips")
+      .upload(slipPath, slip, {
+        contentType: slip.type || "image/jpeg",
+      });
+    if (upErr) {
+      redirect(
+        `${back}?error=${encodeURIComponent(`อัพโหลดสลิปไม่สำเร็จ: ${upErr.message}`)}`,
+      );
+    }
+  }
+
   const { data: bookingId, error } = await supabase.rpc("book_shoot_slot", {
     p_day: dayId,
     p_package: pkg,
@@ -298,14 +318,17 @@ export async function createBookingAsAdmin(formData: FormData) {
     p_height: s("height"),
     p_weight: s("weight"),
     p_talents: s("talents_note"),
-    // แอดมินจองแทนไม่มีสลิป — คอลัมน์ slip_path เป็น NOT NULL (migration 007)
-    // จึงส่งสตริงว่าง = "ไม่มีสลิป" · ทุกจุดที่อ่านเช็คแบบ falsy อยู่แล้ว
-    // (ปุ่มดูสลิปไม่ขึ้น, ตอนลบไม่ไปลบไฟล์ผี)
-    p_slip_path: "",
+    // ไม่แนบสลิป → สตริงว่าง (คอลัมน์เป็น NOT NULL ตั้งแต่ migration 007)
+    // ทุกจุดที่อ่านเช็คแบบ falsy อยู่แล้ว → ขึ้น "ไม่มีสลิป" ไม่พัง
+    p_slip_path: slipPath,
     p_photo_cap: BOOKING.photoCap,
     p_video_cap: BOOKING.videoCap,
   });
   if (error) {
+    // จองไม่ผ่าน → เก็บกวาดสลิปที่เพิ่งอัพ ไม่ให้ไฟล์ค้างใน storage
+    if (slipPath) {
+      await supabase.storage.from("booking-slips").remove([slipPath]);
+    }
     const msg = error.message?.includes("full")
       ? "รอบนี้เต็มแล้ว (หรือรอบถูกปิด/เป็นวันที่ผ่านมาแล้ว)"
       : `จองไม่สำเร็จ: ${error.message}`;
