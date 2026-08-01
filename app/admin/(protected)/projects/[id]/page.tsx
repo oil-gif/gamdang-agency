@@ -18,6 +18,7 @@ import {
   setProjectTalentRole,
   setTalentResponseAdmin,
   toggleClientInterestAdmin,
+  updateProjectRole,
 } from "@/actions/projects";
 import {
   createProjectLink,
@@ -34,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { calculateAge } from "@/lib/age";
 import { createJobToken, createSubmitToken } from "@/lib/auth/talent-session";
 import { SocialIcon } from "@/components/SocialIcon";
@@ -248,27 +250,67 @@ export default async function ProjectDetailPage({
       )}
 
       {/* ===== Roles ที่เปิดรับ ===== */}
-      <section className="max-w-3xl space-y-3">
+      <section id="roles" className="max-w-3xl space-y-3 scroll-mt-20">
         <h2 className="text-lg font-semibold text-[#1D4ED8]">
           Roles ที่เปิดรับ ({roles.length})
         </h2>
+        <p className="text-sm text-neutral-500">
+          แก้ข้อความในช่องแล้วกด <b>บันทึก</b> ได้เลย — ผู้สมัครที่เลือก Role นี้ไว้ไม่หลุด
+        </p>
         <div className="space-y-2">
           {roles.map((r) => (
-            <div
-              key={r.id}
-              className="flex items-start gap-3 rounded-lg border bg-white p-3"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-neutral-800">{r.title}</p>
-                {r.description && (
-                  <p className="text-sm text-neutral-500">{r.description}</p>
-                )}
-              </div>
-              <form action={deleteProjectRole}>
+            <div key={r.id} className="rounded-lg border bg-white p-3">
+              {/* แก้ข้อความ Role ได้ในที่ (ข้อความมักยาว เช่นเรตค่าตัว/เงื่อนไข) */}
+              <form action={updateProjectRole} className="space-y-2">
                 <input type="hidden" name="id" value={r.id} />
                 <input type="hidden" name="project_id" value={id} />
-                <Button type="submit" size="sm" variant="ghost">
-                  ลบ
+                <div className="space-y-1">
+                  <Label
+                    htmlFor={`role_title_${r.id}`}
+                    className="text-xs font-normal text-neutral-400"
+                  >
+                    ชื่อ Role / รายละเอียดงาน
+                  </Label>
+                  <Textarea
+                    id={`role_title_${r.id}`}
+                    name="title"
+                    rows={2}
+                    defaultValue={r.title}
+                    required
+                    className="font-medium"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label
+                    htmlFor={`role_desc_${r.id}`}
+                    className="text-xs font-normal text-neutral-400"
+                  >
+                    รายละเอียดย่อย (เพศ/อายุ/ลักษณะ)
+                  </Label>
+                  <Input
+                    id={`role_desc_${r.id}`}
+                    name="description"
+                    defaultValue={r.description ?? ""}
+                    placeholder="เช่น หญิง, เด็กผู้ชายและเด็กผู้หญิง"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button type="submit" size="sm">
+                    บันทึก
+                  </Button>
+                  <span className="flex-1" />
+                </div>
+              </form>
+              <form action={deleteProjectRole} className="mt-1">
+                <input type="hidden" name="id" value={r.id} />
+                <input type="hidden" name="project_id" value={id} />
+                <Button
+                  type="submit"
+                  size="sm"
+                  variant="ghost"
+                  className="text-rose-600 hover:bg-rose-50"
+                >
+                  ลบ Role นี้
                 </Button>
               </form>
             </div>

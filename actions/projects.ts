@@ -348,6 +348,26 @@ export async function addProjectRole(formData: FormData) {
   revalidatePath(`/admin/projects/${projectId}`);
 }
 
+// แก้ข้อความ Role (ชื่อ/รายละเอียด) — ข้อความ role มักยาว (เรตค่าตัว/เงื่อนไข)
+// แอดมินต้องแก้ทีหลังได้โดยไม่ต้องลบแล้วสร้างใหม่ (ผู้สมัครที่เลือก role นี้ไว้จะไม่หลุด)
+export async function updateProjectRole(formData: FormData) {
+  const id = String(formData.get("id"));
+  const projectId = String(formData.get("project_id"));
+  const title = str(formData, "title");
+  if (!title) {
+    redirect(
+      `/admin/projects/${projectId}?error=${encodeURIComponent("ชื่อ Role ห้ามว่าง")}#roles`,
+    );
+  }
+  const { error } = await supabase
+    .from("project_roles")
+    .update({ title, description: str(formData, "description") })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/projects/${projectId}`);
+  revalidatePath(`/casting/${projectId}`);
+}
+
 export async function deleteProjectRole(formData: FormData) {
   const id = String(formData.get("id"));
   const projectId = String(formData.get("project_id"));
