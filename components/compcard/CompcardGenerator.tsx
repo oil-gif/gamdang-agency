@@ -273,9 +273,9 @@ export function CompcardGenerator({
           <img
             src={previewUrl}
             alt="Comp Card Preview"
-            className="w-full rounded-xl border border-neutral-200 shadow-sm"
+            className="w-full max-w-xl rounded-xl border border-neutral-200 shadow-sm"
           />
-          <p className="text-center text-[11px] text-neutral-400">
+          <p className="max-w-xl text-center text-[11px] text-neutral-400">
             มือถือ: กดค้างที่รูปเพื่อบันทึกลงเครื่องได้เลย
           </p>
         </>

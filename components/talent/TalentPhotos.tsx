@@ -79,7 +79,7 @@ export async function TalentPhotos({
       <div className="space-y-3">
         <h3 className="text-sm font-medium text-neutral-600">Comp Card</h3>
         {compcard ? (
-          <div className="group relative aspect-video w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100">
+          <div className="group relative aspect-video w-full max-w-sm overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={getPhotoProxyUrl(compcard.storage_path)}
@@ -93,7 +93,7 @@ export async function TalentPhotos({
             <DeleteButton id={compcard.id} talentId={talentId} />
           </div>
         ) : (
-          <div className="flex aspect-video w-full max-w-md items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50 text-sm text-neutral-400">
+          <div className="flex aspect-video w-full max-w-sm items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50 text-sm text-neutral-400">
             ยังไม่มี Comp Card
           </div>
         )}
@@ -108,7 +108,7 @@ export async function TalentPhotos({
         <h3 className="text-sm font-medium text-neutral-600">
           Gallery ({gallery.length})
         </h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid max-w-3xl grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-6">
           {gallery.map((p, i) => (
             <div
               key={p.id}
