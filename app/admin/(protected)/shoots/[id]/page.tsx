@@ -7,6 +7,7 @@ import {
   getSlipUrl,
   saveShootDay,
   setBookingArrival,
+  resendBookingConfirmLine,
   setBookingStatus,
   toggleShootSlot,
 } from "@/actions/shoots";
@@ -401,8 +402,19 @@ export default async function ShootDayDetailPage({
                         type="submit"
                         size="sm"
                         className="bg-emerald-600 text-white hover:bg-emerald-700"
+                        title="อนุมัติแล้วระบบจะส่ง LINE ยืนยันรอบถ่ายให้อัตโนมัติ"
                       >
-                        ✅ อนุมัติ
+                        ✅ อนุมัติ + ส่ง LINE
+                      </Button>
+                    </form>
+                  )}
+                  {/* อนุมัติแล้ว → ส่งข้อความยืนยันซ้ำได้ (เผื่อคนจองหาไม่เจอ) */}
+                  {b.status === "approved" && b.line_user_id && (
+                    <form action={resendBookingConfirmLine}>
+                      <input type="hidden" name="id" value={b.id} />
+                      <input type="hidden" name="day_id" value={id} />
+                      <Button type="submit" size="sm" variant="outline">
+                        📨 ส่ง LINE ยืนยันอีกครั้ง
                       </Button>
                     </form>
                   )}

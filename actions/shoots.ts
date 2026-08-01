@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { thaiDateLabel } from "@/lib/booking";
+import { BOOKING } from "@/lib/constants";
 import { verifyDangerCode } from "@/lib/danger";
+import { pushLineMessage } from "@/lib/line-messaging";
 import { supabase } from "@/lib/supabase/server";
 
 // ===== รอบถ่าย (shooting days) =====
@@ -176,14 +179,89 @@ export async function setBookingStatus(formData: FormData) {
   const dayId = String(formData.get("day_id"));
   const status = String(formData.get("status"));
   if (!["pending", "approved", "rejected"].includes(status)) return;
+
+  // สถานะเดิม — ส่ง LINE ยืนยันเฉพาะตอน "เพิ่งเปลี่ยนเป็น approved"
+  // (กดซ้ำ/สลับกลับไปมาจะไม่ส่งซ้ำ)
+  const { data: before } = await supabase
+    .from("shoot_bookings")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("shoot_bookings")
     .update({ status })
     .eq("id", id);
   if (error) throw new Error(error.message);
+
+  if (status === "approved" && before?.status !== "approved") {
+    await sendBookingConfirmedLine(id);
+  }
+
   revalidatePath(`/admin/shoots/${dayId}`);
   revalidatePath("/admin/shoots");
   revalidatePath("/booking");
+}
+
+// ข้อความยืนยันรอบถ่าย (ใช้ทั้งส่ง LINE อัตโนมัติ และปุ่ม "คัดลอกข้อความ")
+export async function buildBookingConfirmText(bookingId: string) {
+  const { data: b } = await supabase
+    .from("shoot_bookings")
+    .select("full_name, nickname, hour, package, line_user_id, shoot_day:shoot_days(shoot_date, location)")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!b) return null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const day = b.shoot_day as any;
+  const pkg = BOOKING.packages[b.package as keyof typeof BOOKING.packages];
+  const name = [b.full_name, b.nickname ? `(${b.nickname})` : ""]
+    .filter(Boolean)
+    .join(" ");
+
+  return {
+    lineUserId: b.line_user_id as string | null,
+    text: [
+      "✅ แก้มแดง ยืนยันรอบถ่ายโปรไฟล์",
+      name,
+      "",
+      `วันถ่าย: ${day ? thaiDateLabel(day.shoot_date) : "-"}${day?.location ? ` · ${day.location}` : ""}`,
+      `รอบ: ${b.hour} น. · ${pkg ? `${pkg.name} (${pkg.subtitle})` : b.package}`,
+      "",
+      "ใกล้วันถ่ายทีมงานจะส่งแจ้งเตือนอีกครั้งค่ะ",
+      "",
+      "ระหว่างรอถ่ายรูปและคอมการ์ดจากแก้มแดง สามารถจัดการโปรไฟล์และเพิ่มรูปถ่ายของตนเองก่อนได้ที่",
+      `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID ?? "2010689219-wGKbITGb"}`,
+    ].join("\n"),
+  };
+}
+
+// ส่งข้อความยืนยันเข้า LINE ของคนจอง (best-effort — พังก็ไม่ทำให้อนุมัติล้ม)
+async function sendBookingConfirmedLine(bookingId: string) {
+  try {
+    const built = await buildBookingConfirmText(bookingId);
+    if (!built?.lineUserId) return; // จองจาก browser (ไม่ผูก LINE) → ข้าม
+    await pushLineMessage(built.lineUserId, [
+      { type: "text", text: built.text },
+    ]);
+  } catch (e) {
+    console.error("booking confirm LINE failed", e);
+  }
+}
+
+// ปุ่ม "ส่ง LINE ยืนยันอีกครั้ง" ในหลังบ้าน (เผื่อส่งซ้ำ/ส่งย้อนหลัง)
+export async function resendBookingConfirmLine(formData: FormData) {
+  const id = String(formData.get("id"));
+  const dayId = String(formData.get("day_id"));
+  const built = await buildBookingConfirmText(id);
+  if (!built?.lineUserId) {
+    redirect(
+      `/admin/shoots/${dayId}?error=${encodeURIComponent("คนนี้ไม่ได้จองผ่าน LINE — ใช้ปุ่มคัดลอกข้อความแล้วส่งเองค่ะ")}`,
+    );
+  }
+  await pushLineMessage(built.lineUserId!, [
+    { type: "text", text: built.text },
+  ]);
+  revalidatePath(`/admin/shoots/${dayId}`);
 }
 
 // signed URL ดูสลิป (bucket ส่วนตัว) — อายุ 1 ชม.
