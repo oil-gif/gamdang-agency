@@ -23,7 +23,8 @@ function parseFilters(params: RawParams): TalentFilters {
 
   return {
     q: params.q || undefined,
-    rated: params.rated === "1" || undefined,
+    rating: pick("rating") as TalentFilters["rating"],
+    newDays: num("new_days"),
     role: pick("role") as TalentFilters["role"],
     gender: pick("gender"),
     status: pick("status"),

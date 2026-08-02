@@ -28,7 +28,8 @@ function pickPrimaryPhoto(
 
 export type TalentFilters = {
   q?: string;
-  rated?: boolean; // ⭐ เฉพาะคนที่แอดมินให้ดาวไว้
+  rating?: "rated" | "unrated"; // ⭐ มีดาวแล้ว / ยังไม่ได้ให้ดาว
+  newDays?: number; // สมัครเข้ามาใหม่ภายใน N วัน
   role?: "model" | "influencer" | "ai";
   gender?: string;
   status?: string;
@@ -102,7 +103,12 @@ export async function getTalentsWithPhotos(
   if (filters.maxHeight) query = query.lte("height_cm", filters.maxHeight);
   if (filters.minAge) query = query.lte("dob", yearsAgo(filters.minAge));
   if (filters.maxAge) query = query.gte("dob", yearsAgo(filters.maxAge + 1));
-  if (filters.rated) query = query.gt("rating", 0);
+  if (filters.rating === "rated") query = query.gt("rating", 0);
+  if (filters.rating === "unrated") query = query.eq("rating", 0);
+  if (filters.newDays) {
+    const since = new Date(Date.now() - filters.newDays * 86400000);
+    query = query.gte("created_at", since.toISOString());
+  }
 
   const from = (page - 1) * TALENTS_PAGE_SIZE;
   const { data: talents, count, error } = await query.range(

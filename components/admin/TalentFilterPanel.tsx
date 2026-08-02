@@ -71,21 +71,32 @@ export function TalentFilterPanel({ searchParams }: { searchParams: Params }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="rated">ดาวจัดอันดับ</Label>
-        <label
-          htmlFor="rated"
-          className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-white px-3 text-sm"
-        >
-          <input
-            id="rated"
-            name="rated"
-            type="checkbox"
-            value="1"
-            defaultChecked={searchParams.rated === "1"}
-            className="size-4 accent-amber-500"
-          />
-          <span className="text-neutral-700">⭐ เฉพาะคนมีดาว</span>
-        </label>
+        <Label htmlFor="rating">ดาวจัดอันดับ</Label>
+        <Select name="rating" defaultValue={searchParams.rating ?? "any"}>
+          <SelectTrigger id="rating" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any">ทั้งหมด</SelectItem>
+            <SelectItem value="rated">⭐ เฉพาะคนมีดาว</SelectItem>
+            <SelectItem value="unrated">☆ ยังไม่ได้ให้ดาว</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="new_days">สมัครเข้ามาใหม่</Label>
+        <Select name="new_days" defaultValue={searchParams.new_days ?? "any"}>
+          <SelectTrigger id="new_days" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any">ทั้งหมด</SelectItem>
+            <SelectItem value="7">🆕 ภายใน 7 วัน</SelectItem>
+            <SelectItem value="30">ภายใน 30 วัน</SelectItem>
+            <SelectItem value="90">ภายใน 90 วัน</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-1.5">
