@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { setTalentRating } from "@/actions/talents";
 import { LineLinkButton } from "@/components/admin/LineLinkButton";
 import { calculateAge } from "@/lib/age";
 import { TIER_LABEL } from "@/lib/constants";
@@ -35,6 +36,7 @@ export function TalentProfileHeader({
   const alt = talent.nickname_en && talent.nickname_th ? talent.nickname_th : null;
   const age = talent.dob ? calculateAge(talent.dob) : null;
   const top = talent.is_influencer ? topSocial(talent) : null;
+  const rating: number = talent.rating ?? 0;
 
   // ข้อมูลที่ยังขาด — โชว์เป็นชิปสีเหลืองให้ตามเก็บ
   const missing = [
@@ -134,8 +136,43 @@ export function TalentProfileHeader({
           </div>
         </div>
 
-        {/* ปุ่มที่ใช้บ่อย */}
+        {/* ปุ่มที่ใช้บ่อย + ดาวจัดอันดับ */}
         <div className="flex shrink-0 flex-col items-stretch gap-2">
+          {/* ⭐ ดาวจัดอันดับ — ดันคนเด่น/ผลงานเยอะขึ้นหน้าแรกของ /talents */}
+          <div className="rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-2">
+            <p className="text-[11px] font-semibold text-amber-800">
+              ⭐ ดาวจัดอันดับ (ดันขึ้นหน้าแรก)
+            </p>
+            <div className="mt-1 flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <form key={n} action={setTalentRating}>
+                  <input type="hidden" name="id" value={talent.id} />
+                  <input type="hidden" name="rating" value={n} />
+                  <button
+                    type="submit"
+                    title={`ให้ ${n} ดาว`}
+                    className={`px-0.5 text-xl leading-none transition hover:scale-110 ${
+                      n <= rating ? "text-amber-500" : "text-neutral-300"
+                    }`}
+                  >
+                    ★
+                  </button>
+                </form>
+              ))}
+              {rating > 0 && (
+                <form action={setTalentRating} className="ml-1">
+                  <input type="hidden" name="id" value={talent.id} />
+                  <input type="hidden" name="rating" value={0} />
+                  <button
+                    type="submit"
+                    className="text-[11px] text-neutral-400 underline hover:text-neutral-600"
+                  >
+                    ล้าง
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
           {summary.photoCount + (summary.hasCompcard ? 1 : 0) > 0 && (
             <a
               href={`/api/talent-photos-zip?talent_id=${talent.id}`}

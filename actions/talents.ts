@@ -9,6 +9,9 @@ import { yearsAgo } from "@/lib/age";
 import { getTalentSession } from "@/lib/auth/talent-session";
 import { verifyDangerCode } from "@/lib/danger";
 
+// 4 ช่องบังคับของคอมการ์ด (ตรงกับ REQUIRED_SLOTS ใน lib/compcard.ts)
+const REQUIRED_SLOT_KEYS = ["headshot", "half", "lifestyle", "full"] as const;
+
 // รูปตัวแทนของ talent สำหรับการ์ด/ลิสต์ — เลือก "รูปหลัก → หน้าตรง" ก่อนเสมอ
 // (compcard_slots.single = รูปหลัก, headshot = หน้าตรง) แล้วค่อย fallback เป็น
 // gallery รูปแรก / คอมการ์ด · กันเคสหยิบรูปเต็มตัว/รูปคอมการ์ดมาเป็นรูปตัวแทน
@@ -182,21 +185,69 @@ export async function getPublicTalents(filters: TalentFilters = {}, page = 1) {
     )
     .map((t) => {
       const mine = (photos ?? []).filter((p) => p.talent_id === t.id);
-      return { ...t, photo_path: pickPrimaryPhoto(t, mine) };
-    });
+      const slots = (t.compcard_slots ?? {}) as Record<string, string>;
+      // "รูปพอร์ตเทรต" = รูปเดี่ยวจริงๆ (ไม่ใช่รูปคอมการ์ดย่อ ซึ่งขึ้นการ์ดแล้วไม่สวย)
+      const portrait =
+        slots.single ??
+        slots.headshot ??
+        mine.find((p) => p.kind === "gallery")?.storage_path ??
+        null;
+      return {
+        ...t,
+        photo_path: portrait,
+        _hasCompcard: mine.some((p) => p.kind === "compcard"),
+        _slotsDone: REQUIRED_SLOT_KEYS.filter((k) => slots[k]).length,
+      };
+    })
+    // โชว์เฉพาะคนที่มีรูปเดี่ยวสวยๆ — คนที่มีแต่คอมการ์ด/ไม่มีรูป ซ่อนไว้ก่อน
+    // (ยังอยู่ในระบบ เสนอลูกค้าได้ปกติ · อัพรูปเดี่ยวเมื่อไหร่ขึ้นเองอัตโนมัติ)
+    .filter((t) => t.photo_path);
 
-  // เรียง: มีรูปก่อน → follower มากสุดก่อน → ใหม่สุด
-  withPhoto.sort((a, b) => {
-    const ap = a.photo_path ? 1 : 0;
-    const bp = b.photo_path ? 1 : 0;
-    if (ap !== bp) return bp - ap;
-    const af = a.max_followers ?? 0;
-    const bf = b.max_followers ?? 0;
-    if (af !== bf) return bf - af;
-    return (
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  // เคยมาถ่ายกับแก้มแดงจริง (เช็คอินหน้างานแล้ว) — ใช้เป็นคะแนนความน่าเชื่อถือ
+  const shotIds = new Set<string>();
+  if (withPhoto.length > 0) {
+    const { data: shot } = await supabase
+      .from("shoot_bookings")
+      .select("talent_id")
+      .not("talent_id", "is", null)
+      .not("arrived_at", "is", null)
+      .in(
+        "talent_id",
+        withPhoto.map((t) => t.id),
+      );
+    for (const b of shot ?? []) if (b.talent_id) shotIds.add(b.talent_id);
+  }
+
+  // คะแนน "ความครบ/พร้อมเสนอ" 0-3: มีคอมการ์ด + อัพรูปครบ 4 ช่อง + เคยมาถ่ายจริง
+  const quality = (t: (typeof withPhoto)[number]) =>
+    (t._hasCompcard ? 1 : 0) +
+    (t._slotsDone >= REQUIRED_SLOT_KEYS.length ? 1 : 0) +
+    (shotIds.has(t.id) ? 1 : 0);
+
+  const rating = (t: { rating?: number | null }) => t.rating ?? 0;
+  const followers = (t: { max_followers?: number | null }) => t.max_followers ?? 0;
+  const newest = (a: { created_at: string }, b: { created_at: string }) =>
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+
+  if (filters.role === "influencer") {
+    // แท็บ Influencer: ยอดผู้ติดตามมากสุดก่อน → ดาว → ความครบ → ใหม่สุด
+    withPhoto.sort(
+      (a, b) =>
+        followers(b) - followers(a) ||
+        rating(b) - rating(a) ||
+        quality(b) - quality(a) ||
+        newest(a, b),
     );
-  });
+  } else {
+    // แท็บอื่น (All/Model/AI): ดาวจากแอดมิน → ความครบของโปรไฟล์ → follower → ใหม่สุด
+    withPhoto.sort(
+      (a, b) =>
+        rating(b) - rating(a) ||
+        quality(b) - quality(a) ||
+        followers(b) - followers(a) ||
+        newest(a, b),
+    );
+  }
 
   const total = withPhoto.length;
   const from = (page - 1) * TALENTS_PAGE_SIZE;
@@ -715,6 +766,24 @@ export async function deleteTalent(formData: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath("/admin/talents");
   redirect("/admin/talents");
+}
+
+// แอดมินให้ดาว 0-5 (ใช้จัดอันดับหน้า /talents) — 0 = เอาดาวออก
+export async function setTalentRating(formData: FormData) {
+  const id = String(formData.get("id"));
+  const n = Math.max(0, Math.min(5, Number(formData.get("rating")) || 0));
+  const { error } = await supabase
+    .from("talents")
+    .update({ rating: n })
+    .eq("id", id);
+  // คอลัมน์ยังไม่มี (ยังไม่รัน migration 019) — ไม่ให้หน้าพัง
+  if (error) {
+    redirect(
+      `/admin/talents/${id}?error=${encodeURIComponent("ให้ดาวไม่สำเร็จ (ยังไม่ได้รัน migration 019)")}`,
+    );
+  }
+  revalidatePath(`/admin/talents/${id}`);
+  revalidatePath("/talents");
 }
 
 // สรุปโปรไฟล์สำหรับแถบหัวหน้าจัดการ talent (หลังบ้าน):
