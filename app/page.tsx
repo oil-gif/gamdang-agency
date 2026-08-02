@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Pagination } from "@/components/Pagination";
 import { TalentGridCard } from "@/components/talent/TalentGridCard";
 import { ageLabel } from "@/lib/age";
 import { CONTACT } from "@/lib/constants";
@@ -160,31 +161,9 @@ export default async function HomePage({
         )}
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-8 flex items-center justify-center gap-3 text-sm">
-            {page > 1 ? (
-              <Link
-                href={pageHref(page - 1)}
-                className="rounded-full border border-neutral-300 bg-white px-4 py-2 font-medium text-neutral-600 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
-              >
-                ← ก่อนหน้า
-              </Link>
-            ) : (
-              <span />
-            )}
-            <span className="text-neutral-400">
-              หน้า {page} / {totalPages}
-            </span>
-            {page < totalPages && (
-              <Link
-                href={pageHref(page + 1)}
-                className="rounded-full border border-neutral-300 bg-white px-4 py-2 font-medium text-neutral-600 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
-              >
-                ถัดไป →
-              </Link>
-            )}
-          </div>
-        )}
+        <div className="mt-8">
+          <Pagination page={page} totalPages={totalPages} hrefFor={pageHref} />
+        </div>
       </main>
 
       {/* CTA */}

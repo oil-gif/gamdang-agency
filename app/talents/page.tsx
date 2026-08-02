@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Pagination } from "@/components/Pagination";
 import { getPublicTalents, type TalentFilters } from "@/actions/talents";
 import { BackToHome } from "@/components/BackToHome";
 import { TalentGridCard } from "@/components/talent/TalentGridCard";
@@ -263,29 +264,13 @@ export default async function PublicTalentsPage({
           )}
         </div>
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 pt-6 text-sm">
-            {page > 1 && (
-              <Link
-                href={hrefWith({ page: String(page - 1) })}
-                className="rounded-lg border border-neutral-300 bg-white px-4 py-2 font-medium"
-              >
-                ← Prev
-              </Link>
-            )}
-            <span className="text-neutral-400">
-              Page {page} / {totalPages}
-            </span>
-            {page < totalPages && (
-              <Link
-                href={hrefWith({ page: String(page + 1) })}
-                className="rounded-lg border border-neutral-300 bg-white px-4 py-2 font-medium"
-              >
-                Next →
-              </Link>
-            )}
-          </div>
-        )}
+        <div className="pt-6">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            hrefFor={(p) => hrefWith({ page: String(p) })}
+          />
+        </div>
 
         <footer className="mt-12 border-t border-neutral-200 pt-6 text-center text-xs text-neutral-400">
           Interested in hiring our talents? Contact GAMDANG AGENCY · LINE{" "}

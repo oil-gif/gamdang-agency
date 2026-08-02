@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import Link from "next/link";
+import { Pagination } from "@/components/Pagination";
 import {
   addProjectRole,
   addTalentToProject,
@@ -955,23 +956,13 @@ export default async function ProjectDetailPage({
           )}
         </div>
 
-        {picker.totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 pt-1 text-sm">
-            {ppage > 1 && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={pickerHref(ppage - 1)}>← ก่อนหน้า</Link>
-              </Button>
-            )}
-            <span className="text-neutral-400">
-              หน้า {ppage} / {picker.totalPages}
-            </span>
-            {ppage < picker.totalPages && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={pickerHref(ppage + 1)}>ถัดไป →</Link>
-              </Button>
-            )}
-          </div>
-        )}
+        <div className="pt-1">
+          <Pagination
+            page={ppage}
+            totalPages={picker.totalPages}
+            hrefFor={pickerHref}
+          />
+        </div>
       </section>
 
       {/* ===== Client links ===== */}

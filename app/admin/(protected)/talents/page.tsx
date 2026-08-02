@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Pagination } from "@/components/Pagination";
 import { getTalentsWithPhotos, type TalentFilters } from "@/actions/talents";
 import { Button } from "@/components/ui/button";
 import { TalentFilterPanel } from "@/components/admin/TalentFilterPanel";
@@ -151,23 +152,7 @@ export default async function TalentsListPage({
         )}
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 pt-2 text-sm">
-          {page > 1 && (
-            <Button asChild variant="outline" size="sm">
-              <Link href={pageHref(page - 1)}>← ก่อนหน้า</Link>
-            </Button>
-          )}
-          <span className="text-neutral-400">
-            หน้า {page} / {totalPages}
-          </span>
-          {page < totalPages && (
-            <Button asChild variant="outline" size="sm">
-              <Link href={pageHref(page + 1)}>ถัดไป →</Link>
-            </Button>
-          )}
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} hrefFor={pageHref} />
     </div>
   );
 }

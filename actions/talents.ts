@@ -194,15 +194,18 @@ export async function getPublicTalents(filters: TalentFilters = {}, page = 1) {
         slots.headshot ??
         mine.find((p) => p.kind === "gallery")?.storage_path ??
         null;
+      const compcard = mine.find((p) => p.kind === "compcard")?.storage_path ?? null;
       return {
         ...t,
-        photo_path: portrait,
-        _hasCompcard: mine.some((p) => p.kind === "compcard"),
+        // มีรูปเดี่ยวใช้รูปเดี่ยว · ไม่มีก็ใช้คอมการ์ดไปก่อน (แต่จะถูกจัดไว้ท้ายสุด)
+        photo_path: portrait ?? compcard,
+        _hasPortrait: portrait ? 1 : 0,
+        _hasCompcard: !!compcard,
         _slotsDone: REQUIRED_SLOT_KEYS.filter((k) => slots[k]).length,
       };
     })
-    // โชว์เฉพาะคนที่มีรูปเดี่ยวสวยๆ — คนที่มีแต่คอมการ์ด/ไม่มีรูป ซ่อนไว้ก่อน
-    // (ยังอยู่ในระบบ เสนอลูกค้าได้ปกติ · อัพรูปเดี่ยวเมื่อไหร่ขึ้นเองอัตโนมัติ)
+    // ซ่อนเฉพาะคนที่ไม่มีรูปเลย (การ์ดจะเป็นช่องเทา ไม่มีอะไรให้ดู)
+    // — คนที่มีแต่คอมการ์ดยังโชว์ แต่ไปอยู่ท้ายสุด
     .filter((t) => t.photo_path);
 
   // เคยมาถ่ายกับแก้มแดงจริง (เช็คอินหน้างานแล้ว) — ใช้เป็นคะแนนความน่าเชื่อถือ
@@ -231,19 +234,27 @@ export async function getPublicTalents(filters: TalentFilters = {}, page = 1) {
   const newest = (a: { created_at: string }, b: { created_at: string }) =>
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
 
+  // คนมีรูปเดี่ยวขึ้นก่อนเสมอ — คนที่มีแต่คอมการ์ดไปต่อท้ายสุด (ยังโชว์อยู่)
+  const portraitFirst = (
+    a: { _hasPortrait: number },
+    b: { _hasPortrait: number },
+  ) => b._hasPortrait - a._hasPortrait;
+
   if (filters.role === "influencer") {
-    // แท็บ Influencer: ยอดผู้ติดตามมากสุดก่อน → ดาว → ความครบ → ใหม่สุด
+    // แท็บ Influencer: รูปเดี่ยวก่อน → ผู้ติดตามมากสุด → ดาว → ความครบ → ใหม่สุด
     withPhoto.sort(
       (a, b) =>
+        portraitFirst(a, b) ||
         followers(b) - followers(a) ||
         rating(b) - rating(a) ||
         quality(b) - quality(a) ||
         newest(a, b),
     );
   } else {
-    // แท็บอื่น (All/Model/AI): ดาวจากแอดมิน → ความครบของโปรไฟล์ → follower → ใหม่สุด
+    // แท็บอื่น (All/Model/AI): รูปเดี่ยวก่อน → ดาว → ความครบ → follower → ใหม่สุด
     withPhoto.sort(
       (a, b) =>
+        portraitFirst(a, b) ||
         rating(b) - rating(a) ||
         quality(b) - quality(a) ||
         followers(b) - followers(a) ||
