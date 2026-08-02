@@ -28,6 +28,7 @@ function pickPrimaryPhoto(
 
 export type TalentFilters = {
   q?: string;
+  rated?: boolean; // ⭐ เฉพาะคนที่แอดมินให้ดาวไว้
   role?: "model" | "influencer" | "ai";
   gender?: string;
   status?: string;
@@ -101,6 +102,7 @@ export async function getTalentsWithPhotos(
   if (filters.maxHeight) query = query.lte("height_cm", filters.maxHeight);
   if (filters.minAge) query = query.lte("dob", yearsAgo(filters.minAge));
   if (filters.maxAge) query = query.gte("dob", yearsAgo(filters.maxAge + 1));
+  if (filters.rated) query = query.gt("rating", 0);
 
   const from = (page - 1) * TALENTS_PAGE_SIZE;
   const { data: talents, count, error } = await query.range(
@@ -783,6 +785,7 @@ export async function setTalentRating(formData: FormData) {
     );
   }
   revalidatePath(`/admin/talents/${id}`);
+  revalidatePath("/admin/talents");
   revalidatePath("/talents");
 }
 

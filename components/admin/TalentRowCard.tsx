@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { setTalentRating } from "@/actions/talents";
 import { DeleteTalentButton } from "@/components/admin/DeleteTalentButton";
 import { SocialIcon } from "@/components/SocialIcon";
 import { getPhotoProxyUrl } from "@/lib/storage";
@@ -33,6 +34,7 @@ export type TalentRowCardProps = {
   topFollower?: { short: string; label: string; count: string } | null;
   categories?: string[]; // Expertise ของ influencer
   characters?: string[]; // AI model
+  rating?: number | null; // ⭐ ดาวจัดอันดับ (แอดมินให้เอง)
 };
 
 const GENDER_TEXT: Record<string, string> = {
@@ -150,6 +152,33 @@ export function TalentRowCard(props: TalentRowCardProps) {
             ))}
           </div>
         )}
+      </div>
+
+      {/* ⭐ ให้ดาวจากรายการได้เลย (ไม่ต้องเข้าโปรไฟล์) — อยู่เหนือ overlay ลิงก์ */}
+      <div className="relative z-10 shrink-0 text-center">
+        <div className="flex items-center gap-0.5">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <form key={n} action={setTalentRating}>
+              <input type="hidden" name="id" value={props.talentId} />
+              {/* กดดาวเดิมซ้ำ = ล้างดาว (สลับเปิด/ปิด) */}
+              <input
+                type="hidden"
+                name="rating"
+                value={n === props.rating ? 0 : n}
+              />
+              <button
+                type="submit"
+                title={n === props.rating ? "กดซ้ำเพื่อล้างดาว" : `ให้ ${n} ดาว`}
+                className={`px-px text-lg leading-none transition hover:scale-110 ${
+                  n <= (props.rating ?? 0) ? "text-amber-500" : "text-neutral-300"
+                }`}
+              >
+                ★
+              </button>
+            </form>
+          ))}
+        </div>
+        <p className="mt-0.5 text-[10px] text-neutral-400">ดาวจัดอันดับ</p>
       </div>
 
       {/* ปุ่มลบ — อยู่เหนือ overlay ลิงก์ กดแล้วถามยืนยันก่อน */}

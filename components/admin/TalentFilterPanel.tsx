@@ -71,6 +71,24 @@ export function TalentFilterPanel({ searchParams }: { searchParams: Params }) {
       </div>
 
       <div className="space-y-1.5">
+        <Label htmlFor="rated">ดาวจัดอันดับ</Label>
+        <label
+          htmlFor="rated"
+          className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-white px-3 text-sm"
+        >
+          <input
+            id="rated"
+            name="rated"
+            type="checkbox"
+            value="1"
+            defaultChecked={searchParams.rated === "1"}
+            className="size-4 accent-amber-500"
+          />
+          <span className="text-neutral-700">⭐ เฉพาะคนมีดาว</span>
+        </label>
+      </div>
+
+      <div className="space-y-1.5">
         <Label htmlFor="tier">Tier</Label>
         <Select name="tier" defaultValue={searchParams.tier ?? "any"}>
           <SelectTrigger id="tier" className="w-full">

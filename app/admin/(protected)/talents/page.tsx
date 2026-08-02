@@ -22,6 +22,7 @@ function parseFilters(params: RawParams): TalentFilters {
 
   return {
     q: params.q || undefined,
+    rated: params.rated === "1" || undefined,
     role: pick("role") as TalentFilters["role"],
     gender: pick("gender"),
     status: pick("status"),
@@ -131,6 +132,7 @@ export default async function TalentsListPage({
                   ? (t.categories as string[])
                   : undefined
               }
+              rating={t.rating}
               characters={
                 t.is_ai_model && t.character
                   ? (t.character as string)
