@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { calculateAge } from "@/lib/age";
 import {
   BOTTOM_BAR_H,
@@ -41,8 +41,14 @@ export function CompcardGenerator({
   const [saving, setSaving] = useState(false);
   const [savedPath, setSavedPath] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // ลายเซ็นรูป 4 ช่องที่บันทึกไปแล้ว — กันบันทึกซ้ำรูปชุดเดิม
+  const savedSigRef = useRef<string | null>(null);
 
   const ready = ["headshot", "half", "lifestyle", "full"].every((k) => slots[k]);
+  // ลายเซ็นของรูปชุดปัจจุบัน (เปลี่ยนรูปช่องไหน = ต้องบันทึกการ์ดใหม่)
+  const slotSig = ["headshot", "half", "lifestyle", "full"]
+    .map((k) => slots[k] ?? "")
+    .join("|");
 
   const build = useCallback(async () => {
     if (!ready || building) return;
@@ -237,7 +243,7 @@ export function CompcardGenerator({
     return () => clearTimeout(t);
   }, [ready, previewUrl, building, build]);
 
-  async function save() {
+  const save = useCallback(async () => {
     if (!dataUrl || saving) return;
     setSaving(true);
     setError(null);
@@ -251,11 +257,25 @@ export function CompcardGenerator({
       if (!res.ok) throw new Error(body.error ?? "บันทึกไม่สำเร็จ");
       setSavedPath(body.path);
     } catch (err) {
+      // ไม่ล้าง savedSigRef — ไม่งั้น effect จะยิงซ้ำไม่รู้จบตอนเซิร์ฟเวอร์ error
+      // ให้ผู้ใช้กดปุ่ม "บันทึก" เองเพื่อลองใหม่แทน
       setError(err instanceof Error ? err.message : "บันทึกไม่สำเร็จ กรุณาลองใหม่");
     } finally {
       setSaving(false);
     }
-  }
+  }, [dataUrl, saving, talent.id]);
+
+  // บันทึกเป็น Comp Card ของโปรไฟล์ให้อัตโนมัติเมื่อสร้างการ์ดเสร็จ
+  // — คนสมัครส่วนใหญ่ไม่กดปุ่มบันทึกเอง ทำให้การ์ดไม่เข้าโปรไฟล์
+  // กันบันทึกซ้ำด้วย "ลายเซ็นของรูป 4 ช่อง" (เปลี่ยนรูป = บันทึกทับให้ใหม่)
+  useEffect(() => {
+    if (!dataUrl || saving || savedSigRef.current === slotSig) return;
+    const t = setTimeout(() => {
+      savedSigRef.current = slotSig;
+      void save();
+    }, 300);
+    return () => clearTimeout(t);
+  }, [dataUrl, slotSig, saving, save]);
 
   if (!ready) {
     return (
@@ -293,9 +313,9 @@ export function CompcardGenerator({
           className="flex-1 rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:opacity-95 disabled:opacity-50"
         >
           {saving
-            ? "กำลังบันทึก..."
+            ? "กำลังบันทึกอัตโนมัติ..."
             : savedPath
-              ? "บันทึกแล้ว ✓ (กดบันทึกซ้ำได้)"
+              ? "✓ บันทึกเข้าโปรไฟล์แล้ว (กดบันทึกซ้ำได้)"
               : "💾 บันทึกเป็น Comp Card ของโปรไฟล์นี้"}
         </button>
         <button
@@ -319,7 +339,8 @@ export function CompcardGenerator({
 
       {savedPath && (
         <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          ✓ ตั้งเป็น Comp Card ของโปรไฟล์เรียบร้อย — ใช้ตอนเสนอลูกค้าอัตโนมัติ
+          ✓ <b>บันทึกเป็น Comp Card ของโปรไฟล์ให้อัตโนมัติแล้ว</b> —
+          ทีมงานใช้ใบนี้เสนอลูกค้าได้เลย (เปลี่ยนรูปเมื่อไหร่ ระบบสร้างและบันทึกใหม่ให้เอง)
         </p>
       )}
       {error && (
