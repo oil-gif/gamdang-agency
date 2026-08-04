@@ -56,10 +56,16 @@ export default async function CastingDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ applied?: string; error?: string; link?: string }>;
+  searchParams: Promise<{
+    applied?: string;
+    error?: string;
+    link?: string;
+    name?: string;
+    code?: string;
+  }>;
 }) {
   const { id } = await params;
-  const { applied, error, link } = await searchParams;
+  const { applied, error, link, name, code } = await searchParams;
   const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
   const casting = await getPublicCasting(id);
   if (!casting) notFound();
@@ -113,6 +119,38 @@ export default async function CastingDetailPage({
                 <p className="mt-2 text-[11px] text-neutral-400">
                   แนะนำให้เปิดในแอป LINE · ไม่ทำตอนนี้ก็ได้ ทีมงานส่งลิงก์ให้ทีหลังได้
                 </p>
+
+                {/* ทางสำรอง: แอด OA แล้วแจ้งชื่อ — สำหรับคนที่กดปุ่มด้านบนไม่ได้
+                    (เช่นเปิดจากเบราว์เซอร์ในแอป Facebook) */}
+                <div className="mt-4 border-t border-neutral-200 pt-4">
+                  <p className="text-sm font-bold text-neutral-700">
+                    หรือแอด LINE ทีมงานไว้ก็ได้ค่ะ 💬
+                  </p>
+                  <p className="mx-auto mt-1 max-w-md text-[13px] leading-5 text-neutral-500">
+                    แอด Official LINE แล้ว<b className="text-neutral-700">ทักแจ้งชื่อที่สมัคร</b>{" "}
+                    ทีมงานจะส่งลิงก์เชื่อมโปรไฟล์ให้ — จะได้แก้ไข/อัพเดตข้อมูลเองได้
+                    และครั้งหน้าสมัครงานได้เลยไม่ต้องกรอกซ้ำ
+                  </p>
+                  {(name || code) && (
+                    <p className="mx-auto mt-2 max-w-md rounded-xl bg-neutral-100 px-4 py-2 text-sm text-neutral-700">
+                      แจ้งทีมงานว่า: <b>{name}</b>
+                      {code ? (
+                        <>
+                          {" "}
+                          · รหัส <b className="font-mono">{code}</b>
+                        </>
+                      ) : null}
+                    </p>
+                  )}
+                  <a
+                    href={CONTACT.lineUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#06C755] px-7 py-3 text-sm font-bold text-white shadow-md transition hover:opacity-95"
+                  >
+                    💬 แอด Official LINE {CONTACT.lineId}
+                  </a>
+                </div>
               </div>
             )}
           </div>

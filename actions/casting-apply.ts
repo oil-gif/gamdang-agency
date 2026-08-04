@@ -234,7 +234,7 @@ export async function applyToCasting(formData: FormData) {
       source: "self",
       status: "pending",
     })
-    .select("id")
+    .select("id, code")
     .single();
   if (talentErr || !talent) {
     redirect(`/casting/${projectId}?error=${encodeURIComponent("สมัครไม่สำเร็จ กรุณาลองใหม่")}`);
@@ -275,7 +275,10 @@ export async function applyToCasting(formData: FormData) {
   // เอาไปเชื่อมโปรไฟล์นี้กับ LINE ตัวเองได้เองในหน้าสำเร็จ (ไม่ต้องรอแอดมิน)
   if (!lineProfile) {
     const linkToken = await createTalentLinkToken(talent.id);
-    redirect(`/casting/${projectId}?applied=1&link=${linkToken}`);
+    // ส่งชื่อ+รหัสไปด้วย เพื่อให้หน้าสำเร็จบอกผู้สมัครว่าให้แจ้งชื่ออะไรกับ OA
+    redirect(
+      `/casting/${projectId}?applied=1&link=${linkToken}&name=${encodeURIComponent(nickname)}&code=${encodeURIComponent(talent.code ?? "")}`,
+    );
   }
   redirect(`/casting/${projectId}?applied=1`);
 }
