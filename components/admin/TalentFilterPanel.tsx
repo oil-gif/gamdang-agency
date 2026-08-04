@@ -100,6 +100,20 @@ export function TalentFilterPanel({ searchParams }: { searchParams: Params }) {
       </div>
 
       <div className="space-y-1.5">
+        <Label htmlFor="line">บัญชี LINE</Label>
+        <Select name="line" defaultValue={searchParams.line ?? "any"}>
+          <SelectTrigger id="line" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any">ทั้งหมด</SelectItem>
+            <SelectItem value="linked">✓ ผูก LINE แล้ว</SelectItem>
+            <SelectItem value="unlinked">🔗 ยังไม่ผูก LINE</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
         <Label htmlFor="tier">Tier</Label>
         <Select name="tier" defaultValue={searchParams.tier ?? "any"}>
           <SelectTrigger id="tier" className="w-full">

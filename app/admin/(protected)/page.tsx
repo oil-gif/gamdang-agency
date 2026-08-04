@@ -3,6 +3,8 @@ import {
   approveDeletion,
   deleteStaleTalent,
   getAwaitingCompcardCount,
+  getDuplicateCount,
+  getUnlinkedCount,
   getDeletionRequests,
   getPendingCount,
   getStaleTalents,
@@ -26,6 +28,8 @@ export default async function AdminDashboardPage() {
     stale,
     deletionRequests,
     awaitingCompcards,
+    duplicates,
+    unlinked,
   ] = await Promise.all([
     getTalentCounts(),
     getPendingCount(),
@@ -34,6 +38,8 @@ export default async function AdminDashboardPage() {
     getStaleTalents(),
     getDeletionRequests(),
     getAwaitingCompcardCount(),
+    getDuplicateCount(),
+    getUnlinkedCount(),
   ]);
 
   const stats = [
@@ -83,6 +89,18 @@ export default async function AdminDashboardPage() {
       label: "รอคอมการ์ดจากแก้มแดง",
       value: awaitingCompcards,
       href: "/admin/compcards",
+      accent: "text-amber-500",
+    },
+    {
+      label: "โปรไฟล์ซ้ำซ้อน",
+      value: duplicates,
+      href: "/admin/duplicates",
+      accent: "text-rose-600",
+    },
+    {
+      label: "ยังไม่เชื่อม LINE",
+      value: unlinked,
+      href: "/admin/talents?line=unlinked",
       accent: "text-amber-500",
     },
     {

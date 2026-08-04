@@ -30,6 +30,7 @@ export type TalentFilters = {
   q?: string;
   rating?: "rated" | "unrated"; // ⭐ มีดาวแล้ว / ยังไม่ได้ให้ดาว
   newDays?: number; // สมัครเข้ามาใหม่ภายใน N วัน
+  line?: "linked" | "unlinked"; // ผูก LINE แล้ว / ยังไม่ผูก
   role?: "model" | "influencer" | "ai";
   gender?: string;
   status?: string;
@@ -109,6 +110,8 @@ export async function getTalentsWithPhotos(
     const since = new Date(Date.now() - filters.newDays * 86400000);
     query = query.gte("created_at", since.toISOString());
   }
+  if (filters.line === "linked") query = query.not("line_user_id", "is", null);
+  if (filters.line === "unlinked") query = query.is("line_user_id", null);
 
   const from = (page - 1) * TALENTS_PAGE_SIZE;
   const { data: talents, count, error } = await query.range(
@@ -785,6 +788,103 @@ export async function deleteTalent(formData: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath("/admin/talents");
   redirect("/admin/talents");
+}
+
+// ===== ตรวจข้อมูลซ้ำ / ยังไม่เชื่อม LINE =====
+
+// โปรไฟล์ที่น่าจะซ้ำกัน: ชื่อเล่น (ตัดช่องว่าง/พิมพ์เล็กใหญ่) + วันเกิด ตรงกัน
+// — ไม่ใช้ "เบอร์โทรซ้ำ" เป็นเกณฑ์ เพราะแม่ 1 คนสมัครให้ลูกหลายคนใช้เบอร์เดียวกัน
+export async function getDuplicateTalents() {
+  const { data: talents } = await supabase
+    .from("talents")
+    .select(
+      "id, code, nickname_en, nickname_th, dob, phone, status, line_user_id, created_at, rating, compcard_slots",
+    )
+    .order("created_at", { ascending: true });
+  if (!talents) return [];
+
+  const key = (t: (typeof talents)[number]) => {
+    const n = (t.nickname_en || t.nickname_th || "").trim().toLowerCase();
+    return n && t.dob ? `${n}|${t.dob}` : null;
+  };
+  const groups = new Map<string, typeof talents>();
+  for (const t of talents) {
+    const k = key(t);
+    if (!k) continue;
+    groups.set(k, [...(groups.get(k) ?? []), t]);
+  }
+  const dupGroups = [...groups.values()].filter((g) => g.length > 1);
+  if (dupGroups.length === 0) return [];
+
+  // ข้อมูลประกอบการตัดสินใจว่าจะเก็บใบไหน: จำนวนรูป + จำนวนงานที่เคยอยู่
+  const ids = dupGroups.flat().map((t) => t.id);
+  const [{ data: photos }, { data: pts }] = await Promise.all([
+    supabase.from("talent_photos").select("talent_id, kind").in("talent_id", ids),
+    supabase.from("project_talents").select("talent_id").in("talent_id", ids),
+  ]);
+  const photoCount = new Map<string, number>();
+  const hasCompcard = new Set<string>();
+  for (const p of photos ?? []) {
+    photoCount.set(p.talent_id, (photoCount.get(p.talent_id) ?? 0) + 1);
+    if (p.kind === "compcard") hasCompcard.add(p.talent_id);
+  }
+  const projectCount = new Map<string, number>();
+  for (const r of pts ?? []) {
+    if (r.talent_id)
+      projectCount.set(r.talent_id, (projectCount.get(r.talent_id) ?? 0) + 1);
+  }
+
+  return dupGroups.map((g) => ({
+    name: g[0].nickname_en || g[0].nickname_th || "",
+    dob: g[0].dob as string,
+    members: g.map((t) => ({
+      ...t,
+      photos: photoCount.get(t.id) ?? 0,
+      hasCompcard: hasCompcard.has(t.id),
+      projects: projectCount.get(t.id) ?? 0,
+    })),
+  }));
+}
+
+export async function getDuplicateCount() {
+  const groups = await getDuplicateTalents();
+  return groups.length;
+}
+
+// จำนวนคนที่ยังไม่ผูก LINE (แอดมินต้องส่งลิงก์เชื่อมให้)
+export async function getUnlinkedCount() {
+  const { count, error } = await supabase
+    .from("talents")
+    .select("id", { count: "exact", head: true })
+    .is("line_user_id", null)
+    .neq("status", "rejected");
+  if (error) return 0;
+  return count ?? 0;
+}
+
+// ลบโปรไฟล์ซ้ำ (จากหน้าตรวจข้อมูลซ้ำ) — ต้องผ่านรหัสยืนยันเหมือนลบถาวรอื่นๆ
+export async function deleteDuplicateTalent(formData: FormData) {
+  const id = String(formData.get("id"));
+  if (!verifyDangerCode(String(formData.get("danger_code") ?? ""))) {
+    redirect(
+      `/admin/duplicates?error=${encodeURIComponent("รหัสยืนยันไม่ถูกต้อง — ยังไม่ได้ลบ")}`,
+    );
+  }
+  const { data: photos } = await supabase
+    .from("talent_photos")
+    .select("storage_path")
+    .eq("talent_id", id);
+  const paths = (photos ?? [])
+    .map((p) => p.storage_path)
+    .filter((p): p is string => Boolean(p));
+  if (paths.length > 0) {
+    await supabase.storage.from("talent-photos").remove(paths);
+  }
+  const { error } = await supabase.from("talents").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/duplicates");
+  revalidatePath("/admin/talents");
+  revalidatePath("/admin");
 }
 
 // แอดมินให้ดาว 0-5 (ใช้จัดอันดับหน้า /talents) — 0 = เอาดาวออก

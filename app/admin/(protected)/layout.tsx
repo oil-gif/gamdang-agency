@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { signOutAdmin } from "@/actions/auth";
 import {
   getAwaitingCompcardCount,
+  getDuplicateCount,
   getPendingCount,
 } from "@/actions/talents";
 import { getBookingPendingCount } from "@/actions/shoots";
@@ -24,11 +25,13 @@ export default async function AdminProtectedLayout({
     redirect("/admin/login");
   }
 
-  const [pendingCount, bookingPending, awaitingCompcards] = await Promise.all([
-    getPendingCount(),
-    getBookingPendingCount(),
-    getAwaitingCompcardCount(),
-  ]);
+  const [pendingCount, bookingPending, awaitingCompcards, duplicates] =
+    await Promise.all([
+      getPendingCount(),
+      getBookingPendingCount(),
+      getAwaitingCompcardCount(),
+      getDuplicateCount(),
+    ]);
   const navLinks = [
     { href: "/admin", label: "Dashboard", badge: 0 },
     { href: "/admin/talents", label: "Talents", badge: 0 },
@@ -36,6 +39,7 @@ export default async function AdminProtectedLayout({
     { href: "/admin/shoots", label: "จองถ่าย", badge: bookingPending },
     { href: "/admin/photos", label: "รูปภาพ", badge: 0 },
     { href: "/admin/compcards", label: "รอคอมการ์ด", badge: awaitingCompcards },
+    { href: "/admin/duplicates", label: "ข้อมูลซ้ำ", badge: duplicates },
     { href: "/admin/approvals", label: "รออนุมัติ", badge: pendingCount },
   ];
 
