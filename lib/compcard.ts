@@ -61,12 +61,18 @@ export function infoBoxColors(gender?: string | null): [string, string] {
 }
 
 // "Boy. 14 years." สไตล์การ์ดตัวอย่าง — เด็ก Boy/Girl, ผู้ใหญ่ Male/Female
-export function genderAgeLabel(gender: string | null | undefined, age: number | null) {
+// ageText = ข้อความอายุที่จะโชว์ (เช่น "3.9" สำหรับเด็กเล็ก) — ถ้าไม่ส่งมาใช้ตัวเลขปี
+export function genderAgeLabel(
+  gender: string | null | undefined,
+  age: number | null,
+  ageText?: string | null,
+) {
   let g = "";
   if (gender === "male") g = age != null && age < 15 ? "Boy" : "Male";
   else if (gender === "female") g = age != null && age < 15 ? "Girl" : "Female";
   if (age == null) return g;
-  return g ? `${g}. ${age} years.` : `${age} years.`;
+  const shown = ageText ?? String(age);
+  return g ? `${g}. ${shown} years.` : `${shown} years.`;
 }
 
 // CTA ขอบล่าง (ร่างโดยผู้ช่วย — แก้ข้อความได้ที่นี่ที่เดียว)

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { calculateAge } from "@/lib/age";
+import { compcardAge } from "@/lib/age";
 import {
   BOTTOM_BAR_H,
   CARD_H,
@@ -146,6 +146,16 @@ export function CompcardGenerator({
       ctx.fillStyle = g;
       ctx.fillRect(INFO_BOX.x, INFO_BOX.y, INFO_BOX.w, INFO_BOX.h);
 
+      // ไอคอนโลโก้แก้มแดงเล็กๆ มุมซ้ายบนของกล่องข้อมูล (ข้อความชิดขวา
+      // → ฝั่งซ้ายว่างพอดี ใส่แล้วกล่องดูสมดุลและมีแบรนด์)
+      let logoRight = INFO_BOX.x + 26; // ขอบขวาของโลโก้ (ไว้กันข้อความทับ)
+      if (logo) {
+        const lh = 56;
+        const lw = logo.naturalWidth * (lh / logo.naturalHeight);
+        ctx.drawImage(logo, INFO_BOX.x + 26, INFO_BOX.y + 26, lw, lh);
+        logoRight = INFO_BOX.x + 26 + lw;
+      }
+
       const F = "Kanit, 'Helvetica Neue', Arial, sans-serif";
       // จัดชิดขวา ให้ดูพรีเมียม (ลำดับตามการ์ดตัวอย่าง: รหัสใหญ่ → ชื่อ → รายละเอียด)
       const rx = INFO_BOX.x + INFO_BOX.w - 34; // ขอบขวา (เว้น padding)
@@ -155,15 +165,20 @@ export function CompcardGenerator({
       ctx.textAlign = "right";
       // รหัส — เล็กลง+บางลง (ไม่แย่งเด่นกับชื่อ)
       ctx.font = `400 62px ${F}`;
-      ctx.fillText(talent.code ?? "", rx, INFO_BOX.y + 74, maxW);
+      // รหัสอยู่ระดับเดียวกับโลโก้ → จำกัดความกว้างไม่ให้เขียนทับโลโก้
+      ctx.fillText(talent.code ?? "", rx, INFO_BOX.y + 74, rx - logoRight - 20);
       // ชื่อ EN — เด่นสุด
       ctx.font = `600 54px ${F}`;
       const name = talent.nickname_en || talent.nickname_th || "";
       ctx.fillText(name, rx, INFO_BOX.y + 140, maxW);
       // เพศ/อายุ · สูง/หนัก · สัญชาติ (เว้นขอบล่างให้หายใจ)
-      const age = talent.dob ? calculateAge(talent.dob) : null;
+      const ageInfo = talent.dob ? compcardAge(talent.dob) : null;
       const lines = [
-        genderAgeLabel(talent.gender, age),
+        genderAgeLabel(
+          talent.gender,
+          ageInfo ? ageInfo.years : null,
+          ageInfo?.label,
+        ),
         [
           talent.height_cm ? `${talent.height_cm} cm` : null,
           talent.weight_kg ? `${talent.weight_kg} kg` : null,
