@@ -163,22 +163,30 @@ export function CompcardGenerator({
       ctx.fillStyle = "#ffffff";
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "right";
-      // รหัส — เล็กลง+บางลง (ไม่แย่งเด่นกับชื่อ)
-      ctx.font = `400 62px ${F}`;
+      // รหัส — ตัวเล็กสุด บางสุด (เป็นข้อมูลอ้างอิง ไม่ต้องเด่น)
+      ctx.font = `400 46px ${F}`;
       // รหัสอยู่ระดับเดียวกับโลโก้ → จำกัดความกว้างไม่ให้เขียนทับโลโก้
-      ctx.fillText(talent.code ?? "", rx, INFO_BOX.y + 74, rx - logoRight - 20);
-      // ชื่อ EN — เด่นสุด
-      ctx.font = `600 54px ${F}`;
+      ctx.fillText(talent.code ?? "", rx, INFO_BOX.y + 62, rx - logoRight - 20);
+      // ชื่อ EN — เด่นสุดบนการ์ด
+      ctx.font = `600 68px ${F}`;
       const name = talent.nickname_en || talent.nickname_th || "";
-      ctx.fillText(name, rx, INFO_BOX.y + 140, maxW);
-      // เพศ/อายุ · สูง/หนัก · สัญชาติ (เว้นขอบล่างให้หายใจ)
+      ctx.fillText(name, rx, INFO_BOX.y + 136, maxW);
+
+      // เพศ/อายุ — ลูกค้าดูเป็นอันดับต้นๆ จึงใหญ่กว่ารายละเอียดที่เหลือ
       const ageInfo = talent.dob ? compcardAge(talent.dob) : null;
-      const lines = [
-        genderAgeLabel(
-          talent.gender,
-          ageInfo ? ageInfo.years : null,
-          ageInfo?.label,
-        ),
+      const ageLine = genderAgeLabel(
+        talent.gender,
+        ageInfo ? ageInfo.years : null,
+        ageInfo?.label,
+      );
+      let dy = INFO_BOX.y + 190;
+      if (ageLine) {
+        ctx.font = `500 38px ${F}`;
+        ctx.fillText(ageLine, rx, dy, maxW);
+        dy += 46;
+      }
+      // สูง/หนัก · สัญชาติ (เว้นขอบล่างให้หายใจ)
+      const rest = [
         [
           talent.height_cm ? `${talent.height_cm} cm` : null,
           talent.weight_kg ? `${talent.weight_kg} kg` : null,
@@ -188,8 +196,9 @@ export function CompcardGenerator({
         talent.nationality ?? "",
       ].filter((l) => l && l.length > 0);
       ctx.font = `400 30px ${F}`;
-      lines.forEach((line, i) => {
-        ctx.fillText(line, rx, INFO_BOX.y + 190 + i * 40, maxW);
+      rest.forEach((line) => {
+        ctx.fillText(line, rx, dy, maxW);
+        dy += 38;
       });
       ctx.textAlign = "left";
 
