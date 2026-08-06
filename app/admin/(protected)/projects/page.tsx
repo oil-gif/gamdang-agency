@@ -159,9 +159,25 @@ export default async function ProjectsListPage({
                 <TableCell>{p.budget ?? "-"}</TableCell>
                 <TableCell>{p.project_talents?.[0]?.count ?? 0} คน</TableCell>
                 <TableCell>
-                  <Badge variant={p.status === "active" ? "default" : "outline"}>
-                    {STATUS_LABEL[p.status] ?? p.status}
-                  </Badge>
+                  <div className="flex flex-col items-start gap-1">
+                    <Badge
+                      variant={p.status === "active" ? "default" : "outline"}
+                    >
+                      {STATUS_LABEL[p.status] ?? p.status}
+                    </Badge>
+                    {/* เตือนเฉพาะงานที่ยัง active — งาน draft/จบแล้วไม่ต้องรก */}
+                    {p.client_sent_at ? (
+                      <span className="text-[10px] font-medium text-emerald-600">
+                        ● ส่งลูกค้าแล้ว
+                      </span>
+                    ) : (
+                      p.status === "active" && (
+                        <span className="text-[10px] font-medium text-neutral-400">
+                          ● ยังไม่ส่งลูกค้า
+                        </span>
+                      )
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <Button asChild variant="outline" size="sm">

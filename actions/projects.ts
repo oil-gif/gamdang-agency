@@ -253,7 +253,9 @@ export async function saveProject(formData: FormData) {
     is_published: formData.get("is_published") === "on",
     casting_closed: formData.get("casting_closed") === "on",
   };
-  const payload = { ...base, ...casting };
+  // โน้ตภายในทีม (migration 020) — หลังบ้านเห็นเท่านั้น ห้าม render หน้าสาธารณะ
+  const internal = { internal_note: str(formData, "internal_note") };
+  const payload = { ...base, ...casting, ...internal };
 
   // ข้อความแจ้งงาน Casting เข้ากลุ่มทีม (พร้อมลิงก์สาธารณะ)
   const castingLines = (pid: string) =>
@@ -275,7 +277,7 @@ export async function saveProject(formData: FormData) {
       .maybeSingle();
     const wasPublished = prev?.is_published === true;
     let { error } = await supabase.from("projects").update(payload).eq("id", id);
-    // ยังไม่ได้ run migration 013 → column ยังไม่มี, บันทึกเฉพาะ base ไปก่อน
+    // ยังไม่ได้ run migration 013/020 → column ยังไม่มี, บันทึกเฉพาะ base ไปก่อน
     if (isMissingColumn(error)) {
       ({ error } = await supabase.from("projects").update(base).eq("id", id));
     } else if (!error && casting.is_published && !wasPublished) {
@@ -463,6 +465,19 @@ export async function rejectApplication(formData: FormData) {
   revalidatePath(`/admin/projects/${projectId}`);
 }
 
+// กดปฏิเสธผิดคน — คืนใบสมัครกลับเป็น "รอตรวจ" ได้ (ไม่มีผลข้างเคียง
+// เพราะตอนปฏิเสธไม่ได้แตะอะไรนอกจาก status และไม่ได้ส่ง LINE)
+export async function unrejectApplication(formData: FormData) {
+  const id = String(formData.get("id"));
+  const projectId = String(formData.get("project_id"));
+  await supabase
+    .from("project_applications")
+    .update({ status: "pending" })
+    .eq("id", id)
+    .eq("status", "rejected");
+  revalidatePath(`/admin/projects/${projectId}`);
+}
+
 export async function deleteProject(formData: FormData) {
   const id = String(formData.get("id"));
   // ⚠️ กู้คืนไม่ได้ (ลบ talent ในงาน/ใบสมัคร/ลิงก์ลูกค้าทั้งหมด) — ต้องมีรหัสยืนยัน
@@ -576,17 +591,73 @@ export async function toggleClientInterestAdmin(formData: FormData) {
 }
 
 // บันทึกคำตอบ รับงาน/ปฏิเสธ แทน talent
+//
+// ทุกค่าแก้กลับได้หมด (ทีมงานกดผิดกันบ่อย) — กดปุ่มเดิมซ้ำ = "pending" (รอตอบ)
+// ส่ง "none" = ล้างกลับเป็นยังไม่แจ้งงาน · การกดตรงนี้ไม่ส่ง LINE ให้ talent
 export async function setTalentResponseAdmin(formData: FormData) {
   const ptId = String(formData.get("pt_id"));
   const projectId = String(formData.get("project_id"));
   const response = String(formData.get("response"));
-  if (!["accepted", "declined", "pending"].includes(response)) return;
+  if (!["accepted", "declined", "pending", "none"].includes(response)) return;
   const { error } = await supabase
     .from("project_talents")
-    .update({ talent_response: response })
+    .update({ talent_response: response === "none" ? null : response })
     .eq("id", ptId);
   if (error) throw new Error(error.message);
   revalidatePath(`/admin/projects/${projectId}`);
+}
+
+// ===== ส่ง proposal ให้ลูกค้า =====
+
+const SENT_VIA = ["line", "email", "link", "other"];
+
+// บันทึกว่าส่งรายชื่อให้ลูกค้าแล้ว — ลูกค้าหลายเจ้าขอให้ส่งไฟล์ทางไลน์/อีเมล
+// แทนการเปิดลิงก์ /p/[token] เอง view_count ของลิงก์เลยไม่ขยับ และไม่มีอะไร
+// บอกว่างานนี้ส่งไปหรือยัง
+//
+// กดซ้ำตอนที่บันทึกไว้แล้ว = แก้ช่องทาง/หมายเหตุ แต่ **ไม่ขยับวันที่เดิม**
+// (ถ้าอยากได้วันที่ใหม่ ให้ล้างสถานะแล้วบันทึกใหม่)
+export async function markSentToClient(formData: FormData) {
+  const projectId = String(formData.get("project_id"));
+  const viaRaw = String(formData.get("via") ?? "");
+  const via = SENT_VIA.includes(viaRaw) ? viaRaw : "other";
+  const noteRaw = formData.get("note");
+  const note =
+    typeof noteRaw === "string" && noteRaw.trim() !== "" ? noteRaw.trim() : null;
+
+  const { data: current } = await supabase
+    .from("projects")
+    .select("client_sent_at")
+    .eq("id", projectId)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from("projects")
+    .update({
+      client_sent_at: current?.client_sent_at ?? new Date().toISOString(),
+      client_sent_via: via,
+      client_sent_note: note,
+    })
+    .eq("id", projectId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/projects/${projectId}`);
+  revalidatePath("/admin/projects");
+}
+
+// กดผิด/ยังไม่ได้ส่งจริง — ล้างกลับเป็น "ยังไม่ได้ส่ง"
+export async function clearSentToClient(formData: FormData) {
+  const projectId = String(formData.get("project_id"));
+  const { error } = await supabase
+    .from("projects")
+    .update({
+      client_sent_at: null,
+      client_sent_via: null,
+      client_sent_note: null,
+    })
+    .eq("id", projectId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/projects/${projectId}`);
+  revalidatePath("/admin/projects");
 }
 
 // Swap display_order with the neighbour in the given direction. Simple and

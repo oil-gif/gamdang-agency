@@ -25,6 +25,7 @@ type Project = {
   shooting_date?: string | null;
   budget?: string | null;
   status?: string;
+  internal_note?: string | null;
   category?: string | null;
   cover_path?: string | null;
   is_published?: boolean;
@@ -136,6 +137,29 @@ export function ProjectForm({
                 <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* โน้ตภายในทีม — ไม่โชว์ที่ไหนนอกจากหลังบ้าน (ดู migration 020) */}
+          <div className="space-y-1.5 rounded-xl border border-dashed border-amber-300 bg-amber-50/60 p-4 sm:col-span-2">
+            <Label htmlFor="internal_note" className="text-amber-900">
+              🔒 โน้ตภายใน (Internal Note)
+            </Label>
+            <p className="text-xs text-amber-700">
+              รายละเอียดที่ได้จากลูกค้ามา แต่ยังไม่อยากลงในช่อง
+              &quot;รายละเอียดงาน&quot; — เช่น เรทที่ต่อรองได้ ชื่อคนติดต่อ
+              เงื่อนไขที่ยังไม่สรุป <b>เห็นเฉพาะทีมงานหลังบ้าน</b>{" "}
+              ลูกค้าและคนสมัครไม่เห็นช่องนี้
+            </p>
+            <Textarea
+              id="internal_note"
+              name="internal_note"
+              rows={4}
+              placeholder={
+                "เช่น\n· ลูกค้าขอเด็ก 8-10 ขวบ หน้าใส ไม่เอาหน้าคม\n· เรทคุยไว้ 15,000 ต่อรองได้ถึง 12,000\n· ติดต่อพี่เอ 08x-xxx-xxxx (ตอบไลน์เร็วกว่าโทร)\n· ยังไม่ fix วันถ่าย รอลูกค้าเคลียร์คิวโลเคชั่น"
+              }
+              defaultValue={project?.internal_note ?? ""}
+              className="border-amber-300 bg-white"
+            />
           </div>
         </CardContent>
       </Card>

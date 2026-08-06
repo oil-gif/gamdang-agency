@@ -6,7 +6,11 @@ import { supabase } from "@/lib/supabase/server";
 export async function getLinkWithProject(token: string) {
   const { data: link } = await supabase
     .from("project_links")
-    .select("*, project:projects(*)")
+    // ระบุ column ของ projects ให้ชัด — ห้ามใช้ projects(*) เพราะจะลาก
+    // internal_note (โน้ตภายในทีม) ออกไปหน้าที่ลูกค้าเปิดดูได้
+    .select(
+      "*, project:projects(id, name, client_name, shooting_date, project_type)",
+    )
     .eq("token", token)
     .maybeSingle();
   return link;

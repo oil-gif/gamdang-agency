@@ -5,6 +5,7 @@ import {
   addProjectRole,
   addTalentToProject,
   approveApplication,
+  clearSentToClient,
   deleteProject,
   deleteProjectRole,
   getPickerTalents,
@@ -12,8 +13,10 @@ import {
   getProjectApplications,
   getProjectRoles,
   getProjectTalents,
+  markSentToClient,
   moveProjectTalent,
   rejectApplication,
+  unrejectApplication,
   removeTalentFromProject,
   setProjectTalentCardType,
   setProjectTalentRole,
@@ -54,6 +57,13 @@ const RESPONSE_CHIP: Record<string, { label: string; className: string }> = {
   accepted: { label: "รับงานแล้ว ✓", className: "bg-emerald-100 text-emerald-700" },
   declined: { label: "ปฏิเสธงาน", className: "bg-rose-100 text-rose-700" },
   pending: { label: "แจ้งแล้ว · รอตอบ", className: "bg-amber-100 text-amber-700" },
+};
+
+const SENT_VIA_LABEL: Record<string, string> = {
+  line: "ทางไลน์",
+  email: "ทางอีเมล",
+  link: "ทางลิงก์ในระบบ",
+  other: "ช่องทางอื่น",
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -183,6 +193,12 @@ export default async function ProjectDetailPage({
     return `/admin/projects/${id}${s ? `?${s}` : ""}#picker`;
   };
   const pendingApps = applications.filter((a) => a.status === "pending");
+  // ลูกค้าเปิดลิงก์ในระบบไปแล้วกี่ครั้ง — ใช้เป็นสัญญาณช่วยเตือนตอนที่ยังไม่ได้
+  // บันทึกสถานะ "ส่งแล้ว" ด้วยมือ
+  const totalLinkViews = links.reduce(
+    (sum, l) => sum + (l.view_count ?? 0),
+    0,
+  );
 
   // token ต่อแถว (แจ้งงาน 14 วัน / ส่งงาน 60 วัน) — stateless JWT สร้างใหม่
   // ทุก render ได้ ของเก่ายังใช้ได้จนหมดอายุ
@@ -227,6 +243,19 @@ export default async function ProjectDetailPage({
           />
         </div>
       </div>
+
+      {/* โน้ตภายในทีม — โชว์บนสุดให้เห็นก่อนทำงาน (แก้ได้ในฟอร์มด้านล่าง)
+          ห้ามย้ายไป render ในหน้า /casting /p/[token] /print /report */}
+      {project.internal_note && (
+        <section className="max-w-3xl rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <p className="text-xs font-semibold text-amber-900">
+            🔒 โน้ตภายใน (ทีมงานเห็นเท่านั้น — ลูกค้า/คนสมัครไม่เห็น)
+          </p>
+          <p className="mt-1.5 whitespace-pre-wrap text-sm text-amber-950">
+            {project.internal_note}
+          </p>
+        </section>
+      )}
 
       <ProjectForm project={project} error={error} />
 
@@ -403,15 +432,31 @@ export default async function ProjectDetailPage({
                     </form>
                   </>
                 ) : (
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                      a.status === "approved"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-rose-100 text-rose-700"
-                    }`}
-                  >
-                    {a.status === "approved" ? "รับแล้ว ✓" : "ปฏิเสธ"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        a.status === "approved"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-rose-100 text-rose-700"
+                      }`}
+                    >
+                      {a.status === "approved" ? "รับแล้ว ✓" : "ปฏิเสธ"}
+                    </span>
+                    {/* กดปฏิเสธผิด — เอากลับมารอตรวจได้ */}
+                    {a.status === "rejected" && (
+                      <form action={unrejectApplication}>
+                        <input type="hidden" name="id" value={a.id} />
+                        <input type="hidden" name="project_id" value={id} />
+                        <button
+                          type="submit"
+                          title="กดผิด? คืนใบสมัครกลับเป็นรอตรวจ"
+                          className="rounded-full border border-neutral-300 px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:bg-neutral-100"
+                        >
+                          ↩︎ กดคืน
+                        </button>
+                      </form>
+                    )}
+                  </div>
                 )}
               </div>
             );
@@ -599,26 +644,60 @@ export default async function ProjectDetailPage({
                 >
                   {responseChip ? responseChip.label : "ยังไม่แจ้งงาน"}
                 </span>
-                {/* แอดมินบันทึกคำตอบแทน talent (คุยกันนอกระบบ) */}
-                {(["accepted", "declined"] as const).map((r) =>
-                  pt.talent_response === r ? null : (
+                {/* แอดมินบันทึกคำตอบแทน talent (คุยกันนอกระบบ)
+                    — กดสลับไปมาได้ตลอด ปุ่มที่กดอยู่จะเป็นสีทึบ กดซ้ำ = คืนค่า
+                    (กันทีมงานกดผิดแล้วแก้ไม่ได้) */}
+                {(["accepted", "declined"] as const).map((r) => {
+                  const isCurrent = pt.talent_response === r;
+                  const accepted = r === "accepted";
+                  return (
                     <form key={r} action={setTalentResponseAdmin}>
                       <input type="hidden" name="pt_id" value={pt.id} />
                       <input type="hidden" name="project_id" value={id} />
-                      <input type="hidden" name="response" value={r} />
+                      {/* กดปุ่มที่เลือกอยู่ = คืนกลับเป็น "รอตอบ" */}
+                      <input
+                        type="hidden"
+                        name="response"
+                        value={isCurrent ? "pending" : r}
+                      />
                       <button
                         type="submit"
-                        title="บันทึกคำตอบแทน talent"
+                        title={
+                          isCurrent
+                            ? "กดอีกครั้งเพื่อคืนค่า (กลับเป็นรอตอบ)"
+                            : "บันทึกคำตอบแทน talent — กดเปลี่ยนได้ตลอด"
+                        }
                         className={`rounded-full border px-2 py-0.5 text-[10px] font-medium transition ${
-                          r === "accepted"
-                            ? "border-emerald-300 text-emerald-600 hover:bg-emerald-50"
-                            : "border-rose-300 text-rose-500 hover:bg-rose-50"
+                          isCurrent
+                            ? accepted
+                              ? "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700"
+                              : "border-rose-500 bg-rose-500 text-white hover:bg-rose-600"
+                            : accepted
+                              ? "border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+                              : "border-rose-300 text-rose-500 hover:bg-rose-50"
                         }`}
                       >
-                        {r === "accepted" ? "บันทึกว่ารับงาน" : "บันทึกว่าปฏิเสธ"}
+                        {isCurrent && "↩︎ "}
+                        {accepted ? "บันทึกว่ารับงาน" : "บันทึกว่าปฏิเสธ"}
+                        {isCurrent && " (กดคืน)"}
                       </button>
                     </form>
-                  ),
+                  );
+                })}
+                {/* เผลอกดตอนที่ยังไม่ได้แจ้งงาน — ล้างกลับเป็น "ยังไม่แจ้งงาน" */}
+                {pt.talent_response === "pending" && (
+                  <form action={setTalentResponseAdmin}>
+                    <input type="hidden" name="pt_id" value={pt.id} />
+                    <input type="hidden" name="project_id" value={id} />
+                    <input type="hidden" name="response" value="none" />
+                    <button
+                      type="submit"
+                      title="ล้างสถานะกลับเป็นยังไม่แจ้งงาน"
+                      className="rounded-full border border-neutral-300 px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:bg-neutral-100"
+                    >
+                      ล้างสถานะ
+                    </button>
+                  </form>
                 )}
                 <span className="flex-1" />
                 {t.line_user_id && (
@@ -659,14 +738,18 @@ export default async function ProjectDetailPage({
                   <input type="hidden" name="project_id" value={id} />
                   <button
                     type="submit"
-                    title="ติ๊กแทนลูกค้าได้ (กดซ้ำเพื่อยกเลิก)"
+                    title={
+                      pt.client_interested
+                        ? "กดอีกครั้งเพื่อคืนค่า (เอาดาวออก)"
+                        : "ติ๊กแทนลูกค้าได้ — กดซ้ำเพื่อยกเลิกได้ตลอด"
+                    }
                     className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
                       pt.client_interested
                         ? "bg-emerald-600 text-white hover:bg-emerald-700"
                         : "border border-neutral-300 text-neutral-500 hover:border-emerald-500 hover:text-emerald-600"
                     }`}
                   >
-                    ★ ลูกค้าสนใจ{pt.client_interested ? " ✓" : ""}
+                    ★ ลูกค้าสนใจ{pt.client_interested ? " ✓ (กดคืน)" : ""}
                   </button>
                 </form>
                 {pt.submitted_at ? (
@@ -965,12 +1048,147 @@ export default async function ProjectDetailPage({
         </div>
       </section>
 
-      {/* ===== Client links ===== */}
+      {/* ===== ส่งให้ลูกค้า: สถานะที่บันทึกเอง + ลิงก์ ===== */}
       <section className="max-w-3xl space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[#1D4ED8]">
+        <h2 className="text-lg font-semibold text-[#1D4ED8]">ส่งให้ลูกค้า</h2>
+
+        {/* ลูกค้าบางเจ้าขอให้ส่งไฟล์ทางไลน์ ไม่เปิดลิงก์เอง view_count เลยไม่ขยับ
+            — ต้องให้แอดมินบันทึกไว้เองว่าส่งไปแล้ว */}
+        {project.client_sent_at ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-emerald-600 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                ✅ ส่งให้ลูกค้าแล้ว
+              </span>
+              <span className="text-sm text-emerald-900">
+                {SENT_VIA_LABEL[project.client_sent_via] ?? "ช่องทางอื่น"} ·{" "}
+                {formatThaiDateTime(project.client_sent_at)}
+              </span>
+              <span className="flex-1" />
+              <form action={clearSentToClient}>
+                <input type="hidden" name="project_id" value={id} />
+                <button
+                  type="submit"
+                  className="text-xs text-neutral-500 hover:text-[#B82233] hover:underline"
+                >
+                  ล้างสถานะ
+                </button>
+              </form>
+            </div>
+            {project.client_sent_note && (
+              <p className="mt-1.5 text-xs text-emerald-800">
+                📝 {project.client_sent_note}
+              </p>
+            )}
+            <details className="mt-2">
+              <summary className="cursor-pointer text-xs font-medium text-[#1D4ED8] hover:underline">
+                แก้ช่องทาง / หมายเหตุ
+              </summary>
+              <form
+                action={markSentToClient}
+                className="mt-2 flex flex-wrap items-end gap-2"
+              >
+                <input type="hidden" name="project_id" value={id} />
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="sent_via"
+                    className="text-xs font-normal text-neutral-500"
+                  >
+                    ส่งทางไหน
+                  </Label>
+                  <select
+                    id="sent_via"
+                    name="via"
+                    defaultValue={project.client_sent_via ?? "line"}
+                    className="h-9 rounded-md border border-input bg-white px-2 text-sm shadow-xs"
+                  >
+                    <option value="line">ไลน์</option>
+                    <option value="email">อีเมล</option>
+                    <option value="link">ลิงก์ในระบบ</option>
+                    <option value="other">อื่นๆ</option>
+                  </select>
+                </div>
+                <div className="min-w-[12rem] flex-1 space-y-1">
+                  <Label
+                    htmlFor="sent_note"
+                    className="text-xs font-normal text-neutral-500"
+                  >
+                    หมายเหตุ (ไม่ใส่ก็ได้)
+                  </Label>
+                  <Input
+                    id="sent_note"
+                    name="note"
+                    defaultValue={project.client_sent_note ?? ""}
+                    placeholder="เช่น ส่งกลุ่มไลน์คุณเอ"
+                  />
+                </div>
+                <Button type="submit" variant="outline">
+                  บันทึกการแก้ไข
+                </Button>
+              </form>
+              <p className="mt-1 text-[11px] text-neutral-500">
+                แก้แล้ววันที่เดิมไม่เปลี่ยน — ถ้าอยากได้วันที่ใหม่ ให้กด
+                &quot;ล้างสถานะ&quot; แล้วบันทึกใหม่
+              </p>
+            </details>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed bg-white p-3">
+            <p className="text-sm text-neutral-500">
+              ⚪ <b className="text-neutral-700">ยังไม่ได้บันทึกว่าส่งให้ลูกค้า</b>{" "}
+              — ถ้าส่งรายชื่อ/ไฟล์ทางไลน์หรืออีเมลไปแล้ว กดบันทึกไว้กันลืม
+            </p>
+            {totalLinkViews > 0 && (
+              <p className="mt-1 text-xs text-[#1D4ED8]">
+                ℹ️ ลูกค้าเปิดดูลิงก์ในระบบแล้ว {totalLinkViews} ครั้ง
+              </p>
+            )}
+            <form
+              action={markSentToClient}
+              className="mt-2 flex flex-wrap items-end gap-2"
+            >
+              <input type="hidden" name="project_id" value={id} />
+              <div className="space-y-1">
+                <Label
+                  htmlFor="sent_via"
+                  className="text-xs font-normal text-neutral-500"
+                >
+                  ส่งทางไหน
+                </Label>
+                <select
+                  id="sent_via"
+                  name="via"
+                  defaultValue="line"
+                  className="h-9 rounded-md border border-input bg-white px-2 text-sm shadow-xs"
+                >
+                  <option value="line">ไลน์</option>
+                  <option value="email">อีเมล</option>
+                  <option value="link">ลิงก์ในระบบ</option>
+                  <option value="other">อื่นๆ</option>
+                </select>
+              </div>
+              <div className="min-w-[12rem] flex-1 space-y-1">
+                <Label
+                  htmlFor="sent_note"
+                  className="text-xs font-normal text-neutral-500"
+                >
+                  หมายเหตุ (ไม่ใส่ก็ได้)
+                </Label>
+                <Input
+                  id="sent_note"
+                  name="note"
+                  placeholder="เช่น ส่งกลุ่มไลน์คุณเอ"
+                />
+              </div>
+              <Button type="submit">✅ บันทึกว่าส่งแล้ว</Button>
+            </form>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-2">
+          <h3 className="font-semibold text-neutral-700">
             ลิงก์ส่งลูกค้า (Client Links)
-          </h2>
+          </h3>
           <form action={createProjectLink}>
             <input type="hidden" name="project_id" value={id} />
             <Button type="submit">+ สร้างลิงก์</Button>
