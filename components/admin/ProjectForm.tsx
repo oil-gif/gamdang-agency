@@ -139,7 +139,7 @@ export function ProjectForm({
             </Select>
           </div>
 
-          {/* โน้ตภายในทีม — ไม่โชว์ที่ไหนนอกจากหลังบ้าน (ดู migration 020) */}
+          {/* โน้ตภายในทีม — ไม่โชว์ที่ไหนนอกจากหลังบ้าน (ดู migration 021) */}
           <div className="space-y-1.5 rounded-xl border border-dashed border-amber-300 bg-amber-50/60 p-4 sm:col-span-2">
             <Label htmlFor="internal_note" className="text-amber-900">
               🔒 โน้ตภายใน (Internal Note)

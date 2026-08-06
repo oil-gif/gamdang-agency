@@ -253,7 +253,7 @@ export async function saveProject(formData: FormData) {
     is_published: formData.get("is_published") === "on",
     casting_closed: formData.get("casting_closed") === "on",
   };
-  // โน้ตภายในทีม (migration 020) — หลังบ้านเห็นเท่านั้น ห้าม render หน้าสาธารณะ
+  // โน้ตภายในทีม (migration 021) — หลังบ้านเห็นเท่านั้น ห้าม render หน้าสาธารณะ
   const internal = { internal_note: str(formData, "internal_note") };
   const payload = { ...base, ...casting, ...internal };
 
@@ -277,7 +277,7 @@ export async function saveProject(formData: FormData) {
       .maybeSingle();
     const wasPublished = prev?.is_published === true;
     let { error } = await supabase.from("projects").update(payload).eq("id", id);
-    // ยังไม่ได้ run migration 013/020 → column ยังไม่มี, บันทึกเฉพาะ base ไปก่อน
+    // ยังไม่ได้ run migration 013/021 → column ยังไม่มี, บันทึกเฉพาะ base ไปก่อน
     if (isMissingColumn(error)) {
       ({ error } = await supabase.from("projects").update(base).eq("id", id));
     } else if (!error && casting.is_published && !wasPublished) {
