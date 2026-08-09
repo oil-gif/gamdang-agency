@@ -126,7 +126,7 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 | `/job/[token]` | talent — ดูงานที่ถูกเสนอ + ตอบรับ/ปฏิเสธ | 14 วัน |
 | `/submit/[token]` | talent — ส่งรูป/ลิงก์ผลงาน | 60 วัน |
 
-อายุ token อื่นๆ (ตั้งใน `lib/auth/talent-session.ts`): เซสชัน talent **30 วัน** · ลิงก์ผูกบัญชี `?link=` **7 วัน**
+อายุ token อื่นๆ (ตั้งใน `lib/auth/talent-session.ts`): เซสชัน talent **30 วัน** · ลิงก์ผูกบัญชี `?link=` **30 วัน** (แก้จาก 7 วัน เมื่อ 2026-08-09)
 
 ### 📱 Talent (LIFF — ต้อง login LINE)
 | Route | ทำอะไร |
