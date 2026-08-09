@@ -7,14 +7,76 @@ import { PrintMiniCard } from "@/components/public/TalentCards";
 import { CONTACT } from "@/lib/constants";
 import { formatEnDate } from "@/lib/datetime";
 
-// การ์ดใหญ่ขึ้น (รูปคอมการ์ดเด่นขึ้น) → A4 แนวตั้ง 2 คอลัมน์ × 4 แถว
-// = 8 ใบ/หน้า (เก็บจำนวนไว้เท่าที่พอดี ไม่ลดเยอะ ตามที่พี่ขอ)
-const CARDS_PER_PAGE = 8;
+// ===== แบ่งหน้า A4 =====
+//
+// เดิมตัดหน้าละ 8 ใบตายตัว ซึ่งพังเมื่อมีหัวข้อ Role คั่น เพราะ
+//   (1) แถบหัวข้อ Role กินความสูงเพิ่ม
+//   (2) Role ที่มีการ์ดจำนวนคี่ ทำให้เหลือช่องว่างครึ่งแถว แล้วหัวข้อถัดไป
+//       ต้องขึ้นแถวใหม่ → 8 ใบกินพื้นที่ได้ถึง 5 แถว ไม่ใช่ 4 แถว
+// ผลคือเนื้อหาล้นออกนอกกระดาษ บรรทัดท้าย footer เลยตกไปอยู่หน้าถัดไป
+// = ได้หน้าว่างคั่นกลาง 1 หน้า (พี่เจอตอน Save เป็น PDF 2026-08-09)
+//
+// แก้เป็นตัดหน้าตาม "ความสูงจริง" โดยประมาณแทน — ตัวเลขเป็น px ที่ 96dpi
+// (A4 สูง 297mm = 1122px) วัดจากคลาสที่ใช้จริงใน PrintMiniCard
+const PAGE_BODY_PX = 860; // พื้นที่ใส่การ์ด = 1122 - padding 24mm - header - footer (เผื่อไว้ ~7mm)
+const ROW_MODEL_PX = 166; // การ์ดงาน model 1 แถว: รูป h-32 (128) + p-3 (24) + border + gap-3 (12)
+const ROW_INFLU_PX = 187; // การ์ดงาน influ สูงกว่า: กรอบ aspect-[3/4] w-28 = 149
+const ROLE_HEADER_PX = 49; // แถบ "🎭 ชื่อ Role" 1 บรรทัด + mt-1 + gap
+const ROLE_LINE_PX = 20; // ชื่อ Role ยาวจะตัดหลายบรรทัด (พี่ใส่ brief ทั้งก้อนเป็นชื่อ Role)
+const ROLE_CHARS_PER_LINE = 80; // ความกว้างแถบ ~680px ที่ text-sm
 
-function chunk<T>(arr: T[], size: number) {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
+type Paginatable = { role_title?: string | null; card_type?: string | null };
+
+function paginateCards<T extends Paginatable>(list: T[]) {
+  const rowPx = (pt: T) =>
+    pt.card_type === "influcard" ? ROW_INFLU_PX : ROW_MODEL_PX;
+  const headerPx = (pt: T) => {
+    const lines = Math.ceil(
+      (pt.role_title ?? "ไม่ระบุ Role").length / ROLE_CHARS_PER_LINE,
+    );
+    return ROLE_HEADER_PX + Math.max(0, lines - 1) * ROLE_LINE_PX;
+  };
+
+  const pages: T[][] = [];
+  let page: T[] = [];
+  let used = 0; // ความสูงที่ใช้ไปในหน้านี้
+  let inRow = 0; // มีการ์ดในแถวปัจจุบันกี่ใบ (0 = ต้องขึ้นแถวใหม่)
+  let rowH = 0; // ความสูงของแถวปัจจุบันที่บวกเข้า used ไปแล้ว
+  let lastRole: string | null | undefined;
+
+  for (const pt of list) {
+    const startsPage = page.length === 0;
+    // การ์ดใบแรกของหน้าจะขึ้นหัวข้อ Role เสมอ (ตรงกับ showHeader ตอน render)
+    const roleChanged = startsPage || pt.role_title !== lastRole;
+    const startsRow = roleChanged || inRow === 0;
+
+    let cost = roleChanged ? headerPx(pt) : 0;
+    // ใบที่ 2 ของแถวไม่กินความสูงเพิ่ม เว้นแต่มันสูงกว่าเพื่อนร่วมแถว
+    cost += startsRow ? rowPx(pt) : Math.max(0, rowPx(pt) - rowH);
+
+    if (!startsPage && used + cost > PAGE_BODY_PX) {
+      pages.push(page);
+      page = [pt];
+      used = headerPx(pt) + rowPx(pt);
+      inRow = 1;
+      rowH = rowPx(pt);
+      lastRole = pt.role_title;
+      continue;
+    }
+
+    page.push(pt);
+    used += cost;
+    if (startsRow) {
+      inRow = 1;
+      rowH = rowPx(pt);
+    } else {
+      inRow = 0;
+      rowH = Math.max(rowH, rowPx(pt));
+    }
+    lastRole = pt.role_title;
+  }
+  if (page.length > 0) pages.push(page);
+  return pages;
 }
 
 export default async function ProjectPrintPage({
@@ -27,7 +89,7 @@ export default async function ProjectPrintPage({
     getProject(id),
     getProjectTalents(id),
   ]);
-  const pages = chunk(projectTalents, CARDS_PER_PAGE);
+  const pages = paginateCards(projectTalents);
 
   return (
     <div className="mx-auto max-w-[210mm]">
@@ -44,7 +106,9 @@ export default async function ProjectPrintPage({
           .no-print { display: none !important; }
           .pdf-page {
             width: 210mm;
-            min-height: 297mm;
+            /* 296 ไม่ใช่ 297 — กล่องสูงเท่ากระดาษเป๊ะจะล้นได้จากการปัดเศษ px
+               (297mm = 1122.52px ไม่ลงตัว) แล้วเกิดหน้าว่างตามมา */
+            min-height: 296mm;
             box-sizing: border-box;
             padding: 12mm;
             margin: 0 !important;
@@ -55,17 +119,21 @@ export default async function ProjectPrintPage({
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
-          .pdf-page:last-child { break-after: auto; }
+          /* :last-child ใช้ไม่ได้ — ปุ่มพิมพ์เป็น child ตัวสุดท้ายของ container
+             (ต่อให้ display:none ก็ยังนับเป็น child) หน้าสุดท้ายเลยยังมี
+             break-after ค้างอยู่ → เสี่ยงได้หน้าว่างท้ายไฟล์ */
+          .pdf-page:last-of-type { break-after: auto; }
           /* หน้าปก: gradient เต็มหน้า (bg เติมทั้งกล่อง) แต่เว้นขอบให้ตัวอักษร */
-          .pdf-cover { padding: 18mm !important; height: 297mm; min-height: 297mm; }
+          .pdf-cover { padding: 18mm !important; height: 296mm; min-height: 296mm; }
         }
       `}</style>
 
       <div className="no-print mb-4 space-y-2 rounded-lg border bg-white px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-neutral-700">
-            ตัวอย่าง PDF: หน้าปก + {projectTalents.length} การ์ด ({pages.length}{" "}
-            หน้า, 8 ใบ/หน้า)
+            ตัวอย่าง PDF: หน้าปก + {projectTalents.length} การ์ด ={" "}
+            {pages.length + 1} หน้า (ระบบตัดหน้าให้พอดี A4 อัตโนมัติ
+            หน้าที่มีหัวข้อ Role หลายอันจะได้การ์ดน้อยลง)
           </p>
           <Link
             href={`/admin/projects/${id}`}
