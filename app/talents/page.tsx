@@ -9,7 +9,13 @@ import {
 import { BackToHome } from "@/components/BackToHome";
 import { TalentGridCard } from "@/components/talent/TalentGridCard";
 import { ageLabel } from "@/lib/age";
-import { CATEGORIES, CONTACT, ETHNICITIES, TALENTS_PAGE_SIZE } from "@/lib/constants";
+import {
+  CATEGORIES,
+  CONTACT,
+  ETHNICITIES,
+  SHOW_TALENT_STATS,
+  TALENTS_PAGE_SIZE,
+} from "@/lib/constants";
 import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
 
 export const metadata: Metadata = {
@@ -63,9 +69,10 @@ export default async function PublicTalentsPage({
   const filters = parseFilters(params);
   const role = filters.role ?? "";
   const page = Math.max(parseInt(params.page ?? "1", 10) || 1, 1);
+  // ปิดแถบตัวเลขอยู่ = ไม่ต้องยิง query นับเลย (ดู SHOW_TALENT_STATS)
   const [{ talents, total }, counts] = await Promise.all([
     getPublicTalents(filters, page),
-    getPublicTalentCounts(),
+    SHOW_TALENT_STATS ? getPublicTalentCounts() : null,
   ]);
   const totalPages = Math.max(Math.ceil(total / TALENTS_PAGE_SIZE), 1);
 
@@ -126,24 +133,27 @@ export default async function PublicTalentsPage({
             </a>
           </div>
 
-          {/* แถบตัวเลข: นับจากฐานข้อมูลจริง ไม่ใช่ตัวเลขปั้น */}
-          <dl className="grid grid-cols-2 divide-neutral-200 border-t border-neutral-200 sm:grid-cols-4 sm:divide-x">
-            {[
-              { label: "Talents", value: counts.total },
-              { label: "Models", value: counts.model },
-              { label: "Influencers", value: counts.influencer },
-              { label: "AI Models", value: counts.ai },
-            ].map((s) => (
-              <div key={s.label} className="px-6 py-4 text-center">
-                <dt className="text-[11px] font-medium uppercase tracking-wider text-neutral-400">
-                  {s.label}
-                </dt>
-                <dd className="mt-0.5 text-2xl font-extrabold text-neutral-800">
-                  {s.value.toLocaleString("en-US")}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          {/* แถบตัวเลข: นับจากฐานข้อมูลจริง ไม่ใช่ตัวเลขปั้น
+              ซ่อนอยู่จนกว่าจะย้ายฐานข้อมูลเสร็จ — เปิดกลับที่ SHOW_TALENT_STATS */}
+          {SHOW_TALENT_STATS && counts && (
+            <dl className="grid grid-cols-2 divide-neutral-200 border-t border-neutral-200 sm:grid-cols-4 sm:divide-x">
+              {[
+                { label: "Talents", value: counts.total },
+                { label: "Models", value: counts.model },
+                { label: "Influencers", value: counts.influencer },
+                { label: "AI Models", value: counts.ai },
+              ].map((s) => (
+                <div key={s.label} className="px-6 py-4 text-center">
+                  <dt className="text-[11px] font-medium uppercase tracking-wider text-neutral-400">
+                    {s.label}
+                  </dt>
+                  <dd className="mt-0.5 text-2xl font-extrabold text-neutral-800">
+                    {s.value.toLocaleString("en-US")}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
         </section>
 
         {/* ===== กำลังย้ายฐานข้อมูลจากระบบเดิม — บอกลูกค้าว่าที่เห็นยังไม่ครบ ===== */}
