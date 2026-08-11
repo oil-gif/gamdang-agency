@@ -138,7 +138,18 @@ export default async function ProjectsListPage({
           <TableBody>
             {projects.map((p) => (
               <TableRow key={p.id}>
-                <TableCell className="font-medium">{p.name}</TableCell>
+                {/* ชื่องานยาวๆ ต้องตัดขึ้นบรรทัดใหม่ ไม่งั้นดันตารางกว้างจน
+                    คอลัมน์ "จัดการ" หลุดออกนอกจอ กดปุ่มเปิดไม่ได้
+                    (TableCell ตั้ง whitespace-nowrap ไว้เป็นค่าเริ่มต้น)
+                    + ทำชื่อให้กดเปิดได้ด้วย เผื่อปุ่มขวาสุดอยู่นอกจอบนมือถือ */}
+                <TableCell className="max-w-[22rem] font-medium break-words whitespace-normal">
+                  <Link
+                    href={`/admin/projects/${p.id}`}
+                    className="hover:text-[#1D4ED8] hover:underline"
+                  >
+                    {p.name}
+                  </Link>
+                </TableCell>
                 <TableCell>
                   {p.project_type === "influencer" ? (
                     <Badge className="bg-[#B82233] text-white">Influencer</Badge>
@@ -146,7 +157,10 @@ export default async function ProjectsListPage({
                     <Badge className="bg-[#1D4ED8] text-white">Model</Badge>
                   )}
                 </TableCell>
-                <TableCell>{p.client_name ?? "-"}</TableCell>
+                {/* ชื่อลูกค้าบางงานก็ยาว (บางทีเผลอวางชื่องานลงไป) — ตัดบรรทัดเหมือนกัน */}
+                <TableCell className="max-w-[12rem] break-words whitespace-normal">
+                  {p.client_name ?? "-"}
+                </TableCell>
                 <TableCell>
                   {p.shooting_date
                     ? formatThaiDate(p.shooting_date, {
