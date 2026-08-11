@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Pagination } from "@/components/Pagination";
-import { getPublicTalents, type TalentFilters } from "@/actions/talents";
+import {
+  getPublicTalentCounts,
+  getPublicTalents,
+  type TalentFilters,
+} from "@/actions/talents";
 import { BackToHome } from "@/components/BackToHome";
 import { TalentGridCard } from "@/components/talent/TalentGridCard";
 import { ageLabel } from "@/lib/age";
@@ -59,7 +63,10 @@ export default async function PublicTalentsPage({
   const filters = parseFilters(params);
   const role = filters.role ?? "";
   const page = Math.max(parseInt(params.page ?? "1", 10) || 1, 1);
-  const { talents, total } = await getPublicTalents(filters, page);
+  const [{ talents, total }, counts] = await Promise.all([
+    getPublicTalents(filters, page),
+    getPublicTalentCounts(),
+  ]);
   const totalPages = Math.max(Math.ceil(total / TALENTS_PAGE_SIZE), 1);
 
   // สร้างลิงก์โดยคงตัวกรองเดิม เปลี่ยนเฉพาะ key ที่ส่งมา (role / page)
@@ -95,18 +102,87 @@ export default async function PublicTalentsPage({
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-8">
-        <h1 className="text-3xl font-extrabold text-neutral-800">
-          <span className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] bg-clip-text text-transparent">
-            Our
-          </span>{" "}
-          Talents
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Model · Influencer · AI Model — hover over a card to see details
-        </p>
+        {/* ===== Hero: บอกว่าเราเป็นใคร + ตัวเลขจริงสร้างความน่าเชื่อถือ ===== */}
+        <section className="overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm">
+          <div className="relative bg-gradient-to-br from-[#1D4ED8] via-[#5b2b8f] to-[#B82233] px-6 py-9 text-white sm:px-10 sm:py-11">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/70">
+              Modeling &amp; Influencer Agency
+            </p>
+            <h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">
+              Our Talents
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/80">
+              Browse our roster of Models, Influencers and AI Models. Filter by
+              gender, age, height, ethnicity or category — hover any card to see
+              full details.
+            </p>
+            <a
+              href={CONTACT.lineUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-[#1D4ED8] shadow-sm transition hover:bg-white/90"
+            >
+              Book a talent — LINE {CONTACT.lineId}
+            </a>
+          </div>
+
+          {/* แถบตัวเลข: นับจากฐานข้อมูลจริง ไม่ใช่ตัวเลขปั้น */}
+          <dl className="grid grid-cols-2 divide-neutral-200 border-t border-neutral-200 sm:grid-cols-4 sm:divide-x">
+            {[
+              { label: "Talents", value: counts.total },
+              { label: "Models", value: counts.model },
+              { label: "Influencers", value: counts.influencer },
+              { label: "AI Models", value: counts.ai },
+            ].map((s) => (
+              <div key={s.label} className="px-6 py-4 text-center">
+                <dt className="text-[11px] font-medium uppercase tracking-wider text-neutral-400">
+                  {s.label}
+                </dt>
+                <dd className="mt-0.5 text-2xl font-extrabold text-neutral-800">
+                  {s.value.toLocaleString("en-US")}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* ===== กำลังย้ายฐานข้อมูลจากระบบเดิม — บอกลูกค้าว่าที่เห็นยังไม่ครบ ===== */}
+        <section className="mt-4 rounded-2xl border border-[#1D4ED8]/20 bg-[#1D4ED8]/5 px-5 py-4">
+          <p className="text-sm font-bold text-[#1D4ED8]">
+            We&apos;re still migrating our full talent database
+          </p>
+          <p className="mt-1 text-sm leading-6 text-neutral-600">
+            The profiles shown here are the ones already moved over from our
+            previous system at{" "}
+            <a
+              href="https://www.gamdang.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[#1D4ED8] underline underline-offset-2"
+            >
+              www.gamdang.com
+            </a>
+            . We have many more talents available — for the complete roster or a
+            tailored shortlist for your job, please contact our Official LINE{" "}
+            <a
+              href={CONTACT.lineUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[#06C755] underline underline-offset-2"
+            >
+              {CONTACT.lineId}
+            </a>
+            .
+          </p>
+          <p className="mt-1.5 text-xs leading-5 text-neutral-500">
+            (ขณะนี้เรากำลังทยอยย้ายฐานข้อมูลทาเลนต์จากระบบเดิม www.gamdang.com
+            — ยังมีทาเลนต์อีกจำนวนมากที่ยังไม่ขึ้นหน้านี้ หากต้องการดูทั้งหมด
+            หรือให้ทีมงานคัดให้ตรงกับงาน ทักไลน์ {CONTACT.lineId} ได้เลยค่ะ)
+          </p>
+        </section>
 
         {/* แท็บบทบาท */}
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div className="mt-6 flex flex-wrap gap-2">
           {ROLE_TABS.map((t) => {
             const active = role === t.key;
             return (
@@ -126,9 +202,15 @@ export default async function PublicTalentsPage({
         </div>
 
         {/* ตัวกรอง (GET form — คง role ปัจจุบันไว้) */}
-        <details className="mt-4 rounded-2xl border border-neutral-200 bg-white" open>
-          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-neutral-600">
-            Filters — {total} talents
+        <details
+          className="mt-4 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm"
+          open
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50">
+            <span>Filters</span>
+            <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-600">
+              {total.toLocaleString("en-US")} result{total === 1 ? "" : "s"}
+            </span>
           </summary>
           <form
             method="get"
@@ -188,16 +270,16 @@ export default async function PublicTalentsPage({
               maxVal={params.max_age}
             />
 
-            <div className="col-span-2 flex items-end gap-2 sm:col-span-3 lg:col-span-4">
+            <div className="col-span-2 flex items-end gap-2 border-t border-neutral-100 pt-4 sm:col-span-3 lg:col-span-4">
               <button
                 type="submit"
-                className="rounded-lg bg-gradient-to-r from-[#1D4ED8] to-[#B82233] px-5 py-2 text-sm font-semibold text-white"
+                className="rounded-lg bg-gradient-to-r from-[#1D4ED8] to-[#B82233] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
               >
                 Apply Filters
               </button>
               <Link
                 href={role ? `/talents?role=${role}` : "/talents"}
-                className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-500"
+                className="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium text-neutral-500 transition hover:bg-neutral-50"
               >
                 Clear
               </Link>
@@ -258,9 +340,24 @@ export default async function PublicTalentsPage({
             );
           })}
           {talents.length === 0 && (
-            <p className="col-span-full rounded-2xl border border-dashed border-neutral-300 bg-white p-14 text-center text-neutral-400">
-              No talents in this category yet
-            </p>
+            <div className="col-span-full rounded-2xl border border-dashed border-neutral-300 bg-white p-12 text-center">
+              <p className="text-sm font-semibold text-neutral-600">
+                No talents match these filters
+              </p>
+              <p className="mx-auto mt-1.5 max-w-md text-sm leading-6 text-neutral-500">
+                Not everyone is on this page yet — we&apos;re still migrating
+                profiles from our previous system. Tell us what you need and our
+                team will shortlist talents for you.
+              </p>
+              <a
+                href={CONTACT.lineUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-block rounded-full bg-[#06C755] px-5 py-2.5 text-sm font-semibold text-white"
+              >
+                Ask us on LINE {CONTACT.lineId}
+              </a>
+            </div>
           )}
         </div>
 
@@ -272,9 +369,45 @@ export default async function PublicTalentsPage({
           />
         </div>
 
-        <footer className="mt-12 border-t border-neutral-200 pt-6 text-center text-xs text-neutral-400">
-          Interested in hiring our talents? Contact GAMDANG AGENCY · LINE{" "}
-          {CONTACT.lineId}
+        {/* ===== ปิดท้ายด้วย CTA ชัดๆ — ลูกค้าเลื่อนมาถึงล่างสุดต้องรู้ว่าติดต่อยังไง ===== */}
+        <section className="mt-12 rounded-3xl bg-gradient-to-br from-[#1D4ED8] via-[#5b2b8f] to-[#B82233] px-6 py-9 text-center text-white sm:px-10">
+          <h2 className="text-xl font-extrabold sm:text-2xl">
+            Can&apos;t find the right face?
+          </h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/80">
+            Our full roster is larger than what&apos;s listed here. Send us your
+            brief — casting requirements, age range, look and shooting date —
+            and we&apos;ll shortlist talents for you, usually the same day.
+          </p>
+          <a
+            href={CONTACT.lineUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 inline-block rounded-full bg-white px-6 py-3 text-sm font-bold text-[#1D4ED8] shadow-sm transition hover:bg-white/90"
+          >
+            Contact Official LINE {CONTACT.lineId}
+          </a>
+          <p className="mt-4 text-xs text-white/60">
+            {CONTACT.websites.map((w, i) => (
+              <span key={w.url}>
+                {i > 0 && " · "}
+                <a
+                  href={w.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:text-white"
+                >
+                  {w.label}
+                </a>
+              </span>
+            ))}
+          </p>
+        </section>
+
+        <footer className="mt-8 border-t border-neutral-200 pt-6 text-center text-xs leading-5 text-neutral-400">
+          © GAMDANG AGENCY — Modeling &amp; Influencer Agency · All talents are
+          represented exclusively through the agency; please do not contact
+          talents directly.
         </footer>
       </main>
     </div>

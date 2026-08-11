@@ -154,6 +154,34 @@ export async function getTalent(id: string) {
 // หน้า /talents สาธารณะ: เรียงเพื่อความสวย+ขายลูกค้า —
 // มีรูปก่อน → follower มากสุดก่อน → ใหม่สุด (คนไม่มีรูปไปท้าย)
 // จำนวน talent ไม่เยอะ (หลักร้อย) ดึงทั้งหมดแล้วเรียง/แบ่งหน้าใน JS ได้สบาย
+// ⚠️ PostgREST คืนแถวได้สูงสุด 1000 แถวต่อ 1 คำสั่ง แต่ talent_photos โตเกิน
+// 1000 แถวไปแล้ว (1557 แถว ณ 2026-08-11) — ยิง .in() ทีเดียวจะได้รูปไม่ครบ
+// คนที่รูปตกขอบจะถูกมองว่า "ไม่มีรูป" แล้วหายจากหน้า /talents ทั้งที่มีรูป
+// และหายไม่ซ้ำหน้าเดิมทุกครั้ง เพราะ display_order ซ้ำกันเยอะ ลำดับเลยไม่คงที่
+// (เจอตอนทำแถบสถิติ: โหลดรอบนึงได้ 407 คน อีกรอบเหลือ 209 คน)
+// → แบ่งยิงทีละก้อน ก้อนละ 150 คน (~500 แถว) ให้ไม่มีทางชนเพดาน
+const PHOTO_ID_BATCH = 150;
+
+type TalentPhotoRow = {
+  talent_id: string;
+  kind: string;
+  storage_path: string;
+  display_order: number | null;
+};
+
+async function fetchTalentPhotos(ids: string[]): Promise<TalentPhotoRow[]> {
+  const out: TalentPhotoRow[] = [];
+  for (let i = 0; i < ids.length; i += PHOTO_ID_BATCH) {
+    const { data } = await supabase
+      .from("talent_photos")
+      .select("talent_id, kind, storage_path, display_order")
+      .in("talent_id", ids.slice(i, i + PHOTO_ID_BATCH))
+      .order("display_order", { ascending: true });
+    if (data) out.push(...(data as TalentPhotoRow[]));
+  }
+  return out;
+}
+
 export async function getPublicTalents(filters: TalentFilters = {}, page = 1) {
   let query = supabase.from("talents").select("*").eq("status", "active");
 
@@ -179,14 +207,7 @@ export async function getPublicTalents(filters: TalentFilters = {}, page = 1) {
   if (error) throw new Error(error.message);
   if (!talents || talents.length === 0) return { talents: [], total: 0 };
 
-  const { data: photos } = await supabase
-    .from("talent_photos")
-    .select("talent_id, kind, storage_path, display_order")
-    .in(
-      "talent_id",
-      talents.map((t) => t.id),
-    )
-    .order("display_order", { ascending: true });
+  const photos = await fetchTalentPhotos(talents.map((t) => t.id));
 
   const withPhoto = talents
     // ซ่อนคนที่ขอลบประวัติออกจากหน้าสาธารณะทันที (defensive: ถ้ายังไม่รัน
@@ -319,6 +340,43 @@ export async function getTalentCounts() {
   };
   const [total, active] = await Promise.all([count(), count("active")]);
   return { total, active };
+}
+
+// ตัวเลขโชว์บนแถบสถิติหน้า /talents (หน้าที่ลูกค้าเปิดดู)
+//
+// ⚠️ ต้องนับด้วย "กติกาการมองเห็น" ชุดเดียวกับ getPublicTalents เป๊ะๆ คือ
+// active + ไม่ได้ขอลบประวัติ + มีรูปให้ดู (รูปเดี่ยวหรือคอมการ์ด) ไม่งั้นเลข
+// บนแถบจะมากกว่าจำนวนการ์ดที่กดดูได้จริง — บนหน้าที่ลูกค้าเปิด เลขไม่ตรง
+// = เสียความน่าเชื่อถือ (เคยพลาดมาแล้ว: นับดิบได้ 453 แต่ดูได้จริง 407)
+// แก้กติกาที่ getPublicTalents เมื่อไหร่ ต้องแก้ที่นี่ด้วย
+export async function getPublicTalentCounts() {
+  const { data: talents } = await supabase
+    .from("talents")
+    .select(
+      "id, is_model, is_influencer, is_ai_model, compcard_slots, deletion_requested_at",
+    )
+    .eq("status", "active");
+  const live = (talents ?? []).filter((t) => !t.deletion_requested_at);
+  if (live.length === 0) return { total: 0, model: 0, influencer: 0, ai: 0 };
+
+  const photos = await fetchTalentPhotos(live.map((t) => t.id));
+  const hasPhotoRow = new Set(
+    photos
+      .filter((p) => p.kind === "gallery" || p.kind === "compcard")
+      .map((p) => p.talent_id),
+  );
+
+  const visible = live.filter((t) => {
+    const slots = (t.compcard_slots ?? {}) as Record<string, string>;
+    return Boolean(slots.single || slots.headshot) || hasPhotoRow.has(t.id);
+  });
+
+  return {
+    total: visible.length,
+    model: visible.filter((t) => t.is_model).length,
+    influencer: visible.filter((t) => t.is_influencer).length,
+    ai: visible.filter((t) => t.is_ai_model).length,
+  };
 }
 
 export async function getPendingCount() {
