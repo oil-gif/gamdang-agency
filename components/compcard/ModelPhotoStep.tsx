@@ -44,20 +44,20 @@ export function ModelPhotoStep({
             {
               key: "new",
               emoji: "✨",
-              title: "สร้างคอมการ์ดใหม่",
-              desc: "อัพรูป 4 มุม ระบบสร้างคอมการ์ดให้อัตโนมัติ",
+              title: "สร้างคอมการ์ดใหม่ (New comp card)",
+              desc: "อัพรูป 4 มุม ระบบสร้างคอมการ์ดให้อัตโนมัติ (Upload 4 photos)",
             },
             {
               key: "legacy",
               emoji: "🪪",
-              title: "มีคอมการ์ดแก้มแดงแล้ว",
-              desc: "อัพคอมการ์ดเดิมของแก้มแดง (ทำภายใน 1 ปี)",
+              title: "มีคอมการ์ดแก้มแดงแล้ว (I have one)",
+              desc: "อัพคอมการ์ดเดิมของแก้มแดง ทำภายใน 1 ปี (Gamdang card only)",
             },
             {
               key: "awaiting",
               emoji: "⏳",
-              title: "รอคอมการ์ดจากแก้มแดง",
-              desc: "เพิ่งจองถ่ายโปรไฟล์ — อัพรูปหลัก 1 รูปพอ",
+              title: "รอคอมการ์ดจากแก้มแดง (Waiting for mine)",
+              desc: "เพิ่งจองถ่ายโปรไฟล์ — อัพรูปหลัก 1 รูปพอ (1 photo only)",
             },
           ] as const
         ).map((opt) => (

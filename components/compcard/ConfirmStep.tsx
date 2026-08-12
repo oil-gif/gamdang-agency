@@ -47,7 +47,7 @@ export function ConfirmStep({
     ["ชื่อเล่น (ไทย)", talent.nickname_th ?? "-"],
     [
       "เพศ / อายุ",
-      `${talent.gender === "male" ? "ชาย" : talent.gender === "female" ? "หญิง" : "อื่นๆ"}${age != null ? ` · ${age} ปี` : ""}`,
+      `${talent.gender === "male" ? "ชาย (Male)" : talent.gender === "female" ? "หญิง (Female)" : "อื่นๆ (Other)"}${age != null ? ` · ${age} ปี` : ""}`,
     ],
   ];
   // สูง/หนัก/สัญชาติ — โชว์เมื่อมีข้อมูล (Influencer ล้วนอาจไม่ได้กรอก)
@@ -77,7 +77,9 @@ export function ConfirmStep({
       <div className="space-y-5">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
           <p className="text-2xl">🎉</p>
-          <p className="mt-1 font-bold text-emerald-800">ส่งข้อมูลเรียบร้อยแล้ว!</p>
+          <p className="mt-1 font-bold text-emerald-800">
+            ส่งข้อมูลเรียบร้อยแล้ว! (Submitted)
+          </p>
           <p className="mt-1 text-sm text-emerald-700">
             ทีมงานแก้มแดงจะตรวจสอบและอนุมัติโปรไฟล์โดยเร็ว —
             ระหว่างนี้บันทึก Comp Card เก็บไว้ได้เลยค่ะ
@@ -154,7 +156,7 @@ export function ConfirmStep({
     <div className="space-y-5">
       {/* สรุปข้อมูล */}
       <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-        <p className="font-bold text-neutral-800">สรุปข้อมูลของหนู</p>
+        <p className="font-bold text-neutral-800">สรุปข้อมูลของหนู (Summary)</p>
         <dl className="mt-3 space-y-1.5 text-sm">
           {rows.map(([k, v]) => (
             <div key={k} className="flex gap-3">
@@ -181,7 +183,9 @@ export function ConfirmStep({
 
       {/* ข้อยินยอม (ฉบับแก้มแดง) */}
       <div className="space-y-2.5">
-        <p className="text-sm font-bold text-neutral-700">ข้อยินยอม *</p>
+        <p className="text-sm font-bold text-neutral-700">
+          ข้อยินยอม (Consent) *
+        </p>
         {(
           [
             [

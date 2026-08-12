@@ -204,8 +204,8 @@ export function TalentForm({
                 <SelectValue placeholder="เลือกเพศ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="female">หญิง</SelectItem>
-                <SelectItem value="male">ชาย</SelectItem>
+                <SelectItem value="female">หญิง (Female)</SelectItem>
+                <SelectItem value="male">ชาย (Male)</SelectItem>
                 <SelectItem value="other">อื่นๆ / LGBTQ+</SelectItem>
               </SelectContent>
             </Select>
@@ -225,7 +225,7 @@ export function TalentForm({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="height_cm">
-              ส่วนสูง (Height, ซม.){modelFieldsRequired && " *"}
+              ส่วนสูง (Height, cm.){modelFieldsRequired && " *"}
             </Label>
             <Input
               id="height_cm"
@@ -238,7 +238,7 @@ export function TalentForm({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="weight_kg">
-              น้ำหนัก (Weight, กก.){modelFieldsRequired && " *"}
+              น้ำหนัก (Weight, kg.){modelFieldsRequired && " *"}
             </Label>
             <Input
               id="weight_kg"

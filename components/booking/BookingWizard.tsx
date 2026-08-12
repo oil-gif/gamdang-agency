@@ -521,8 +521,8 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
 
             {(
               [
-                ["height", "ส่วนสูง (Height, ซม.)", "เช่น 120"],
-                ["weight", "น้ำหนัก (Weight, กก.)", "เช่น 25"],
+                ["height", "ส่วนสูง (Height, cm.)", "เช่น 120"],
+                ["weight", "น้ำหนัก (Weight, kg.)", "เช่น 25"],
               ] as const
             ).map(([name, label, placeholder]) => (
               <div key={name} className="space-y-1">

@@ -127,7 +127,9 @@ export function CompcardSlots({
       {/* ===== กติการูปถ่าย ฉบับแก้มแดง ===== */}
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
         <div className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] px-5 py-4 text-white">
-          <p className="text-base font-bold">📸 กติการูปถ่าย ฉบับแก้มแดง</p>
+          <p className="text-base font-bold">
+            📸 กติการูปถ่าย ฉบับแก้มแดง (Photo guidelines)
+          </p>
           <p className="mt-0.5 text-xs text-white/80">
             รูปดีมีชัยไปกว่าครึ่ง — ลูกค้าเลือกงานจาก &quot;รูป&quot; เป็นอย่างแรก
           </p>

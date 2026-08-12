@@ -30,7 +30,7 @@ export function AwaitingCompcard({
   return (
     <div className="space-y-4">
       <div className="rounded-xl border-2 border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-900">
-        <p className="font-bold">⏳ รอคอมการ์ดจากแก้มแดง</p>
+        <p className="font-bold">⏳ รอคอมการ์ดจากแก้มแดง (Waiting for your comp card)</p>
         <p className="mt-1 text-[13px]">
           เหมาะกับคนที่<b>เพิ่งจองถ่ายโปรไฟล์กับแก้มแดง</b> แต่ยังไม่ได้รับคอมการ์ด —
           ตอนนี้อัพแค่ <b>รูปหลัก 1 รูป</b> ก็สมัครได้เลย
