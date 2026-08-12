@@ -5,6 +5,7 @@ import { getMyProfilesForCasting } from "@/actions/casting-apply";
 import { BackToHome } from "@/components/BackToHome";
 import { CastingApply } from "@/components/casting/CastingApply";
 import { CONTACT } from "@/lib/constants";
+import { formatEnDate } from "@/lib/datetime";
 import { getPublicCasting } from "@/lib/casting";
 import { SITE_URL } from "@/lib/site";
 import { getPhotoProxyUrl } from "@/lib/storage";
@@ -185,7 +186,12 @@ export default async function CastingDetailPage({
           )}
           {casting.shooting_date && (
             <span className="text-xs text-neutral-400">
-              ถ่ายทำ: {casting.shooting_date}
+              Shooting Date:{" "}
+              {formatEnDate(casting.shooting_date, {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
             </span>
           )}
         </div>
