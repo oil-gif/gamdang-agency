@@ -203,7 +203,7 @@ export default async function CastingDetailPage({
         {casting.roles.length > 0 && (
           <div className="mt-6">
             <h2 className="text-lg font-bold text-neutral-800">
-              Role ที่เปิดรับ ({casting.roles.length})
+              Role ที่เปิดรับ (Open roles — {casting.roles.length})
             </h2>
             <div className="mt-3 space-y-2.5">
               {casting.roles.map((r) => (

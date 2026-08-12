@@ -86,7 +86,9 @@ export function CastingApply({
     <div className="space-y-5">
       {/* ===== ปุ่มแชร์ ===== */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-medium text-neutral-500">แชร์งานนี้:</span>
+        <span className="text-sm font-medium text-neutral-500">
+          แชร์งานนี้ (Share):
+        </span>
         <a
           href={lineShare}
           target="_blank"
@@ -112,7 +114,7 @@ export function CastingApply({
           }}
           className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-600"
         >
-          {copied ? "คัดลอกแล้ว ✓" : "คัดลอกลิงก์"}
+          {copied ? "คัดลอกแล้ว (Copied) ✓" : "คัดลอกลิงก์ (Copy link)"}
         </button>
       </div>
 
@@ -169,7 +171,7 @@ export function CastingApply({
                 href={loginHref}
                 className="flex w-full items-center justify-center gap-2 rounded-full bg-[#06C755] py-3.5 text-base font-bold text-white shadow-md transition hover:opacity-95"
               >
-                เข้าสู่ระบบด้วย LINE เพื่อสมัคร
+                เข้าสู่ระบบด้วย LINE เพื่อสมัคร (Sign in with LINE)
               </a>
               <p className="text-center text-xs text-neutral-400">
                 เป็นสมาชิกอยู่แล้ว? เข้าสู่ระบบแล้วกดสมัครได้เลย ไม่ต้องกรอกใหม่
@@ -199,7 +201,7 @@ export function CastingApply({
               href={loginHref}
               className="block w-full rounded-full border border-[#06C755] py-2.5 text-center text-sm font-semibold text-[#06C755]"
             >
-              หรือเข้าสู่ระบบด้วย LINE (สำหรับสมาชิกเดิม)
+              หรือเข้าสู่ระบบด้วย LINE (Existing members — sign in)
             </a>
           )}
         </div>
@@ -236,7 +238,7 @@ function MemberApply({
     >
       <input type="hidden" name="project_id" value={projectId} />
       <p className="text-sm font-semibold text-neutral-700">
-        สมัครในนามของ (เลือกได้หลายคน) ✦
+        สมัครในนามของ (Apply for — เลือกได้หลายคน)
       </p>
 
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
@@ -275,10 +277,12 @@ function MemberApply({
                   {p.name}
                 </p>
                 {p.alreadyApplied ? (
-                  <p className="text-[10px] font-medium text-emerald-600">สมัครแล้ว ✓</p>
+                  <p className="text-[10px] font-medium text-emerald-600">
+                      สมัครแล้ว (Applied) ✓
+                    </p>
                 ) : (
                   <p className="text-[10px] text-neutral-400">
-                    {checked ? "เลือกแล้ว" : "แตะเพื่อเลือก"}
+                    {checked ? "เลือกแล้ว (Selected)" : "แตะเพื่อเลือก (Tap to select)"}
                   </p>
                 )}
               </div>
@@ -300,7 +304,9 @@ function MemberApply({
           className="flex aspect-[3/4] flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#1D4ED8]/40 text-[#1D4ED8]"
         >
           <span className="text-2xl">+</span>
-          <span className="px-1 text-center text-[10px] font-medium">เพิ่มโปรไฟล์</span>
+          <span className="px-1 text-center text-[10px] font-medium">
+            เพิ่มโปรไฟล์ (Add profile)
+          </span>
         </a>
       </div>
 
@@ -315,7 +321,7 @@ function MemberApply({
             defaultValue=""
             className="h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm"
           >
-            <option value="">— เลือก Role (ถ้ามี) —</option>
+            <option value="">— เลือก Role / Select role (ถ้ามี) —</option>
             {roles.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.title}
@@ -327,7 +333,7 @@ function MemberApply({
 
       <div className="space-y-1">
         <label htmlFor="note" className="text-xs font-medium text-neutral-500">
-          ข้อความถึงทีมงาน (ถ้ามี)
+          ข้อความถึงทีมงาน (Message to our team — ถ้ามี)
         </label>
         <textarea
           id="note"
@@ -342,7 +348,7 @@ function MemberApply({
         disabled={selected.length === 0}
         className="w-full rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] py-3 font-bold text-white shadow-sm transition hover:opacity-95 disabled:opacity-50"
       >
-        สมัครเลย{selected.length > 0 ? ` (${selected.length} คน)` : ""} ✦
+        สมัครเลย (Apply){selected.length > 0 ? ` — ${selected.length} คน` : ""}
       </button>
       <p className="text-center text-xs text-neutral-400">งานนี้: {shareTitle}</p>
     </form>
@@ -414,7 +420,9 @@ function ManualApply({
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-neutral-500">
           รูป Compcard *{" "}
-          <span className="text-neutral-400">(ต้องแนบ — เอาไปเสนอลูกค้า)</span>
+          <span className="text-neutral-400">
+            (Required — ต้องแนบ เอาไปเสนอลูกค้า)
+          </span>
         </label>
         <div className="aspect-[3/2] w-full overflow-hidden rounded-xl border border-dashed border-neutral-300 bg-neutral-50">
           {photoPath ? (
@@ -440,7 +448,11 @@ function ManualApply({
             onClick={() => fileRef.current?.click()}
             className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-neutral-50"
           >
-            {busy ? "กำลังอัพโหลด..." : photoPath ? "เปลี่ยนรูป" : "อัพโหลดรูป Compcard"}
+            {busy
+              ? "กำลังอัพโหลด... (Uploading)"
+              : photoPath
+                ? "เปลี่ยนรูป (Change photo)"
+                : "อัพโหลดรูป Compcard (Upload)"}
           </button>
           {err && <p className="text-xs text-rose-600">{err}</p>}
         </div>
@@ -504,14 +516,14 @@ function ManualApply({
             <option value="" disabled>
               — เลือกเพศ —
             </option>
-            <option value="male">ชาย</option>
-            <option value="female">หญิง</option>
-            <option value="other">อื่นๆ</option>
+            <option value="male">ชาย (Male)</option>
+            <option value="female">หญิง (Female)</option>
+            <option value="other">อื่นๆ (Other)</option>
           </select>
         </div>
         <div className="space-y-1">
           <label htmlFor="dob" className="text-xs font-medium text-neutral-500">
-            วันเกิด (DOB) — ปี ค.ศ.
+            วันเกิด (Date of birth) — ปี ค.ศ.
           </label>
           <input
             id="dob"
@@ -524,7 +536,7 @@ function ManualApply({
         </div>
         <div className="space-y-1">
           <label htmlFor="height_cm" className="text-xs font-medium text-neutral-500">
-            ส่วนสูง (cm) *
+            ส่วนสูง (Height, cm) *
           </label>
           <input
             id="height_cm"
@@ -539,7 +551,7 @@ function ManualApply({
         </div>
         <div className="space-y-1">
           <label htmlFor="weight_kg" className="text-xs font-medium text-neutral-500">
-            น้ำหนัก (kg) *
+            น้ำหนัก (Weight, kg) *
           </label>
           <input
             id="weight_kg"
@@ -555,7 +567,7 @@ function ManualApply({
       </div>
       <div className="space-y-1">
         <label htmlFor="m_note" className="text-xs font-medium text-neutral-500">
-          ข้อความถึงทีมงาน (ถ้ามี)
+          ข้อความถึงทีมงาน (Message to our team — ถ้ามี)
         </label>
         <textarea
           id="m_note"
@@ -570,10 +582,12 @@ function ManualApply({
         disabled={!photoPath || busy}
         className="w-full rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] py-3 font-bold text-white shadow-sm transition hover:opacity-95 disabled:opacity-50"
       >
-        ส่งใบสมัคร (Submit) ✦
+        ส่งใบสมัคร (Submit)
       </button>
       {!photoPath && (
-        <p className="text-center text-xs text-rose-500">* กรุณาแนบรูป Compcard ก่อนส่ง</p>
+        <p className="text-center text-xs text-rose-500">
+          * กรุณาแนบรูป Compcard ก่อนส่ง (Please attach a photo first)
+        </p>
       )}
       <p className="text-center text-xs text-neutral-400">งานนี้: {shareTitle}</p>
     </form>
