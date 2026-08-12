@@ -240,9 +240,45 @@ function MemberApply({
       className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5"
     >
       <input type="hidden" name="project_id" value={projectId} />
-      <p className="text-sm font-semibold text-neutral-700">
-        สมัครในนามของ (Apply for — เลือกได้หลายคน)
-      </p>
+      {/* ทางออกไปจัดการโปรไฟล์ — คนที่กรอกค้างไว้หาทางกลับไปแก้ไม่เจอ
+          (ระบบบล็อกโปรไฟล์ที่ยังไม่มีรูปตอนกดสมัคร แต่เดิมบอกให้ไป
+          "โปรไฟล์ของฉัน" เฉยๆ ไม่มีลิงก์ให้กด) */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-neutral-700">
+          สมัครในนามของ (Apply for — เลือกได้หลายคน)
+        </p>
+        <a
+          href="/apply/profiles"
+          className="shrink-0 rounded-full border border-[#1D4ED8]/30 px-3 py-1 text-xs font-semibold text-[#1D4ED8] hover:bg-[#1D4ED8]/5"
+        >
+          จัดการโปรไฟล์ (My profiles) →
+        </a>
+      </div>
+
+      {/* โปรไฟล์ที่ยังไม่มีรูป = สมัครไม่ได้ ให้กดไปกรอกต่อตรงขั้นรูปเลย */}
+      {profiles.some((p) => !p.photo_path) && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-3">
+          <p className="text-xs font-semibold text-amber-900">
+            โปรไฟล์ที่ยังไม่มีรูป จะกดสมัครไม่ได้ — แตะเพื่อไปอัพรูปให้เสร็จค่ะ
+            <span className="mt-0.5 block font-normal text-amber-700">
+              Profiles without a photo can&apos;t apply — tap to finish
+            </span>
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {profiles
+              .filter((p) => !p.photo_path)
+              .map((p) => (
+                <a
+                  key={p.id}
+                  href={`/apply/edit?id=${p.id}&step=2`}
+                  className="rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white hover:bg-amber-600"
+                >
+                  กรอกต่อ: {p.name} →
+                </a>
+              ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
         {profiles.map((p) => {

@@ -117,7 +117,7 @@ export async function applyAsMembers(formData: FormData) {
       .map((n) => n.nickname_en || n.nickname_th || "-")
       .join(", ");
     redirect(
-      `/casting/${projectId}?error=${encodeURIComponent(`โปรไฟล์ ${names} ยังไม่มีรูป — กรุณาไปที่ "โปรไฟล์ของฉัน" อัพรูปให้ครบก่อนสมัครนะคะ`)}`,
+      `/casting/${projectId}?error=${encodeURIComponent(`โปรไฟล์ ${names} ยังไม่มีรูป — กดปุ่ม "กรอกต่อ" ด้านบนเพื่ออัพรูปให้ครบก่อนสมัครนะคะ (Please add a photo first)`)}`,
     );
   }
 
