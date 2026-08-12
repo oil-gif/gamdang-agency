@@ -558,14 +558,14 @@ export function TalentForm({
               type="submit"
               className="h-12 w-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] text-base font-semibold text-white shadow-sm hover:opacity-95"
             >
-              บันทึก & ถัดไป: รูปถ่าย →
+              บันทึก & ถัดไป: รูปถ่าย (Save & next: Photos) →
             </Button>
           </div>
         </div>
       ) : (
         <div className="sticky bottom-0 z-10 -mx-1 flex gap-3 border-t border-neutral-200 bg-neutral-100/80 px-1 py-3 backdrop-blur lg:col-span-2">
           <Button type="submit" className="px-8">
-            บันทึกข้อมูล
+            บันทึกข้อมูล (Save)
           </Button>
         </div>
       )}

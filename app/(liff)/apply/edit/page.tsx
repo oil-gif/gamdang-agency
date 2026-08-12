@@ -19,9 +19,9 @@ const STATUS: Record<string, { label: string; className: string }> = {
 };
 
 const STEPS = [
-  { n: 1, label: "ข้อมูล" },
-  { n: 2, label: "รูปถ่าย" },
-  { n: 3, label: "ยืนยัน" },
+  { n: 1, label: "ข้อมูล (Info)" },
+  { n: 2, label: "รูปถ่าย (Photos)" },
+  { n: 3, label: "ยืนยัน (Confirm)" },
 ];
 
 export default async function ApplyEditPage({
@@ -119,7 +119,7 @@ export default async function ApplyEditPage({
             href="/apply/profiles"
             className="inline-flex items-center gap-1 text-sm text-white/80 hover:text-white"
           >
-            ← โปรไฟล์ทั้งหมดของฉัน
+            ← โปรไฟล์ทั้งหมดของฉัน (My profiles)
           </Link>
           <div className="mt-3 flex items-center gap-4">
             <div className="relative size-14 shrink-0 overflow-hidden rounded-full border-2 border-white/70 bg-white/20">
@@ -140,7 +140,9 @@ export default async function ApplyEditPage({
             </div>
             <div className="min-w-0">
               <p className="text-sm text-white/80">
-                {isNew ? "สมัคร/เพิ่มโปรไฟล์ใหม่" : "โปรไฟล์นักแสดง"}
+                {isNew
+                  ? "สมัคร/เพิ่มโปรไฟล์ใหม่ (New profile)"
+                  : "โปรไฟล์นักแสดง (Talent profile)"}
               </p>
               <h1 className="truncate text-xl font-bold">{displayName}</h1>
               {!isNew && (
@@ -204,6 +206,9 @@ export default async function ApplyEditPage({
             {isNew && (
               <div className="rounded-2xl border border-dashed border-[#1D4ED8]/30 bg-[#1D4ED8]/5 px-4 py-3 text-sm text-neutral-600">
                 📝 กรอกข้อมูล + กด <b>บันทึก</b> แล้วไปขั้นตอนอัพโหลดรูปต่อได้เลยค่ะ
+                <span className="mt-1 block text-xs text-neutral-500">
+                  Fill in your details, press Save, then continue to photos
+                </span>
               </div>
             )}
             <TalentForm talent={talent ?? undefined} mode="self" />
@@ -237,13 +242,13 @@ export default async function ApplyEditPage({
                 href={`/apply/edit?id=${id}&step=1`}
                 className="rounded-full border border-neutral-300 bg-white px-6 py-3 text-sm font-semibold text-neutral-600"
               >
-                ← ย้อนกลับ
+                ← ย้อนกลับ (Back)
               </Link>
               <Link
                 href={`/apply/edit?id=${id}&step=3`}
                 className="flex-1 rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] py-3 text-center text-sm font-bold text-white shadow-md transition hover:opacity-95"
               >
-                ถัดไป: ยืนยันข้อมูล →
+                ถัดไป: ยืนยันข้อมูล (Next: Confirm) →
               </Link>
             </div>
             <p className="text-center text-xs text-neutral-400">

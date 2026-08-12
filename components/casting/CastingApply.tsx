@@ -134,12 +134,15 @@ export function CastingApply({
         <div className="space-y-3 rounded-2xl border border-[#1D4ED8]/20 bg-[#1D4ED8]/5 p-5 text-center">
           <p className="text-sm font-semibold text-neutral-700">
             คุณยังไม่มีโปรไฟล์ในระบบ — กรอกประวัติก่อนเพื่อสมัครค่ะ
+            <span className="mt-1 block font-normal text-neutral-500">
+              You don&apos;t have a profile yet — create one to apply
+            </span>
           </p>
           <a
             href="/apply/profiles"
             className="inline-block rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] px-6 py-3 font-bold text-white shadow-sm"
           >
-            กรอกประวัติเพื่อสมัคร
+            กรอกประวัติเพื่อสมัคร (Click to Apply)
           </a>
         </div>
       ) : (
