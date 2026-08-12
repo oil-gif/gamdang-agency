@@ -132,33 +132,41 @@ export function CompcardSlots({
           </p>
           <p className="mt-0.5 text-xs text-white/80">
             รูปดีมีชัยไปกว่าครึ่ง — ลูกค้าเลือกงานจาก &quot;รูป&quot; เป็นอย่างแรก
+            (Clients pick from photos first)
           </p>
         </div>
         <div className="space-y-4 p-5">
           <div className="rounded-xl bg-gradient-to-r from-[#1D4ED8]/10 to-[#B82233]/10 px-4 py-3 text-sm font-semibold text-neutral-800">
             ใช้รูปจริง ถ่ายล่าสุด — หน้าตา ทรงผม ต้องตรงกับตัวจริงวันนี้
             เพราะถ้าไปหน้างานแล้วไม่เหมือนรูป งานอาจถูกยกเลิกทันที
+            <span className="mt-1 block font-normal text-neutral-600">
+              (Use a recent, unedited photo — must match how you look today)
+            </span>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-[#1D4ED8]/20 bg-[#1D4ED8]/[0.04] p-4">
-              <p className="text-sm font-bold text-[#1D4ED8]">✓ รูปแบบนี้ = ผ่าน</p>
+              <p className="text-sm font-bold text-[#1D4ED8]">
+                ✓ รูปแบบนี้ = ผ่าน (Accepted)
+              </p>
               <ul className="mt-2 space-y-1.5 text-[13px] leading-5 text-neutral-600">
-                <li>• ถ่ายใหม่ไม่เกิน 6 เดือน (ฉากหลังไม่รก)</li>
-                <li>• แสงสว่าง หน้าชัด มองกล้อง</li>
-                <li>• เห็นหน้าเต็มๆ ไม่มีผม/มือ/หมวกบัง</li>
-                <li>• เสื้อผ้าเรียบง่าย ดูสุภาพ</li>
-                <li>• ในรูปมีคนเดียว</li>
+                <li>• ถ่ายใหม่ไม่เกิน 6 เดือน ฉากหลังไม่รก (Within 6 months)</li>
+                <li>• แสงสว่าง หน้าชัด มองกล้อง (Good light, look at camera)</li>
+                <li>• เห็นหน้าเต็มๆ ไม่มีผม/มือ/หมวกบัง (Face fully visible)</li>
+                <li>• เสื้อผ้าเรียบง่าย ดูสุภาพ (Simple, neat clothing)</li>
+                <li>• ในรูปมีคนเดียว (One person only)</li>
               </ul>
             </div>
             <div className="rounded-xl border border-[#B82233]/20 bg-[#B82233]/[0.04] p-4">
-              <p className="text-sm font-bold text-[#B82233]">✕ แบบนี้ = ไม่รับ</p>
+              <p className="text-sm font-bold text-[#B82233]">
+                ✕ แบบนี้ = ไม่รับ (Rejected)
+              </p>
               <ul className="mt-2 space-y-1.5 text-[13px] leading-5 text-neutral-600">
-                <li>• รูป AI / ตัดต่อ / ฟิลเตอร์ปรับหน้า</li>
-                <li>• รีทัชหนักจนผิวไม่เหมือนจริง</li>
-                <li>• แว่นกันแดด หมวก ผ้าคลุมผม</li>
-                <li>• รูปมืด เบลอ เซลฟี่มุมแปลก</li>
-                <li>• รูปเก่าที่หน้าตาไม่ตรงปัจจุบัน</li>
+                <li>• รูป AI / ตัดต่อ / ฟิลเตอร์ปรับหน้า (No AI or face filters)</li>
+                <li>• รีทัชหนักจนผิวไม่เหมือนจริง (No heavy retouching)</li>
+                <li>• แว่นกันแดด หมวก ผ้าคลุมผม (No sunglasses or hats)</li>
+                <li>• รูปมืด เบลอ เซลฟี่มุมแปลก (No dark, blurry or odd selfies)</li>
+                <li>• รูปเก่าที่หน้าตาไม่ตรงปัจจุบัน (No outdated photos)</li>
               </ul>
             </div>
           </div>
@@ -173,6 +181,10 @@ export function CompcardSlots({
             <span>
               อ่านกติกาแล้ว และยืนยันว่ารูปที่จะอัพโหลดเป็น
               <b>รูปจริงล่าสุด ไม่ผ่านการตกแต่งเกินจริง</b>
+              <span className="mt-1 block text-xs font-normal text-neutral-500">
+                I have read the guidelines and confirm my photos are recent
+                and unedited
+              </span>
             </span>
           </label>
         </div>
@@ -181,7 +193,7 @@ export function CompcardSlots({
       {/* ===== ช่องรูป ===== */}
       <div className={accepted ? "" : "pointer-events-none select-none opacity-60"}>
         <p className="text-sm font-semibold text-neutral-700">
-          รูปทำ Comp Card — บังคับ 4 รูป{" "}
+          รูปทำ Comp Card — บังคับ 4 รูป (4 required){" "}
           <span
             className={`ml-1 rounded-full px-2 py-0.5 text-xs font-bold ${
               requiredDone === 4
