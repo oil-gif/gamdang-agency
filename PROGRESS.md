@@ -5,7 +5,38 @@
 > ที่โค้ดเรียกจริง, ไฟล์ core ห้ามแก้, ชื่อ env var) — ไฟล์นั้นตอบว่า "ระบบมีอะไรตรงไหน"
 > ไฟล์นี้ตอบว่า "ทำอะไรไปแล้ว"
 
-## ✨ รอบล่าสุด — หน้า /talents โฉมใหม่ + แก้ทาเลนต์หายจากหน้าเว็บ + ภาษาอังกฤษหน้าสมัคร (2026-08-11)
+## ✨ รอบล่าสุด — ภาษาอังกฤษทั้ง flow สมัคร + ทางกลับไปแก้โปรไฟล์ (2026-08-12)
+
+**เหตุผล**: บางงานมีฝรั่งมาสมัคร · คนไทยอ่านอังกฤษคำสั้นๆ ได้ → หน้าที่**ผู้สมัครเห็น**
+ใส่อังกฤษวงเล็บควบไทยให้หมด (หน้าหลังบ้าน admin ไม่แตะ ยังไทยล้วนเพราะทีมงานคนไทยใช้)
+
+**1. ทางกลับไปจัดการโปรไฟล์ตัวเอง (แก้ปัญหาจริงที่พี่เจอ)**
+- **ปัญหา**: ระบบบล็อกไม่ให้สมัครถ้าโปรไฟล์ยังไม่มีรูป (ตั้งใจ) แต่ข้อความบอกแค่ว่า
+  "กรุณาไปที่ โปรไฟล์ของฉัน" **โดยไม่มีลิงก์ให้กด** → คนกรอกค้างตันอยู่ตรงนั้น
+- **แก้** ใน `components/casting/CastingApply.tsx` (โหมดสมาชิก):
+  ปุ่ม "จัดการโปรไฟล์ (My profiles) →" มุมขวาบนของกล่องสมัคร (เห็นตลอด) ·
+  กล่องเหลืองโผล่เฉพาะตอนมีโปรไฟล์ไม่มีรูป พร้อมปุ่ม "กรอกต่อ: ชื่อ →" ที่ลิงก์ตรงไป
+  `/apply/edit?id=<id>&step=2` (ขั้นอัพรูปของคนนั้นเลย) · ข้อความ error ชี้ไปที่ปุ่มนั้นแทนชื่อหน้า
+
+**2. ใส่อังกฤษวงเล็บ — ไฟล์ที่แตะ**
+- `CastingApply.tsx` — Share / Copy link / Apply for / Apply / Submit / Male-Female-Other /
+  Nickname / Date of birth / Height / Weight / Message to our team / Upload /
+  Selected / Tap to select / Applied / Add profile / Click to Apply
+- `app/casting/[id]/page.tsx` — Open roles · `ถ่ายทำ:` → **`Shooting Date:`** + `formatEnDate`
+  (เดิมโชว์ `2026-08-10` ดิบๆ ตอนนี้ `10 August 2026` ตรงกับหน้าเสนอลูกค้า/PDF)
+- `app/(liff)/apply/edit/page.tsx` — stepper **ข้อมูล (Info) / รูปถ่าย (Photos) / ยืนยัน (Confirm)** ·
+  My profiles · New profile · Talent profile · Next: Confirm · Back · กล่องคำแนะนำขั้นแรก
+- `TalentForm.tsx` — **หญิง (Female) / ชาย (Male)** · Save & next: Photos · บันทึกข้อมูล (Save) ·
+  **`ซม.` → `cm.` และ `กก.` → `kg.`**
+- `BookingWizard.tsx` — cm./kg. เหมือนกัน
+- `ModelPhotoStep.tsx` — 3 ตัวเลือก: New comp card / I have one / Waiting for mine
+- `CompcardSlots.tsx` — กติการูปถ่ายทั้งกล่อง (Accepted / Rejected ทุกบรรทัด + checkbox ยืนยัน + 4 required)
+- `ConfirmStep.tsx` — Summary / Consent / Submitted · `AwaitingCompcard.tsx`
+- เอา **✦ ออกจากปุ่มทั้ง 3 จุด** ตามที่พี่ขอ
+- ⚠️ หัวข้อการ์ดในฟอร์ม (Apply as / Personal Info / Ethnicity / Contact / Portfolio /
+  Social & Followers) **มีอังกฤษอยู่แล้วแต่เดิม** ไม่ต้องแก้ซ้ำ
+
+## ✨ หน้า /talents โฉมใหม่ + แก้ทาเลนต์หายจากหน้าเว็บ (2026-08-11)
 
 **1. 🐛 บั๊กใหญ่: ทาเลนต์หายจากหน้า /talents (เจอโดยบังเอิญตอนทำแถบสถิติ)**
 - **อาการ**: โหลดหน้าเดียวกัน 2 รอบได้ **407 คน** กับ **209 คน** — หายไม่ซ้ำคนเดิม
