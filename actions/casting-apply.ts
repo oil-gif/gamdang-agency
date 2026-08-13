@@ -3,27 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getMyTalents } from "@/actions/talents";
-import { notifyCasting } from "@/lib/admin-notify";
 import {
   createTalentLinkToken,
   getTalentSession,
 } from "@/lib/auth/talent-session";
 import { verifyLineIdToken } from "@/lib/line-verify";
-import { SITE_URL } from "@/lib/site";
 import { supabase } from "@/lib/supabase/server";
-
-const BASE = SITE_URL;
-
-// ชื่อ Role (ถ้าเลือก) — ไว้ใส่ในข้อความแจ้งเตือน admin
-async function roleTitle(roleId: string | null) {
-  if (!roleId) return null;
-  const { data } = await supabase
-    .from("project_roles")
-    .select("title")
-    .eq("id", roleId)
-    .maybeSingle();
-  return data?.title ?? null;
-}
 
 export type CastingProfile = {
   id: string;
@@ -143,23 +128,9 @@ export async function applyAsMembers(formData: FormData) {
     redirect(`/casting/${projectId}?applied=1`);
   }
 
-  // แจ้งเตือนเข้ากลุ่ม — เฉพาะคนใหม่
-  const { data: names } = await supabase
-    .from("talents")
-    .select("nickname_th, nickname_en")
-    .in("id", newIds);
-  const who = (names ?? [])
-    .map((n) => n.nickname_en || n.nickname_th || "-")
-    .join(", ");
-  const role = await roleTitle(roleId);
-  await notifyCasting([
-    "🎬 มีผู้สมัคร Casting ใหม่! (สมาชิก)",
-    `งาน: ${project.name}`,
-    role ? `Role: ${role}` : "",
-    `ผู้สมัคร: ${who} (${newIds.length} คน)`,
-    "",
-    `ดูผู้สมัคร: ${BASE}/admin/projects/${projectId}`,
-  ].filter(Boolean));
+  // ไม่แจ้งเข้ากลุ่มตอนมีคนสมัครแล้ว (2026-08-13) — งานเดียวมีคนสมัครเป็นสิบ
+  // กลุ่มเลยเด้งรัวจนกลบเรื่องสำคัญ · ดูผู้สมัครได้ที่หน้าโปรเจกต์หลังบ้าน
+  // ตอนนี้กลุ่มไว้แจ้ง "ลูกค้ากดเลือกใครแล้ว" แทน (actions/client-selection.ts)
 
   revalidatePath(`/admin/projects/${projectId}`);
   redirect(`/casting/${projectId}?applied=1`);
@@ -258,16 +229,7 @@ export async function applyToCasting(formData: FormData) {
     redirect(`/casting/${projectId}?error=${encodeURIComponent("สมัครไม่สำเร็จ กรุณาลองใหม่")}`);
   }
 
-  // แจ้งเตือนเข้ากลุ่ม Casting
-  const role = await roleTitle(roleId);
-  await notifyCasting([
-    "🎬 มีผู้สมัคร Casting ใหม่! (กรอกเอง)",
-    `งาน: ${project.name}`,
-    role ? `Role: ${role}` : "",
-    `ชื่อ: ${nickname} · โทร: ${phone}`,
-    "",
-    `ดูผู้สมัคร: ${BASE}/admin/projects/${projectId}`,
-  ].filter(Boolean));
+  // ไม่แจ้งเข้ากลุ่มตอนมีคนสมัครแล้ว — ดูเหตุผลที่ applyAsMembers ด้านบน
 
   revalidatePath(`/admin/projects/${projectId}`);
 

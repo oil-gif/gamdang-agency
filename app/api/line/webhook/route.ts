@@ -93,9 +93,9 @@ export async function POST(req: NextRequest) {
         text =
           "รับทราบค่ะ ขอบคุณที่แจ้งกลับนะคะ 🙏 โอกาสหน้าฝากด้วยค่ะ";
       } else if (project?.project_type === "model") {
-        text = `ขอบคุณที่สนใจค่ะ 🙌 รบกวน "ล็อกคิว" วันถ่าย ${formatDateEN(project?.shooting_date)} ไว้ก่อนนะคะ ทีมงานจะส่ง "Job Confirmed 🎉" ยืนยันอีกครั้งเมื่อลูกค้าคอนเฟิร์มค่ะ`;
+        text = `ขอบคุณที่สนใจค่ะ 🙌 รบกวน "ล็อกคิว" วันถ่าย ${formatDateEN(project?.shooting_date)} ไว้ก่อนนะคะ ทีมงานจะส่ง "Job Confirmed 🎉" ยืนยันอีกครั้งเมื่อลูกค้าคอนเฟิร์มค่ะ\n\nรบกวนช่วยตอบกลับรับทราบว่าล็อกคิวให้แล้วด้วยค่ะ 🙏`;
       } else {
-        text = `ขอบคุณที่สนใจเข้าร่วมค่ะ 🙌 ทีมงานจะส่ง "Job Confirmed 🎉" ยืนยันอีกครั้งเมื่อลูกค้าคอนเฟิร์มค่ะ`;
+        text = `ขอบคุณที่สนใจเข้าร่วมค่ะ 🙌 ทีมงานจะส่ง "Job Confirmed 🎉" ยืนยันอีกครั้งเมื่อลูกค้าคอนเฟิร์มค่ะ\n\nรบกวนช่วยตอบกลับรับทราบด้วยค่ะ 🙏`;
       }
       await replyLineMessage(event.replyToken, [{ type: "text", text }]);
     }
