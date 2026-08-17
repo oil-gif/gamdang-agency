@@ -50,6 +50,7 @@ import { getPhotoProxyUrl } from "@/lib/storage";
 import { formatEnDate, formatThaiDate, formatThaiDateTime } from "@/lib/datetime";
 import { DangerConfirmButton } from "@/components/admin/DangerConfirmButton";
 import { TalentExtraInfo } from "@/components/admin/TalentExtraInfo";
+import { CollapsibleSection } from "@/components/admin/CollapsibleSection";
 import { parseExtraDetails } from "@/lib/extra-details";
 import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
 
@@ -191,10 +192,19 @@ export default async function ProjectDetailPage({
     if (pminage) q.set("pminage", String(pminage));
     if (pmaxage) q.set("pmaxage", String(pmaxage));
     if (page > 1) q.set("ppage", String(page));
+    q.set("open", "picker"); // กันกล่อง picker พับตอนเปลี่ยนหน้า
     const s = q.toString();
     return `/admin/projects/${id}${s ? `?${s}` : ""}#picker`;
   };
   const pendingApps = applications.filter((a) => a.status === "pending");
+  // กล่องที่ถูกพับต้องกางเองเมื่อผู้ใช้ "ตั้งใจจะไปที่นั่น" ไม่งั้นกดลิงก์แล้ว
+  // เจอกล่องปิด เหมือนปุ่มไม่ทำงาน · anchor (#picker) ส่งมาถึง server ไม่ได้
+  // เลยต้องใช้ ?open=<ชื่อกล่อง> ควบคู่ไปด้วย
+  const openParam = one(sp.open);
+  const pickerActive =
+    openParam === "picker" ||
+    Boolean(pq || prole || pgender || ptiers.length || pcats.length || pminage || pmaxage) ||
+    ppage > 1;
   // ลูกค้าเปิดลิงก์ในระบบไปแล้วกี่ครั้ง — ใช้เป็นสัญญาณช่วยเตือนตอนที่ยังไม่ได้
   // บันทึกสถานะ "ส่งแล้ว" ด้วยมือ
   const totalLinkViews = links.reduce(
@@ -259,7 +269,16 @@ export default async function ProjectDetailPage({
         </section>
       )}
 
-      <ProjectForm project={project} error={error} />
+      {/* ตั้งค่าครั้งเดียวตอนสร้างงาน — พับไว้ แต่กางเองถ้าบันทึกไม่ผ่าน
+          (ไม่งั้นผู้ใช้ไม่เห็นข้อความ error ที่อยู่ในฟอร์ม) */}
+      <CollapsibleSection
+        icon="⚙️"
+        title="ข้อมูลงาน + ประกาศรับสมัคร"
+        hint="ชื่องาน · ลูกค้า · วันถ่าย · Budget · โน้ตภายใน"
+        defaultOpen={Boolean(error)}
+      >
+        <ProjectForm project={project} error={error} />
+      </CollapsibleSection>
 
       {/* ===== ประกาศงานสาธารณะ: ลิงก์ + roles + ผู้สมัคร ===== */}
       {project.is_published && (
@@ -282,10 +301,16 @@ export default async function ProjectDetailPage({
       )}
 
       {/* ===== Roles ที่เปิดรับ ===== */}
-      <section id="roles" className="max-w-3xl space-y-3 scroll-mt-20">
-        <h2 className="text-lg font-semibold text-[#1D4ED8]">
-          Roles ที่เปิดรับ ({roles.length})
-        </h2>
+      {/* ใส่ครั้งเดียวตอนเปิดงาน — พับไว้ แต่กางเองตอนยังไม่มี Role เลย */}
+      <CollapsibleSection
+        id="roles"
+        icon="🎭"
+        title="Roles ที่เปิดรับ"
+        badge={roles.length}
+        hint="ใส่ครั้งเดียวตอนเปิดงาน"
+        defaultOpen={roles.length === 0 || openParam === "roles"}
+      >
+      <section className="space-y-3">
         <p className="text-sm text-neutral-500">
           แก้ข้อความในช่องแล้วกด <b>บันทึก</b> ได้เลย — ผู้สมัครที่เลือก Role นี้ไว้ไม่หลุด
         </p>
@@ -364,9 +389,23 @@ export default async function ProjectDetailPage({
           <Button type="submit">+ เพิ่ม Role</Button>
         </form>
       </section>
+      </CollapsibleSection>
 
       {/* ===== ผู้สมัครเข้าร่วม (จากหน้าประกาศ) ===== */}
-      <section id="applications" className="max-w-3xl space-y-3 scroll-mt-20">
+      {/* กางเองเมื่อมีใบสมัครรอตรวจ — งานที่ต้องรีบดู */}
+      <CollapsibleSection
+        id="applications"
+        icon="📝"
+        title="ผู้สมัครเข้าร่วม"
+        badge={
+          pendingApps.length > 0
+            ? `รอตรวจ ${pendingApps.length}`
+            : applications.length
+        }
+        hint={pendingApps.length > 0 ? "มีคนรอให้ตรวจ" : "ตรวจครบแล้ว"}
+        defaultOpen={pendingApps.length > 0 || openParam === "applications"}
+      >
+      <section className="space-y-3">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-[#1D4ED8]">
             ผู้สมัครเข้าร่วม (Applications)
@@ -400,7 +439,7 @@ export default async function ProjectDetailPage({
                 </div>
                 <div className="min-w-0 flex-1">
                   <Link
-                    href={`/admin/talents/${t?.id}?from=${encodeURIComponent(`/admin/projects/${id}#applications`)}`}
+                    href={`/admin/talents/${t?.id}?from=${encodeURIComponent(`/admin/projects/${id}?open=applications#applications`)}`}
                     className="font-medium text-neutral-800 hover:text-[#1D4ED8] hover:underline"
                   >
                     {t?.nickname_en || t?.nickname_th || "(ไม่มีชื่อ)"}
@@ -470,8 +509,10 @@ export default async function ProjectDetailPage({
           )}
         </div>
       </section>
+      </CollapsibleSection>
 
       {/* ===== Talents in project ===== */}
+      {/* งานประจำวัน — ไม่พับ อยู่ใกล้บนสุดเสมอ (การ์ดแต่ละคนคงรูปแบบเดิม) */}
       <section className="max-w-3xl space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-lg font-semibold text-[#1D4ED8]">
@@ -850,13 +891,17 @@ export default async function ProjectDetailPage({
       </section>
 
       {/* ===== Talent picker ===== */}
-      <section id="picker" className="max-w-4xl space-y-4 scroll-mt-20">
-        <h2 className="text-lg font-semibold text-[#1D4ED8]">
-          เพิ่ม Talent{" "}
-          <span className="text-sm font-normal text-neutral-400">
-            (พบ {picker.total} คน)
-          </span>
-        </h2>
+      {/* พับไว้ — ใช้ตอนจัดทีมเท่านั้น · แต่ต้องกางเองเมื่อผู้ใช้กำลังค้นหา
+          หรือกดเปลี่ยนหน้าอยู่ ไม่งั้นกดแล้วเหมือนไม่มีอะไรเกิดขึ้น */}
+      <CollapsibleSection
+        id="picker"
+        icon="➕"
+        title="ค้นหา / เพิ่มคนเข้างาน"
+        badge={`เลือกได้ ${picker.total} คน`}
+        hint="ใช้ตอนจัดทีม"
+        defaultOpen={pickerActive}
+      >
+      <section className="space-y-4">
         <form
           method="GET"
           className="space-y-3 rounded-xl border bg-white p-4"
@@ -960,7 +1005,7 @@ export default async function ProjectDetailPage({
               กรอง
             </Button>
             <Button asChild variant="ghost" size="sm">
-              <Link href={`/admin/projects/${id}#picker`}>ล้างตัวกรอง</Link>
+              <Link href={`/admin/projects/${id}?open=picker#picker`}>ล้างตัวกรอง</Link>
             </Button>
           </div>
         </form>
@@ -993,7 +1038,7 @@ export default async function ProjectDetailPage({
                   <div className="flex items-baseline gap-1.5">
                     {/* กดชื่อ → เปิดโปรไฟล์ (มีปุ่มกลับมาโปรเจกต์นี้) */}
                     <Link
-                      href={`/admin/talents/${t.id}?from=${encodeURIComponent(`/admin/projects/${id}#picker`)}`}
+                      href={`/admin/talents/${t.id}?from=${encodeURIComponent(`/admin/projects/${id}?open=picker#picker`)}`}
                       className="truncate font-medium text-neutral-800 hover:text-[#1D4ED8] hover:underline"
                     >
                       {t.nickname_en ?? t.nickname_th}
@@ -1066,9 +1111,18 @@ export default async function ProjectDetailPage({
         </div>
       </section>
 
+      </CollapsibleSection>
+
       {/* ===== ส่งให้ลูกค้า: สถานะที่บันทึกเอง + ลิงก์ ===== */}
-      <section className="max-w-3xl space-y-4">
-        <h2 className="text-lg font-semibold text-[#1D4ED8]">ส่งให้ลูกค้า</h2>
+      {/* กางเองถ้ายังไม่ได้บันทึกว่าส่ง — เตือนว่ายังมีงานค้าง */}
+      <CollapsibleSection
+        icon="📤"
+        title="ส่งให้ลูกค้า"
+        badge={project.client_sent_at ? "ส่งแล้ว ✓" : "ยังไม่ส่ง"}
+        hint={`ลิงก์ลูกค้า ${links.length} ลิงก์ · เปิดดู ${totalLinkViews} ครั้ง`}
+        defaultOpen={!project.client_sent_at}
+      >
+      <section className="space-y-4">
 
         {/* ลูกค้าบางเจ้าขอให้ส่งไฟล์ทางไลน์ ไม่เปิดลิงก์เอง view_count เลยไม่ขยับ
             — ต้องให้แอดมินบันทึกไว้เองว่าส่งไปแล้ว */}
@@ -1261,6 +1315,7 @@ export default async function ProjectDetailPage({
           )}
         </div>
       </section>
+      </CollapsibleSection>
     </div>
   );
 }
