@@ -3,7 +3,8 @@ import { getProject, getProjectTalents } from "@/actions/projects";
 import { PrintButton } from "@/components/public/PrintButton";
 import { calculateAge } from "@/lib/age";
 import { CONTACT, ETHNICITIES, TIER_LABEL } from "@/lib/constants";
-import { formatFollowers, topSocial } from "@/lib/social";
+import { formatFollowers, topSocial, topSocials } from "@/lib/social";
+import { visibleExtraDetails } from "@/lib/extra-details";
 import { getPhotoProxyUrl } from "@/lib/storage";
 import { formatThaiDate } from "@/lib/datetime";
 
@@ -244,6 +245,56 @@ export default async function ProjectReportPage({
                     <p className="mt-1 text-sm text-neutral-500">
                       {facts.join(" · ")}
                     </p>
+
+                    {/* 1b) Social 3 อันดับแรก — เฉพาะงานที่แอดมินติ๊กเปิด
+                        (project_talents.show_socials, migration 022) */}
+                    {pt.show_socials && topSocials(t, 3).length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {topSocials(t, 3).map((s) => (
+                          <a
+                            key={s.key}
+                            href={s.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-baseline gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold no-underline"
+                            style={{ borderColor: s.color, color: s.color }}
+                          >
+                            {s.label}
+                            <span className="font-bold">
+                              {formatFollowers(s.followers)}
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 1c) ข้อมูลเพิ่มเติมที่ลูกค้าถาม — เฉพาะรายการที่ติ๊กโชว์ */}
+                    {(() => {
+                      const shown = visibleExtraDetails(t.extra_details);
+                      const jobNote = pt.notes_show ? (pt.notes ?? "").trim() : "";
+                      if (shown.length === 0 && !jobNote) return null;
+                      return (
+                        <div className="mt-2 rounded-lg bg-neutral-50 px-3 py-2">
+                          {shown.length > 0 && (
+                            <div className="flex flex-wrap gap-x-4 gap-y-1">
+                              {shown.map((d, di) => (
+                                <span key={di} className="text-[13px] text-neutral-600">
+                                  <span className="text-neutral-400">{d.label}:</span>{" "}
+                                  <span className="font-semibold text-neutral-800">
+                                    {d.value}
+                                  </span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {jobNote && (
+                            <p className="mt-1 text-[13px] whitespace-pre-wrap text-neutral-600">
+                              <span className="text-neutral-400">Note:</span> {jobNote}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* 2) คอมการ์ด */}
                     {mainImg && (

@@ -52,3 +52,12 @@ export function formatFollowers(n: number) {
     maximumFractionDigits: 1,
   }).format(n);
 }
+
+// N ช่องทางที่ follower เยอะสุด (เรียงมาก→น้อย) — ใช้ในรายงานส่งลูกค้า
+// นับเฉพาะช่องที่กรอก handle ไว้จริง ไม่ว่าจะใส่ยอด follower หรือไม่
+export function topSocials(t: SocialTalent, limit = 3) {
+  return talentSocials(t)
+    .slice()
+    .sort((a, b) => b.followers - a.followers)
+    .slice(0, limit);
+}

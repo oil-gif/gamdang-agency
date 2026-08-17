@@ -607,6 +607,47 @@ export async function setTalentResponseAdmin(formData: FormData) {
   revalidatePath(`/admin/projects/${projectId}`);
 }
 
+// ===== ข้อมูลเพิ่มเติมสำหรับลูกค้า (migration 022) =====
+//
+// แก้จากหน้าโปรเจกต์ได้เลย (ตอนคุยกับลูกค้าอยู่) แต่ "ทักษะ" เขียนลง
+// talents.extra_details = ติดกับคน ใช้ได้ทุกงาน · ส่วนโน้ตกับสวิตช์โชว์
+// social เขียนลง project_talents = เฉพาะงานนี้
+export async function saveTalentExtraInfo(formData: FormData) {
+  const ptId = String(formData.get("pt_id"));
+  const projectId = String(formData.get("project_id"));
+  const talentId = String(formData.get("talent_id"));
+  if (!ptId || !projectId || !talentId) return;
+
+  // ทักษะมาเป็นชุด d_label[]/d_value[] ที่ index ตรงกัน · d_show เก็บ index ที่ติ๊ก
+  const labels = formData.getAll("d_label").map((v) => String(v).trim());
+  const values = formData.getAll("d_value").map((v) => String(v).trim());
+  const shown = new Set(formData.getAll("d_show").map((v) => String(v)));
+  const details = labels
+    .map((label, i) => ({ label, value: values[i] ?? "", show: shown.has(String(i)) }))
+    // แถวที่ลบข้อความออกจนว่าง = ตั้งใจเอาออก
+    .filter((d) => d.label !== "" || d.value !== "");
+
+  const { error: tErr } = await supabase
+    .from("talents")
+    .update({ extra_details: details })
+    .eq("id", talentId);
+  if (tErr) throw new Error(tErr.message);
+
+  const { error: pErr } = await supabase
+    .from("project_talents")
+    .update({
+      notes: str(formData, "notes"),
+      notes_show: formData.get("notes_show") === "on",
+      show_socials: formData.get("show_socials") === "on",
+    })
+    .eq("id", ptId)
+    .eq("project_id", projectId); // กัน id ข้ามโปรเจกต์
+  if (pErr) throw new Error(pErr.message);
+
+  revalidatePath(`/admin/projects/${projectId}`);
+  revalidatePath(`/admin/projects/${projectId}/report`);
+}
+
 // ===== ส่ง proposal ให้ลูกค้า =====
 
 const SENT_VIA = ["line", "email", "link", "other"];

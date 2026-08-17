@@ -49,6 +49,8 @@ import { formatFollowers, talentSocials, topSocial } from "@/lib/social";
 import { getPhotoProxyUrl } from "@/lib/storage";
 import { formatEnDate, formatThaiDate, formatThaiDateTime } from "@/lib/datetime";
 import { DangerConfirmButton } from "@/components/admin/DangerConfirmButton";
+import { TalentExtraInfo } from "@/components/admin/TalentExtraInfo";
+import { parseExtraDetails } from "@/lib/extra-details";
 import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
 
 const BASE_URL = SITE_URL;
@@ -822,6 +824,22 @@ export default async function ProjectDetailPage({
                       ? "คัดลอกลิงก์ขอรูป/ผลงาน"
                       : "คัดลอกลิงก์ส่งงาน"
                   }
+                />
+              </div>
+
+              {/* ข้อมูลเพิ่มเติมที่ลูกค้าถาม (English Level, Passport, Swim ฯลฯ)
+                  — วางไว้ตรงนี้เพราะแอดมินคุยกับลูกค้าอยู่หน้านี้ ดู migration 022 */}
+              <div className="border-t border-neutral-100 pt-2.5">
+                <TalentExtraInfo
+                  ptId={pt.id}
+                  projectId={id}
+                  talentId={t.id}
+                  talentName={t.nickname_en || t.nickname_th || t.code || "คนนี้"}
+                  details={parseExtraDetails(t.extra_details)}
+                  note={pt.notes ?? ""}
+                  noteShow={pt.notes_show === true}
+                  showSocials={pt.show_socials === true}
+                  socialCount={talentSocials(t).length}
                 />
               </div>
               </div>
