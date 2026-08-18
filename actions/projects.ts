@@ -703,31 +703,34 @@ export async function clearSentToClient(formData: FormData) {
 
 // Swap display_order with the neighbour in the given direction. Simple and
 // robust for the modest list sizes here (no drag-and-drop dependency).
-export async function moveProjectTalent(formData: FormData) {
-  const id = String(formData.get("id"));
-  const projectId = String(formData.get("project_id"));
-  const dir = String(formData.get("dir")); // "up" | "down"
+// จัดลำดับใหม่ทั้งชุดในครั้งเดียว — รับ id เรียงตามที่เห็นบนจอหลังลากวาง
+//
+// แทนที่ปุ่ม ▲▼ เดิมที่สลับทีละคู่: ย้ายคนที่ 15 ขึ้นบนสุดต้องกด 14 ครั้ง
+// และโหลดหน้าใหม่ทุกครั้ง · อีกอย่างคือหน้าเว็บจัดกลุ่มตาม Role แต่ตัวสลับทำงาน
+// บน display_order ดิบ พอมีหลาย Role เลยสลับกับคนละคนกับที่เห็นบนจอ
+//
+// ตรงนี้เขียน display_order ให้ "ตรงกับลำดับที่เห็นจริง" ทั้งชุด บั๊กนั้นเลยหมดไป
+// (getProjectTalents เรียงตาม role แล้วค่อย display_order — ลำดับที่ส่งมาก็จัดกลุ่ม
+// ตาม role อยู่แล้ว ผลลัพธ์เลยตรงกัน)
+export async function reorderProjectTalents(projectId: string, orderedIds: string[]) {
+  if (!projectId || orderedIds.length === 0) return;
 
-  const { data: rows } = await supabase
-    .from("project_talents")
-    .select("id, display_order")
-    .eq("project_id", projectId)
-    .order("display_order", { ascending: true });
-  if (!rows) return;
+  // ยิงขนานกัน — 15 คนก็จบในเวลาประมาณ 1 request
+  // .eq("project_id") กันคนส่ง id ของโปรเจกต์อื่นมาแก้
+  const results = await Promise.all(
+    orderedIds.map((id, i) =>
+      supabase
+        .from("project_talents")
+        .update({ display_order: i })
+        .eq("id", id)
+        .eq("project_id", projectId),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw new Error(failed.error.message);
 
-  const idx = rows.findIndex((r) => r.id === id);
-  const swapIdx = dir === "up" ? idx - 1 : idx + 1;
-  if (idx < 0 || swapIdx < 0 || swapIdx >= rows.length) return;
-
-  const a = rows[idx];
-  const b = rows[swapIdx];
-  await supabase
-    .from("project_talents")
-    .update({ display_order: b.display_order })
-    .eq("id", a.id);
-  await supabase
-    .from("project_talents")
-    .update({ display_order: a.display_order })
-    .eq("id", b.id);
   revalidatePath(`/admin/projects/${projectId}`);
+  revalidatePath(`/admin/projects/${projectId}/report`);
+  revalidatePath(`/admin/projects/${projectId}/print`);
 }
+

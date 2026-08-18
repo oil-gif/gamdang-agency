@@ -14,7 +14,6 @@ import {
   getProjectRoles,
   getProjectTalents,
   markSentToClient,
-  moveProjectTalent,
   rejectApplication,
   unrejectApplication,
   removeTalentFromProject,
@@ -51,6 +50,7 @@ import { formatEnDate, formatThaiDate, formatThaiDateTime } from "@/lib/datetime
 import { DangerConfirmButton } from "@/components/admin/DangerConfirmButton";
 import { TalentExtraInfo } from "@/components/admin/TalentExtraInfo";
 import { CollapsibleSection } from "@/components/admin/CollapsibleSection";
+import { TalentReorderList } from "@/components/admin/TalentReorderList";
 import { parseExtraDetails } from "@/lib/extra-details";
 import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
 
@@ -530,8 +530,10 @@ export default async function ProjectDetailPage({
             ยังไม่มี talent — ค้นหาแล้วกด &quot;เพิ่ม&quot; ด้านล่าง
           </p>
         )}
-        <div className="space-y-2">
-          {projectTalents.map((pt, i) => {
+        {/* ลากวางจัดลำดับ (ในกลุ่ม Role เดียวกัน) — บันทึกทีเดียวตอนปล่อยนิ้ว */}
+        <TalentReorderList
+          projectId={id}
+          items={projectTalents.map((pt, i) => {
             const t = pt.talent;
             const jobUrl = `${BASE_URL}/job/${jobTokens[i]}`;
             const submitUrl = `${BASE_URL}/submit/${submitTokens[i]}`;
@@ -546,25 +548,14 @@ export default async function ProjectDetailPage({
             const responseChip = pt.talent_response
               ? RESPONSE_CHIP[pt.talent_response]
               : null;
-            const prevRole = i > 0 ? projectTalents[i - 1].role_title : undefined;
-            const showRoleHeader = pt.role_title !== prevRole;
-            return (
-              <Fragment key={pt.id}>
-              {showRoleHeader && (
-                <div className="flex items-center gap-2 pt-2 first:pt-0">
-                  <span className="rounded-full bg-[#B82233]/10 px-3 py-1 text-sm font-bold text-[#B82233]">
-                    🎭 {pt.role_title ?? "ไม่ระบุ Role"}
-                  </span>
-                  <span className="text-xs text-neutral-400">
-                    {projectTalents.filter((x) => x.role_title === pt.role_title).length} คน
-                  </span>
-                </div>
-              )}
+            // หัวข้อ Role กับลำดับย้ายไปให้ TalentReorderList จัดการ
+            // (มันต้องขยับตามตอนลาก)
+            return {
+              id: pt.id,
+              roleTitle: pt.role_title ?? null,
+              node: (
               <div className="space-y-2.5 rounded-xl border bg-white p-3 shadow-sm">
               <div className="flex items-center gap-3">
-                <span className="w-6 text-center font-mono text-sm text-neutral-400">
-                  {i + 1}
-                </span>
                 <div className="size-14 shrink-0 overflow-hidden rounded-full border bg-neutral-100">
                   {(pt.card_type === "influcard"
                     ? (pt.gallery_paths[0] ?? pt.compcard_path)
@@ -637,35 +628,6 @@ export default async function ProjectDetailPage({
                 </div>
 
                 <CardTypeSwitch ptId={pt.id} projectId={id} current={pt.card_type} />
-
-                <div className="flex flex-col">
-                  <form action={moveProjectTalent}>
-                    <input type="hidden" name="id" value={pt.id} />
-                    <input type="hidden" name="project_id" value={id} />
-                    <input type="hidden" name="dir" value="up" />
-                    <button
-                      type="submit"
-                      disabled={i === 0}
-                      className="px-1 text-neutral-400 hover:text-neutral-700 disabled:opacity-30"
-                      aria-label="เลื่อนขึ้น"
-                    >
-                      ▲
-                    </button>
-                  </form>
-                  <form action={moveProjectTalent}>
-                    <input type="hidden" name="id" value={pt.id} />
-                    <input type="hidden" name="project_id" value={id} />
-                    <input type="hidden" name="dir" value="down" />
-                    <button
-                      type="submit"
-                      disabled={i === projectTalents.length - 1}
-                      className="px-1 text-neutral-400 hover:text-neutral-700 disabled:opacity-30"
-                      aria-label="เลื่อนลง"
-                    >
-                      ▼
-                    </button>
-                  </form>
-                </div>
 
                 <form action={removeTalentFromProject}>
                   <input type="hidden" name="id" value={pt.id} />
@@ -884,10 +846,10 @@ export default async function ProjectDetailPage({
                 />
               </div>
               </div>
-              </Fragment>
-            );
+              ),
+            };
           })}
-        </div>
+        />
       </section>
 
       {/* ===== Talent picker ===== */}
