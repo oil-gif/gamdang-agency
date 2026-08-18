@@ -106,13 +106,16 @@ export async function getProjectTalents(projectId: string) {
         .filter((v): v is string => Boolean(v)),
     ),
   ];
-  const roleMap = new Map<string, string>();
+  // เก็บลำดับของ Role ด้วย — กลุ่มไหนขึ้นก่อนให้ยึด project_roles.display_order
+  // (เดิมเรียงตามชื่อ Role ตามตัวอักษร ทำให้แอดมินจัดลำดับกลุ่มเองไม่ได้)
+  const roleMap = new Map<string, { title: string; order: number }>();
   if (roleIds.length > 0) {
     const { data: rr } = await supabase
       .from("project_roles")
-      .select("id, title")
+      .select("id, title, display_order")
       .in("id", roleIds);
-    for (const r of rr ?? []) roleMap.set(r.id, r.title);
+    for (const r of rr ?? [])
+      roleMap.set(r.id, { title: r.title, order: r.display_order ?? 0 });
   }
 
   const result = rows.map((r) => {
@@ -120,7 +123,9 @@ export async function getProjectTalents(projectId: string) {
     const roleId = (r as { role_id?: string | null }).role_id ?? null;
     return {
       ...r,
-      role_title: roleId ? (roleMap.get(roleId) ?? null) : null,
+      role_title: roleId ? (roleMap.get(roleId)?.title ?? null) : null,
+      // คนไม่มี Role ไปท้ายสุดเสมอ
+      _roleOrder: roleId ? (roleMap.get(roleId)?.order ?? 0) : Number.MAX_SAFE_INTEGER,
       compcard_path: mine.find((p) => p.kind === "compcard")?.storage_path ?? null,
       gallery_paths: mine
         .filter((p) => p.kind === "gallery")
@@ -128,8 +133,11 @@ export async function getProjectTalents(projectId: string) {
     };
   });
 
-  // จัดกลุ่มตาม Role (คนไม่มี role ไปท้ายสุด) แล้วเรียงตาม display_order ในกลุ่ม
+  // จัดกลุ่มตามลำดับ Role ที่แอดมินตั้งไว้ (คนไม่มี role ไปท้ายสุด)
+  // แล้วเรียงตาม display_order ของคนในกลุ่ม
   result.sort((a, b) => {
+    if (a._roleOrder !== b._roleOrder) return a._roleOrder - b._roleOrder;
+    // Role คนละอันแต่ display_order เท่ากัน (ข้อมูลเก่า) → ยึดชื่อกันสลับมั่ว
     const ra = a.role_title ?? "￿";
     const rb = b.role_title ?? "￿";
     if (ra !== rb) return ra.localeCompare(rb, "th");
@@ -352,6 +360,27 @@ export async function addProjectRole(formData: FormData) {
 
 // แก้ข้อความ Role (ชื่อ/รายละเอียด) — ข้อความ role มักยาว (เรตค่าตัว/เงื่อนไข)
 // แอดมินต้องแก้ทีหลังได้โดยไม่ต้องลบแล้วสร้างใหม่ (ผู้สมัครที่เลือก role นี้ไว้จะไม่หลุด)
+// จัดลำดับ Role — กำหนดว่ากลุ่มไหนขึ้นก่อนในหน้าโปรเจกต์ ใบเสนอ PDF และ Report
+// (project_roles.display_order มีมาตั้งแต่แรกแต่หน้าเว็บไม่เคยใช้ — เรียงตาม
+//  ชื่อ Role ตามตัวอักษรแทน ทำให้จัดลำดับเองไม่ได้)
+export async function reorderProjectRoles(projectId: string, orderedIds: string[]) {
+  if (!projectId || orderedIds.length === 0) return;
+  const results = await Promise.all(
+    orderedIds.map((id, i) =>
+      supabase
+        .from("project_roles")
+        .update({ display_order: i })
+        .eq("id", id)
+        .eq("project_id", projectId),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw new Error(failed.error.message);
+  revalidatePath(`/admin/projects/${projectId}`);
+  revalidatePath(`/admin/projects/${projectId}/report`);
+  revalidatePath(`/admin/projects/${projectId}/print`);
+}
+
 export async function updateProjectRole(formData: FormData) {
   const id = String(formData.get("id"));
   const projectId = String(formData.get("project_id"));

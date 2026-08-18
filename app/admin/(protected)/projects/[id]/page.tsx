@@ -17,6 +17,8 @@ import {
   rejectApplication,
   unrejectApplication,
   removeTalentFromProject,
+  reorderProjectTalents,
+  reorderProjectRoles,
   setProjectTalentCardType,
   setProjectTalentRole,
   setTalentResponseAdmin,
@@ -50,7 +52,7 @@ import { formatEnDate, formatThaiDate, formatThaiDateTime } from "@/lib/datetime
 import { DangerConfirmButton } from "@/components/admin/DangerConfirmButton";
 import { TalentExtraInfo } from "@/components/admin/TalentExtraInfo";
 import { CollapsibleSection } from "@/components/admin/CollapsibleSection";
-import { TalentReorderList } from "@/components/admin/TalentReorderList";
+import { DragOrderList } from "@/components/admin/DragOrderList";
 import { parseExtraDetails } from "@/lib/extra-details";
 import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
 
@@ -314,9 +316,15 @@ export default async function ProjectDetailPage({
         <p className="text-sm text-neutral-500">
           แก้ข้อความในช่องแล้วกด <b>บันทึก</b> ได้เลย — ผู้สมัครที่เลือก Role นี้ไว้ไม่หลุด
         </p>
-        <div className="space-y-2">
-          {roles.map((r) => (
-            <div key={r.id} className="rounded-lg border bg-white p-3">
+        {/* ลากจัดลำดับ Role — กลุ่มไหนขึ้นก่อนในหน้านี้ ใบเสนอ PDF และ Report */}
+        <DragOrderList
+          saveAction={reorderProjectRoles.bind(null, id)}
+          showGroupHeaders={false}
+          items={roles.map((r) => ({
+            id: r.id,
+            roleTitle: null,
+            node: (
+            <div className="rounded-lg border bg-white p-3">
               {/* แก้ข้อความ Role ได้ในที่ (ข้อความมักยาว เช่นเรตค่าตัว/เงื่อนไข) */}
               <form action={updateProjectRole} className="space-y-2">
                 <input type="hidden" name="id" value={r.id} />
@@ -371,8 +379,9 @@ export default async function ProjectDetailPage({
                 </Button>
               </form>
             </div>
-          ))}
-        </div>
+            ),
+          }))}
+        />
         <form
           action={addProjectRole}
           className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed bg-white p-3"
@@ -531,8 +540,8 @@ export default async function ProjectDetailPage({
           </p>
         )}
         {/* ลากวางจัดลำดับ (ในกลุ่ม Role เดียวกัน) — บันทึกทีเดียวตอนปล่อยนิ้ว */}
-        <TalentReorderList
-          projectId={id}
+        <DragOrderList
+          saveAction={reorderProjectTalents.bind(null, id)}
           items={projectTalents.map((pt, i) => {
             const t = pt.talent;
             const jobUrl = `${BASE_URL}/job/${jobTokens[i]}`;

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
-import { reorderProjectTalents } from "@/actions/projects";
 
 export type ReorderItem = {
   id: string;
+  /** ลากได้เฉพาะภายในกลุ่มเดียวกัน · ใส่ null ทั้งหมด = ลากได้ทั้งลิสต์ */
   roleTitle: string | null;
   node: ReactNode;
 };
@@ -20,12 +20,15 @@ export type ReorderItem = {
 //
 // ข้อจำกัดที่ตั้งใจ: ลากข้าม Role ไม่ได้ (พี่เจ้าของเลือกไว้) เพราะลากผิดกลุ่ม
 // โดยไม่ตั้งใจง่ายมาก · จะเปลี่ยน Role ให้ใช้ dropdown "ย้าย" ในการ์ด
-export function TalentReorderList({
-  projectId,
+export function DragOrderList({
   items,
+  saveAction,
+  showGroupHeaders = true,
 }: {
-  projectId: string;
   items: ReorderItem[];
+  /** ยิงครั้งเดียวตอนปล่อยนิ้ว — ผูก projectId มาแล้วด้วย .bind() */
+  saveAction: (orderedIds: string[]) => Promise<void>;
+  showGroupHeaders?: boolean;
 }) {
   const [order, setOrder] = useState(items);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -54,7 +57,7 @@ export function TalentReorderList({
     if (ids === savedIds) return;
     setSavedIds(ids);
     startSaving(() => {
-      void reorderProjectTalents(projectId, next.map((i) => i.id));
+      void saveAction(next.map((i) => i.id));
     });
   }
 
@@ -128,7 +131,7 @@ export function TalentReorderList({
       )}
       {order.map((item, i) => {
         const prevRole = i > 0 ? order[i - 1].roleTitle : undefined;
-        const showHeader = item.roleTitle !== prevRole;
+        const showHeader = showGroupHeaders && item.roleTitle !== prevRole;
         const roleCount = order.filter((x) => x.roleTitle === item.roleTitle).length;
         const roleFirst = order.findIndex((x) => x.roleTitle === item.roleTitle);
         const roleLast = roleFirst + roleCount - 1;
