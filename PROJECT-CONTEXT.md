@@ -70,6 +70,9 @@ app/
 ```
 components/
 ├── admin/          # AdminNav, TalentRowCard, TalentProfileHeader,
+│                   # CollapsibleSection (กล่องพับหน้าโปรเจกต์),
+│                   # DragOrderList (ลากวางจัดลำดับ Talent/Role),
+│                   # TalentExtraInfo (ข้อมูลเพิ่มเติมให้ลูกค้า),
 │                   # TalentFilterPanel, DangerConfirmButton, ProjectForm,
 │                   # LineLinkButton, InboxUploader, BookingSearch ...
 ├── compcard/       # CompcardStudio, CompcardGenerator (วาดการ์ดบน canvas),
@@ -96,6 +99,7 @@ lib/
 ├── booking.ts · casting.ts · public-link.ts · public-talents.ts
 ├── danger.ts                 # รหัสยืนยันชั้นที่ 2 ก่อนลบถาวร
 ├── datetime.ts               # ⚠️ ต้องใช้แทน toLocale* (ล็อก Asia/Bangkok)
+├── extra-details.ts          # ข้อมูลเพิ่มเติมที่ลูกค้าถาม (ติ๊กโชว์เอง)
 ├── age.ts · social.ts · tier.ts · storage.ts · site.ts · constants.ts · zip.ts
 
 actions/   (Server Actions — "use server")
