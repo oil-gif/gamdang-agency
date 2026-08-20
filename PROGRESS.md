@@ -5,6 +5,50 @@
 > ที่โค้ดเรียกจริง, ไฟล์ core ห้ามแก้, ชื่อ env var) — ไฟล์นั้นตอบว่า "ระบบมีอะไรตรงไหน"
 > ไฟล์นี้ตอบว่า "ทำอะไรไปแล้ว"
 
+## 🔥 เหตุการณ์: รูปพังทั้งเว็บ 6 ชั่วโมง (2026-08-19) — อ่านก่อนถ้าเจอซ้ำ
+
+**อาการที่ผู้ใช้เห็น**: อัพรูปโปรไฟล์ไม่ได้ ขึ้นแค่ "อัพโหลดไม่สำเร็จ" ลอยๆ ไม่มีรายละเอียด
+**อาการจริงที่หนักกว่า**: **รูปทั้งเว็บพังหมด** ทั้งหน้าลูกค้าและหลังบ้าน เพราะ `/photo/[...path]`
+(proxy รูปทุกใบในระบบ) ใช้ `sharp` ตัวเดียวกับ API อัพโหลด
+
+**Error จริงใน Vercel log** (ข้อความนี้ไม่โผล่บนหน้าเว็บ ต้องไปดู log เอง):
+```
+Could not load the "sharp" module using the linux-x64 runtime
+ERR_DLOPEN_FAILED: libvips-cpp.so.8.18.3: cannot open shared object file
+```
+
+**สาเหตุ — ไม่ใช่โค้ดเรา**:
+- Vercel **อัปเกรด npm ของตัวเอง** ระหว่างวันที่ 18 → 19 ส.ค.
+  (หลักฐาน: คำเตือน `npm warn allow-scripts` ซึ่งเป็นฟีเจอร์ npm ใหม่
+  **โผล่ครั้งแรกใน build วันที่ 19** วันที่ 18 ไม่มีเลยสักบรรทัด)
+- npm ตัวใหม่มาเจอ node_modules ที่ restore จาก build cache แล้ว
+  **`removed 6 packages in 2s`** — ลบ binary ของ `@img/sharp-*` ทิ้ง
+  (build วันที่ 18 ขึ้นว่า `up to date in 1s` ไม่ลบอะไร)
+- deploy ที่ทำให้พังคือ commit `e144cbe` ซึ่ง**แก้แค่ PROGRESS.md + PROJECT-CONTEXT.md**
+  ไม่ได้แตะโค้ดหรือ dependency เลย · `git diff ac5491d e144cbe -- package*.json` = ว่าง
+- ไทม์ไลน์: อัพสำเร็จครั้งสุดท้าย 17:03 → deploy 17:36 → เงียบสนิทถึง 23:45
+
+**วิธีแก้ (ต้องครบทั้ง 2 อย่าง — อย่างเดียวไม่พอ)**:
+1. `package.json` → `optionalDependencies`: **`@img/sharp-linux-x64`** +
+   **`@img/sharp-libvips-linux-x64`** (เวอร์ชันต้องตรงกับที่ `@img/sharp-linux-x64`
+   ระบุไว้ — เช็คที่ registry) · ประกาศชัดแล้ว npm จะไม่ลบทิ้งอีก
+   ⚠️ ต้องเป็น `optionalDependencies` ไม่ใช่ `dependencies` ไม่งั้น `npm install` บน mac จะพัง
+2. `next.config.ts` → **`serverExternalPackages: ["sharp"]`** +
+   **`outputFileTracingIncludes`** ให้ก๊อป `node_modules/@img/**` เข้า `/api/**` และ `/photo/**`
+   (ข้อ 1 อย่างเดียวไม่พอ — ติดตั้งแล้วจริง แต่ Next ไม่ก๊อปไฟล์ .so เข้า serverless function)
+
+**⚠️ กับดักตอนแก้**: Vercel **restore build cache** แล้วขึ้น `up to date in 1s` = ไม่ลง
+ของใหม่ที่เพิ่งเพิ่ม แก้ไปก็ไม่มีผล → ต้อง **`npx vercel --prod --force`** (ไม่ใช้แคช)
+ดูให้ขึ้นว่า `added NNN packages` ถึงจะติดตั้งจริง
+
+**ถ้าเจออาการนี้อีก เช็คตามลำดับ**:
+1. `npx vercel logs --status-code 500 --since 30m --expand` → ดู error จริง
+2. `npx vercel inspect <deployment-url> --logs` → หาบรรทัด **`removed N packages`**
+3. ถ้าเจอ = เรื่องเดิม แก้ตาม 2 ข้อข้างบน + deploy แบบ `--force`
+
+**หมายเหตุ**: หน้าเว็บโชว์แค่ "อัพโหลดไม่สำเร็จ" เพราะ API พังก่อนถึงโค้ดเรา เลยตอบเป็น
+HTML error page ไม่ใช่ JSON → ฝั่ง client อ่าน `body.error` ไม่ได้ ตกไปใช้ข้อความสำรอง
+
 ## ✨ รอบล่าสุด — ข้อมูลเพิ่มเติมให้ลูกค้า + จัดหน้าโปรเจกต์ใหม่ + ลากวางจัดลำดับ (2026-08-19)
 
 **1. ข้อมูลเพิ่มเติมที่ลูกค้าถาม (migration 022 ✅ รันแล้ว)**

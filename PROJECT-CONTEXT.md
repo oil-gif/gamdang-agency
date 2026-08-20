@@ -206,6 +206,10 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 | `app/photo/[...path]/route.ts` | proxy รูปทั้งเว็บ (WebP→JPEG ให้ LINE webview เปิดได้) — พังคือรูปหายทั้งระบบ |
 
 **GOTCHA สำคัญ** (รายละเอียดเต็มใน `PROGRESS.md`)
+- ⚠️ **`sharp` ต้องปักหมุด binary ของ linux เอง** — `package.json` มี
+  `optionalDependencies`: `@img/sharp-linux-x64` + `@img/sharp-libvips-linux-x64`
+  และ `next.config.ts` มี `serverExternalPackages` + `outputFileTracingIncludes`
+  **ห้ามลบทิ้ง** ลบเมื่อไหร่ = รูปพังทั้งเว็บ (เคยเกิดจริง 2026-08-19 นาน 6 ชม.)
 - อัพไฟล์ขึ้น Supabase Storage ต้องห่อเป็น **Blob** ไม่ใช่ Node Buffer (บน Vercel ไฟล์จะเสีย)
 - ไฟล์ `"use server"` **export ได้เฉพาะ async function** (ค่าคงที่ต้องย้ายไป `lib/`)
 - รูปทุก route เก็บที่ **ด้านยาว ≤1600px + WebP q80** — ห้ามเก็บไฟล์ต้นฉบับ
