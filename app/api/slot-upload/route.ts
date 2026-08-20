@@ -1,10 +1,9 @@
 import { randomUUID } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import sharp from "sharp";
-import { getTalentSession } from "@/lib/auth/talent-session";
 import { SLOTS } from "@/lib/compcard";
-import { isAdminAuthed } from "@/lib/supabase/auth-server";
 import { supabase } from "@/lib/supabase/server";
+import { guardTalentWrite } from "@/lib/auth/upload-guard";
 
 export const runtime = "nodejs";
 
@@ -24,17 +23,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid slot" }, { status: 400 });
   }
 
-  const talentSession = await getTalentSession();
-  if (talentSession && !(await isAdminAuthed())) {
-    const { data: owned } = await supabase
-      .from("talents")
-      .select("id")
-      .eq("id", talentId)
-      .eq("line_user_id", talentSession.lineUserId)
-      .maybeSingle();
-    if (!owned) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    }
+  // แอดมิน หรือเจ้าของโปรไฟล์เท่านั้น · ไม่มี session = ปฏิเสธ (ดู lib/auth/upload-guard.ts)
+  const guard = await guardTalentWrite(talentId);
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
 
   // อ่าน slots ปัจจุบัน (ไว้ลบรูปเก่าของช่องนี้ + merge ค่าใหม่)

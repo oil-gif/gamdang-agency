@@ -3,8 +3,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import sharp from "sharp";
 import { supabase } from "@/lib/supabase/server";
-import { getTalentSession } from "@/lib/auth/talent-session";
-import { isAdminAuthed } from "@/lib/supabase/auth-server";
+import { guardTalentWrite } from "@/lib/auth/upload-guard";
 
 // sharp is a native binding — must run on the Node.js runtime, not Edge.
 export const runtime = "nodejs";
@@ -28,17 +27,10 @@ export async function POST(req: NextRequest) {
   // gated). If the caller has a LINE (talent) session, the target talent
   // must belong to that LINE account — a parent can only upload to their
   // own kids' profiles. Admin requests have no talent session → allowed.
-  const talentSession = await getTalentSession();
-  if (talentSession && !(await isAdminAuthed())) {
-    const { data: owned } = await supabase
-      .from("talents")
-      .select("id")
-      .eq("id", talentId)
-      .eq("line_user_id", talentSession.lineUserId)
-      .maybeSingle();
-    if (!owned) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    }
+  // แอดมิน หรือเจ้าของโปรไฟล์เท่านั้น · ไม่มี session = ปฏิเสธ (ดู lib/auth/upload-guard.ts)
+  const guard = await guardTalentWrite(talentId);
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
 
   const base64 = data.includes(",") ? data.slice(data.indexOf(",") + 1) : data;

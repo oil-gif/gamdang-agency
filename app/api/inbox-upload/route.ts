@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import sharp from "sharp";
 import { supabase } from "@/lib/supabase/server";
+import { guardAdminOnly } from "@/lib/auth/upload-guard";
 
 // sharp is a native binding — must run on the Node.js runtime, not Edge.
 export const runtime = "nodejs";
@@ -10,6 +11,14 @@ export const runtime = "nodejs";
 // _unassigned/ รอแอดมินกดมอบหมายว่าเป็นรูปของ talent คนไหน
 // (base64 JSON + Blob upload — gotchas เดิมของ LINE webview / Vercel Buffer)
 export async function POST(req: NextRequest) {
+  // ⚠️ เดิมไม่มีการตรวจสิทธิ์เลย — ใครยิง URL นี้ก็อัพรูปเข้าคลังกลางได้
+  // (พิสูจน์แล้วว่ายิงจากเครื่องนอกระบบสำเร็จจริง 2026-08-20)
+  // หน้านี้เป็นเครื่องมือของแอดมิน (/admin/photos) เท่านั้น
+  const guard = await guardAdminOnly();
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
+  }
+
   const body = await req.json().catch(() => null);
   const data = typeof body?.data === "string" ? body.data : "";
   if (!data) {
