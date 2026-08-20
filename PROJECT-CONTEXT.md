@@ -195,6 +195,7 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 | `lib/supabase/server.ts` | client ที่ถือ **service-role key** — ถ้าหลุดไปฝั่ง browser = ข้อมูลทั้งระบบเปิดโล่ง (ต้องเป็น server-only เสมอ) |
 | `lib/supabase/auth-server.ts` | เซสชันแอดมิน + `isAdminAuthed()` ที่ทุก API ใช้ตัดสินสิทธิ์ |
 | `app/admin/(protected)/layout.tsx` | **ประตูเดียว**ที่กันหน้าแอดมินทั้งหมด (ไม่มี middleware) — พังเมื่อไหร่ = หลังบ้านเปิดสาธารณะ |
+| `lib/auth/upload-guard.ts` | ยามของ API อัพรูปทั้ง 5 ตัว — แอดมิน/เจ้าของเท่านั้น · **ห้ามกลับไปเขียนแบบ `if (session && ...)`** เพราะจะกลายเป็น "ไม่มี session = ผ่าน" (ช่องโหว่ที่ปิดไป 2026-08-20) |
 | `lib/auth/talent-session.ts` | ออก/ตรวจ JWT ของ talent + token ของ `/job` `/submit` `?link=` — แก้ผิด = ลิงก์เก่าใช้ไม่ได้ทั้งหมด หรือคนอื่นเข้าโปรไฟล์ข้ามบัญชีได้ |
 | `app/api/line/verify/route.ts` | ทางเข้าเดียวของ talent — เคยพังทั้งระบบมาแล้ว (ดู GOTCHA เรื่อง LIFF scope / `liff.logout()` ใน PROGRESS.md) |
 | `app/api/line/webhook*.ts` (3 ไฟล์) | รับ webhook จาก LINE — **ต้องตรวจ `x-line-signature` เสมอ** ห้ามถอดออก |
