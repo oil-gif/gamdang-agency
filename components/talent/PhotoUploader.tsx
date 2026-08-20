@@ -1,5 +1,7 @@
 "use client";
 
+import { UploadError } from "@/components/talent/UploadError";
+
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -84,7 +86,7 @@ export function PhotoUploader({
       >
         {isUploading ? "กำลังอัพโหลด..." : label}
       </Button>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      <UploadError message={error} />
     </div>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { UploadError } from "@/components/talent/UploadError";
+
 import { useRef, useState } from "react";
 import { saveLegacyCompcardCode } from "@/actions/talents";
 import { SinglePhotoUpload } from "@/components/compcard/SinglePhotoUpload";
@@ -146,11 +148,7 @@ export function LegacyCompcard({
         </button>
       </div>
 
-      {error && (
-        <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </p>
-      )}
+      <UploadError message={error} />
 
       <input
         ref={fileRef}

@@ -47,6 +47,11 @@ export async function createTalentSession(session: {
   });
 }
 
+// ต่ออายุเซสชันเมื่อโทเคนเก่ากว่านี้ — ทำให้ "30 วัน" นับจากวันที่ใช้งานล่าสุด
+// จริงๆ ไม่ใช่นับจากวันล็อกอินครั้งแรก · คนที่เข้าใช้เรื่อยๆ จะไม่มีวันหลุด
+// ไม่ต่อทุก request เพราะไม่อยากเขียนคุกกี้ใหม่ทุกครั้งโดยไม่จำเป็น
+const REFRESH_AFTER_SECONDS = 60 * 60 * 24 * 3; // 3 วัน
+
 // Talent auth mirrors the pattern in lib/supabase/auth-server.ts, but reads
 // our own signed cookie instead of a Supabase Auth session — talents never
 // touch Supabase Auth.
@@ -63,12 +68,26 @@ export async function getTalentSession() {
     if (payload.purpose !== "session" || typeof payload.lineUserId !== "string") {
       return null;
     }
-    return {
+    const session = {
       lineUserId: payload.lineUserId,
       lineName: typeof payload.lineName === "string" ? payload.lineName : null,
       linePicture:
         typeof payload.linePicture === "string" ? payload.linePicture : null,
     };
+
+    // sliding expiry — ออกโทเคนใบใหม่ให้ (นับ 30 วันจากตอนนี้)
+    // Next.js เขียนคุกกี้ได้เฉพาะใน Server Action / Route Handler ถ้าถูกเรียก
+    // จาก Server Component จะ throw → กลืนไว้ แล้วค่อยต่ออายุรอบหน้าที่มีโอกาส
+    const issuedAt = typeof payload.iat === "number" ? payload.iat : 0;
+    if (issuedAt && Date.now() / 1000 - issuedAt > REFRESH_AFTER_SECONDS) {
+      try {
+        await createTalentSession(session);
+      } catch {
+        // อยู่ใน Server Component — ข้ามไป ไม่กระทบการใช้งาน
+      }
+    }
+
+    return session;
   } catch {
     return null;
   }
