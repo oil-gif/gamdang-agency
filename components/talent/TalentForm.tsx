@@ -60,10 +60,13 @@ export function TalentForm({
   talent,
   error,
   mode = "admin",
+  from,
 }: {
   talent?: Talent;
   error?: string;
   mode?: "admin" | "self";
+  /** หน้าที่กดเข้ามา — บันทึกเสร็จจะได้กลับไปที่เดิมได้ */
+  from?: string;
 }) {
   const [isModel, setIsModel] = useState(talent?.is_model ?? false);
   const [isInfluencer, setIsInfluencer] = useState(talent?.is_influencer ?? false);
@@ -85,7 +88,11 @@ export function TalentForm({
       }
     >
       {mode === "admin" && talent?.id && (
-        <input type="hidden" name="id" value={talent.id} />
+        <>
+          <input type="hidden" name="id" value={talent.id} />
+          {/* จำหน้าที่กดเข้ามา — บันทึกเสร็จจะได้กลับมาที่โปรไฟล์นี้พร้อมปุ่มย้อนกลับเดิม */}
+          {from && <input type="hidden" name="from" value={from} />}
+        </>
       )}
       {/* self mode: ระบุว่าแก้โปรไฟล์ลูกคนไหน (server เช็คสิทธิ์ตามบัญชี LINE) */}
       {mode === "self" && talent?.id && (

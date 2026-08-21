@@ -607,7 +607,14 @@ export async function saveTalent(formData: FormData) {
       redirect(`${backTo}?error=${encodeURIComponent(`บันทึกไม่สำเร็จ: ${error.message}`)}`);
     }
     revalidatePath("/admin/talents");
-    redirect("/admin/talents");
+    revalidatePath(`/admin/talents/${id}`);
+    // อยู่หน้าโปรไฟล์เดิม — เดิมเด้งกลับไปหน้ารายการ ทำให้แอดมินต้องไล่หาคนนั้นใหม่
+    // ทุกครั้งที่แก้ (พี่เจ้าของแจ้ง 2026-08-21) · คง ?from= ไว้ให้ปุ่มย้อนกลับทำงานเหมือนเดิม
+    const fromParam = str(formData, "from");
+    const back = `/admin/talents/${id}?saved=1${
+      fromParam ? `&from=${encodeURIComponent(fromParam)}` : ""
+    }`;
+    redirect(back);
   }
 
   const { data: created, error } = await supabase
