@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { formatThaiDate } from "@/lib/datetime";
 import { DangerConfirmButton } from "@/components/admin/DangerConfirmButton";
 import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
+import { getLineQuotas, QUOTA_WARN_AT } from "@/lib/line-quota";
 
 export default async function AdminDashboardPage() {
   const [
@@ -30,6 +31,7 @@ export default async function AdminDashboardPage() {
     awaitingCompcards,
     duplicates,
     unlinked,
+    lineQuotas,
   ] = await Promise.all([
     getTalentCounts(),
     getPendingCount(),
@@ -40,6 +42,7 @@ export default async function AdminDashboardPage() {
     getAwaitingCompcardCount(),
     getDuplicateCount(),
     getUnlinkedCount(),
+    getLineQuotas(),
   ]);
 
   const stats = [
@@ -114,6 +117,60 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-neutral-800">Dashboard</h1>
+
+      {/* โควตาข้อความ LINE — แพ็กเกจฟรี 300 ข้อความ/เดือน/บัญชี พอเต็มแล้ว
+          ข้อความยืนยันการจอง/แจ้งงานจะเงียบหายไปเฉยๆ โดยไม่มีอะไรฟ้อง
+          (เคยเต็มทั้ง 3 บัญชีพร้อมกัน 2026-08-21 กว่าจะรู้ตัวก็หลายวัน) */}
+      {lineQuotas.some((q) => q.ok && q.remaining !== null && q.remaining <= QUOTA_WARN_AT) && (
+        <section
+          className={`rounded-2xl border-2 p-4 ${
+            lineQuotas.some((q) => q.remaining === 0)
+              ? "border-rose-300 bg-rose-50"
+              : "border-amber-300 bg-amber-50"
+          }`}
+        >
+          <p className="text-sm font-bold text-neutral-800">
+            {lineQuotas.some((q) => q.remaining === 0)
+              ? "🔴 โควตาข้อความ LINE เต็มแล้ว — ข้อความแจ้งเตือนส่งไม่ออก"
+              : "⚠️ โควตาข้อความ LINE ใกล้เต็ม"}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {lineQuotas.map((q) => (
+              <span
+                key={q.label}
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  !q.ok || q.remaining === null
+                    ? "bg-neutral-100 text-neutral-500"
+                    : q.remaining === 0
+                      ? "bg-rose-600 text-white"
+                      : q.remaining <= QUOTA_WARN_AT
+                        ? "bg-amber-500 text-white"
+                        : "bg-emerald-100 text-emerald-700"
+                }`}
+              >
+                {q.label}:{" "}
+                {!q.ok
+                  ? "เช็คไม่ได้"
+                  : q.remaining === null
+                    ? "ไม่จำกัด ✓"
+                    : `เหลือ ${q.remaining} / ${q.limit}`}
+              </span>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-neutral-600">
+            โควตารีเซ็ตอัตโนมัติต้นเดือนหน้า · ต้องการเพิ่มให้อัปเกรดแพ็กเกจที่{" "}
+            <a
+              href="https://manager.line.biz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[#1D4ED8] underline"
+            >
+              LINE OA Manager
+            </a>{" "}
+            · ระหว่างนี้ถ้ากดอนุมัติการจองแล้วขึ้นเตือน ต้องทักลูกค้าเองนะคะ
+          </p>
+        </section>
+      )}
 
       {/* สถิติรวม (count-only queries — เร็วแม้ข้อมูลหลักหมื่น) */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">

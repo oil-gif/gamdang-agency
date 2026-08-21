@@ -195,13 +195,19 @@ export async function setBookingStatus(formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(error.message);
 
+  let lineResult: LineSendResult | null = null;
   if (status === "approved" && before?.status !== "approved") {
-    await sendBookingConfirmedLine(id);
+    lineResult = await sendBookingConfirmedLine(id);
   }
 
   revalidatePath(`/admin/shoots/${dayId}`);
   revalidatePath("/admin/shoots");
   revalidatePath("/booking");
+
+  // ส่งไม่ออก → พากลับมาพร้อม flag ให้หน้าจอขึ้นเตือนว่าต้องแจ้งลูกค้าเอง
+  if (lineResult === "quota" || lineResult === "failed") {
+    redirect(`/admin/shoots/${dayId}?linefail=${lineResult}`);
+  }
 }
 
 // ข้อความยืนยันรอบถ่าย (ใช้ทั้งส่ง LINE อัตโนมัติ และปุ่ม "คัดลอกข้อความ")
@@ -237,15 +243,25 @@ export async function buildBookingConfirmText(bookingId: string) {
 }
 
 // ส่งข้อความยืนยันเข้า LINE ของคนจอง (best-effort — พังก็ไม่ทำให้อนุมัติล้ม)
-async function sendBookingConfirmedLine(bookingId: string) {
+//
+// คืนสาเหตุที่ส่งไม่ได้กลับไปด้วย เพื่อเอาไปเตือนแอดมินบนหน้าจอ · ของเดิม
+// กลืน error เงียบๆ แอดมินเลยเห็นว่า "อนุมัติสำเร็จ" ทั้งที่ลูกค้าไม่ได้รับอะไร
+// (เจอจริง 2026-08-21 ตอนโควตา LINE เต็ม)
+type LineSendResult = "sent" | "no-line" | "quota" | "failed";
+
+async function sendBookingConfirmedLine(bookingId: string): Promise<LineSendResult> {
   try {
     const built = await buildBookingConfirmText(bookingId);
-    if (!built?.lineUserId) return; // จองจาก browser (ไม่ผูก LINE) → ข้าม
+    if (!built?.lineUserId) return "no-line"; // จองจาก browser (ไม่ผูก LINE) → ข้าม
     await pushLineMessage(built.lineUserId, [
       { type: "text", text: built.text },
     ]);
+    return "sent";
   } catch (e) {
     console.error("booking confirm LINE failed", e);
+    // LINE ตอบ 429 = ส่งครบ 300 ข้อความ/เดือนของแพ็กเกจฟรีแล้ว
+    const msg = e instanceof Error ? e.message : "";
+    return msg.includes("(429)") || msg.includes("monthly limit") ? "quota" : "failed";
   }
 }
 

@@ -38,10 +38,15 @@ export default async function ShootDayDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; added?: string; moved?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    added?: string;
+    moved?: string;
+    linefail?: string;
+  }>;
 }) {
   const { id } = await params;
-  const { error, added, moved } = await searchParams;
+  const { error, added, moved, linefail } = await searchParams;
   const [day, bookings, counts] = await Promise.all([
     getShootDay(id),
     getShootBookings(id),
@@ -98,6 +103,23 @@ export default async function ShootDayDetailPage({
         <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
         </p>
+      )}
+      {/* อนุมัติสำเร็จแต่ LINE ส่งไม่ออก — ต้องบอกแอดมินให้ชัด ไม่งั้นจะเข้าใจว่า
+          ลูกค้าได้รับข้อความแล้ว (โควตาฟรีของ LINE คือ 300 ข้อความ/เดือน) */}
+      {linefail && (
+        <div className="rounded-md border-2 border-amber-400 bg-amber-50 px-4 py-3 text-sm">
+          <p className="font-bold text-amber-900">
+            ⚠️ อนุมัติเรียบร้อยแล้ว แต่ส่ง LINE ไม่สำเร็จ — กรุณาแจ้งลูกค้าเอง
+          </p>
+          <p className="mt-1 text-amber-800">
+            {linefail === "quota"
+              ? "สาเหตุ: โควตาข้อความ LINE เดือนนี้เต็มแล้ว (แพ็กเกจฟรีส่งได้ 300 ข้อความ/เดือน) — โควตาจะรีเซ็ตต้นเดือนหน้า หรืออัปเกรดแพ็กเกจที่ LINE OA Manager"
+              : "สาเหตุ: ส่งข้อความไม่สำเร็จ (ลูกค้าอาจบล็อก/ยกเลิกเพื่อน OA) ลองกดปุ่ม “📨 ส่ง LINE ยืนยันอีกครั้ง” ที่แถวของลูกค้าดูอีกครั้ง"}
+          </p>
+          <p className="mt-1 text-xs text-amber-700">
+            การจองถูกบันทึกเป็น &quot;อนุมัติแล้ว&quot; เรียบร้อย ไม่ต้องกดซ้ำค่ะ
+          </p>
+        </div>
       )}
       {added && (
         <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
