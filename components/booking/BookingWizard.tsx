@@ -521,10 +521,12 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
               />
             </div>
 
+            {/* บังคับกรอก — เจ้าหน้าที่ต้องใช้ตัวเลขนี้ทำคอมการ์ด ถ้าไม่ได้ตอนจอง
+                ต้องมาไล่ถามทีหลังทีละคน (พี่เจ้าของแจ้ง 2026-08-21) */}
             {(
               [
-                ["height", "ส่วนสูง (Height, cm.)", "เช่น 120"],
-                ["weight", "น้ำหนัก (Weight, kg.)", "เช่น 25"],
+                ["height", "ส่วนสูง (Height, cm.) *", "เช่น 120"],
+                ["weight", "น้ำหนัก (Weight, kg.) *", "เช่น 25"],
               ] as const
             ).map(([name, label, placeholder]) => (
               <div key={name} className="space-y-1">
@@ -536,6 +538,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
                   name={name}
                   type="text"
                   inputMode="numeric"
+                  required
                   placeholder={placeholder}
                   className="h-11 w-full rounded-xl border border-neutral-300 px-3 text-sm outline-none transition placeholder:text-neutral-300 focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
                 />

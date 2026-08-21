@@ -28,7 +28,7 @@ function err(code: string, status = 400) {
 // (book_shoot_slot ใน DB — เช็คความจุ+insert ใน lock เดียว ปิด race)
 // body = JSON base64 (แนวเดียวกับ upload อื่นๆ ของระบบ):
 // { day_id, package, hour, full_name, nickname?, phone, line_id?, email?,
-//   height?, weight?, talents?, slip: dataURL(jpg/png/webp/pdf), website? }
+//   height, weight, talents?, slip: dataURL(jpg/png/webp/pdf), website? }
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   if (!body) return err("invalid");
@@ -50,6 +50,9 @@ export async function POST(req: NextRequest) {
   // บังคับ: ชื่อเล่น(อังกฤษ) + เบอร์ + อีเมล + สัญชาติ · ชื่อจริงไม่บังคับ
   const nickname = str(body.nickname);
   const nicknameTh = str(body.nickname_th);
+  // ส่วนสูง/น้ำหนัก — เจ้าหน้าที่ใช้ทำคอมการ์ด ต้องมีตั้งแต่ตอนจอง
+  const height = str(body.height);
+  const weight = str(body.weight);
   const fullNameRaw = str(body.full_name);
   const phone = str(body.phone);
   const email = str(body.email);
@@ -59,10 +62,14 @@ export async function POST(req: NextRequest) {
     : null;
   const dob = /^\d{4}-\d{2}-\d{2}$/.test(String(body.dob ?? "")) ? body.dob : null;
   const slip = typeof body.slip === "string" ? body.slip : "";
-  if (!dayId || !pkg || !hour || !nickname || !nicknameTh || !phone || !email || !slip) {
+  if (
+    !dayId || !pkg || !hour || !nickname || !nicknameTh ||
+    !height || !weight || !phone || !email || !slip
+  ) {
     console.error("booking invalid:", {
       dayId: !!dayId, pkg: !!pkg, hour: !!hour,
       nickname: !!nickname, nickname_th: !!nicknameTh,
+      height: !!height, weight: !!weight,
       phone: !!phone, email: !!email, slip: !!slip,
     });
     return err("invalid");
@@ -118,8 +125,8 @@ export async function POST(req: NextRequest) {
     p_phone: phone,
     p_line_id: str(body.line_id),
     p_email: email,
-    p_height: str(body.height),
-    p_weight: str(body.weight),
+    p_height: height,
+    p_weight: weight,
     p_talents: str(body.talents),
     p_slip_path: slipPath,
     p_photo_cap: BOOKING.photoCap,
