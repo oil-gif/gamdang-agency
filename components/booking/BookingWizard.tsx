@@ -461,8 +461,8 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
             />
             {(
               [
-                ["nickname_th", "ชื่อเล่นภาษาไทย *", "text", true, "เช่น ส้ม, แทมมี่"],
                 ["nickname", "ชื่อเล่น (Nickname — English) *", "text", true, "ชื่อเล่นภาษาอังกฤษ เช่น Som, Tammy"],
+                ["nickname_th", "ชื่อเล่นภาษาไทย *", "text", true, "เช่น ส้ม, แทมมี่"],
                 ["full_name", "ชื่อ-นามสกุลจริง (Full Name)", "text", false, "เช่น สมชาย ใจดี"],
                 ["phone", "เบอร์โทร (Phone) *", "tel", true, "08x-xxx-xxxx"],
                 ["line_id", "LINE ID", "text", false, "เช่น @tammy หรือเบอร์ที่ผูก LINE"],
