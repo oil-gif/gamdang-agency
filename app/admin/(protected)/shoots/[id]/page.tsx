@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BOOKING } from "@/lib/constants";
+import { LINE_FAIL_TEXT, type LineFailReason } from "@/lib/line-messaging";
 import { formatThaiDateTime, formatThaiTime } from "@/lib/datetime";
 
 const STATUS_CHIP: Record<string, { label: string; className: string }> = {
@@ -43,10 +44,11 @@ export default async function ShootDayDetailPage({
     added?: string;
     moved?: string;
     linefail?: string;
+    linesent?: string;
   }>;
 }) {
   const { id } = await params;
-  const { error, added, moved, linefail } = await searchParams;
+  const { error, added, moved, linefail, linesent } = await searchParams;
   const [day, bookings, counts] = await Promise.all([
     getShootDay(id),
     getShootBookings(id),
@@ -112,14 +114,18 @@ export default async function ShootDayDetailPage({
             ⚠️ อนุมัติเรียบร้อยแล้ว แต่ส่ง LINE ไม่สำเร็จ — กรุณาแจ้งลูกค้าเอง
           </p>
           <p className="mt-1 text-amber-800">
-            {linefail === "quota"
-              ? "สาเหตุ: โควตาข้อความ LINE เดือนนี้เต็มแล้ว (แพ็กเกจฟรีส่งได้ 300 ข้อความ/เดือน) — โควตาจะรีเซ็ตต้นเดือนหน้า หรืออัปเกรดแพ็กเกจที่ LINE OA Manager"
-              : "สาเหตุ: ส่งข้อความไม่สำเร็จ (ลูกค้าอาจบล็อก/ยกเลิกเพื่อน OA) ลองกดปุ่ม “📨 ส่ง LINE ยืนยันอีกครั้ง” ที่แถวของลูกค้าดูอีกครั้ง"}
+            สาเหตุ:{" "}
+            {LINE_FAIL_TEXT[linefail as LineFailReason] ?? LINE_FAIL_TEXT.failed}
           </p>
           <p className="mt-1 text-xs text-amber-700">
             การจองถูกบันทึกเป็น &quot;อนุมัติแล้ว&quot; เรียบร้อย ไม่ต้องกดซ้ำค่ะ
           </p>
         </div>
+      )}
+      {linesent && (
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          ✓ ส่งข้อความ LINE ให้ลูกค้าเรียบร้อยแล้ว
+        </p>
       )}
       {added && (
         <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">

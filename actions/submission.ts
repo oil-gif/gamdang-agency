@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifySubmitToken } from "@/lib/auth/talent-session";
-import { pushLineMessage } from "@/lib/line-messaging";
+import {
+  classifyLineError,
+  type LineFailReason,
+  pushLineMessage,
+} from "@/lib/line-messaging";
 import { SITE_URL } from "@/lib/site";
 import { supabase } from "@/lib/supabase/server";
 
@@ -183,6 +187,13 @@ export async function requestSubmissionViaLine(formData: FormData) {
       },
     },
   };
-  await pushLineMessage(talent.line_user_id, [flex]);
+  let fail: LineFailReason | null = null;
+  try {
+    await pushLineMessage(talent.line_user_id, [flex]);
+  } catch (e) {
+    console.error("requestSubmissionViaLine failed", e);
+    fail = classifyLineError(e);
+  }
   revalidatePath(`/admin/projects/${pt.project_id}`);
+  if (fail) redirect(`/admin/projects/${pt.project_id}?linefail=${fail}`);
 }

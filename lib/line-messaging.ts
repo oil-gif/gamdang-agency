@@ -275,3 +275,29 @@ export function buildJobConfirmedFlex(job: JobInfo) {
     },
   };
 }
+
+// แปลง error จากการส่ง LINE เป็นสาเหตุที่เอาไปบอกแอดมินได้
+//
+// ⚠️ pushLineMessage() throw เมื่อส่งไม่สำเร็จ · ถ้าปล่อยหลุดออกจาก Server Action
+// Next.js จะขึ้นหน้า "This page couldn't load" เต็มจอ แอดมินไม่รู้เลยว่าเกิดอะไร
+// (เจอจริง 2026-08-21 ตอนโควตา LINE เต็ม กดปุ่มส่งแล้วเว็บขึ้น error)
+// → ทุกปุ่มที่ส่ง LINE ต้องครอบ try/catch แล้วใช้ตัวนี้แปลงสาเหตุ
+export type LineFailReason = "quota" | "blocked" | "failed";
+
+export function classifyLineError(e: unknown): LineFailReason {
+  const msg = e instanceof Error ? e.message : String(e);
+  // 429 = ส่งครบโควตาเดือนนี้แล้ว (แพ็กเกจฟรี 300 ข้อความ/เดือน)
+  if (msg.includes("(429)") || msg.includes("monthly limit")) return "quota";
+  // 400 + "Invalid to" / 403 = ผู้ใช้บล็อกหรือลบ OA ทิ้ง
+  if (msg.includes("(403)") || msg.includes("Invalid to")) return "blocked";
+  return "failed";
+}
+
+// ข้อความอธิบายสาเหตุ (ภาษาไทย) — ใช้โชว์บนหน้าหลังบ้าน
+export const LINE_FAIL_TEXT: Record<LineFailReason, string> = {
+  quota:
+    "โควตาข้อความ LINE เดือนนี้เต็มแล้ว (แพ็กเกจฟรีส่งได้ 300 ข้อความ/เดือน) — รีเซ็ตต้นเดือนหน้า หรืออัปเกรดที่ LINE OA Manager",
+  blocked:
+    "ผู้รับบล็อกหรือลบบัญชี LINE ทางการของเราออกไปแล้ว — ต้องติดต่อทางอื่นแทนค่ะ",
+  failed: "ส่งข้อความไม่สำเร็จ (ระบบ LINE ขัดข้องชั่วคราว) ลองใหม่อีกครั้งค่ะ",
+};

@@ -55,6 +55,7 @@ import { CollapsibleSection } from "@/components/admin/CollapsibleSection";
 import { DragOrderList } from "@/components/admin/DragOrderList";
 import { parseExtraDetails } from "@/lib/extra-details";
 import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
+import { LINE_FAIL_TEXT, type LineFailReason } from "@/lib/line-messaging";
 
 const BASE_URL = SITE_URL;
 
@@ -151,6 +152,7 @@ export default async function ProjectDetailPage({
     return Number.isFinite(n) && n > 0 ? n : undefined;
   };
   const error = one(sp.error);
+  const linefail = one(sp.linefail);
   const pq = one(sp.pq);
   const prole = one(sp.prole);
   const pgender = one(sp.pgender);
@@ -257,6 +259,23 @@ export default async function ProjectDetailPage({
           />
         </div>
       </div>
+
+      {/* ส่ง LINE ไม่ออก (โควตาเต็ม/ถูกบล็อก) — ต้องบอกให้ชัด ไม่งั้นแอดมิน
+          เข้าใจว่าแจ้งงานไปแล้วทั้งที่น้องไม่ได้รับอะไร */}
+      {linefail && (
+        <section className="max-w-3xl rounded-xl border-2 border-amber-400 bg-amber-50 p-4">
+          <p className="text-sm font-bold text-amber-900">
+            ⚠️ ส่งข้อความ LINE ไม่สำเร็จ — กรุณาแจ้งน้องเองค่ะ
+          </p>
+          <p className="mt-1 text-sm text-amber-800">
+            สาเหตุ:{" "}
+            {LINE_FAIL_TEXT[linefail as LineFailReason] ?? LINE_FAIL_TEXT.failed}
+          </p>
+          <p className="mt-1 text-xs text-amber-700">
+            ใช้ปุ่ม &quot;📋 คัดลอกข้อความแจ้งงาน&quot; แล้วส่งทางแชทเองได้เลย
+          </p>
+        </section>
+      )}
 
       {/* โน้ตภายในทีม — โชว์บนสุดให้เห็นก่อนทำงาน (แก้ได้ในฟอร์มด้านล่าง)
           ห้ามย้ายไป render ในหน้า /casting /p/[token] /print /report */}

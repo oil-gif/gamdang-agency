@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import {
   buildJobConfirmedFlex,
   buildJobOfferFlex,
+  classifyLineError,
+  type LineFailReason,
   pushLineMessage,
 } from "@/lib/line-messaging";
 import { supabase } from "@/lib/supabase/server";
@@ -36,16 +39,24 @@ export async function notifyTalentViaLine(formData: FormData) {
     shootingDate: project.shooting_date,
     budget: project.budget,
   });
-  await pushLineMessage(talent.line_user_id, [flex]);
+  // ส่งไม่ได้ต้องบอกแอดมินให้รู้ ไม่ใช่ปล่อยหน้าเว็บพัง (ดู classifyLineError)
+  let fail: LineFailReason | null = null;
+  try {
+    await pushLineMessage(talent.line_user_id, [flex]);
+  } catch (e) {
+    console.error("notifyTalentViaLine failed", e);
+    fail = classifyLineError(e);
+  }
 
-  // ยังไม่เคยตอบ → ตั้งเป็น "รอตอบ" ให้แอดมินเห็นว่าแจ้งไปแล้ว
-  if (!pt.talent_response) {
+  // ส่งไม่ออก = ยังไม่ได้แจ้ง อย่าเพิ่งตั้งเป็น "รอตอบ" ให้เข้าใจผิด
+  if (!fail && !pt.talent_response) {
     await supabase
       .from("project_talents")
       .update({ talent_response: "pending" })
       .eq("id", pt.id);
   }
   revalidatePath(`/admin/projects/${pt.project_id}`);
+  if (fail) redirect(`/admin/projects/${pt.project_id}?linefail=${fail}`);
 }
 
 // แอดมินกด "🎉 ส่ง Job Confirmed" (หลังลูกค้าคอนเฟิร์ม) — push Flex ยืนยันงาน
@@ -73,8 +84,15 @@ export async function sendJobConfirmed(formData: FormData) {
     shootingDate: project.shooting_date,
     budget: project.budget,
   });
-  await pushLineMessage(talent.line_user_id, [flex]);
+  let fail: LineFailReason | null = null;
+  try {
+    await pushLineMessage(talent.line_user_id, [flex]);
+  } catch (e) {
+    console.error("sendJobConfirmed failed", e);
+    fail = classifyLineError(e);
+  }
   revalidatePath(`/admin/projects/${pt.project_id}`);
+  if (fail) redirect(`/admin/projects/${pt.project_id}?linefail=${fail}`);
 }
 
 // แอดมินกดคัดลอกข้อความ (สำหรับคนไม่ผูก LINE) — mark ว่าแจ้งแล้ว

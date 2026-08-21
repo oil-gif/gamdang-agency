@@ -6,7 +6,11 @@ import { redirect } from "next/navigation";
 import { thaiDateLabel } from "@/lib/booking";
 import { BOOKING } from "@/lib/constants";
 import { verifyDangerCode } from "@/lib/danger";
-import { pushLineMessage } from "@/lib/line-messaging";
+import {
+  classifyLineError,
+  pushLineMessage,
+  type LineFailReason,
+} from "@/lib/line-messaging";
 import { supabase } from "@/lib/supabase/server";
 
 // ===== รอบถ่าย (shooting days) =====
@@ -247,7 +251,7 @@ export async function buildBookingConfirmText(bookingId: string) {
 // คืนสาเหตุที่ส่งไม่ได้กลับไปด้วย เพื่อเอาไปเตือนแอดมินบนหน้าจอ · ของเดิม
 // กลืน error เงียบๆ แอดมินเลยเห็นว่า "อนุมัติสำเร็จ" ทั้งที่ลูกค้าไม่ได้รับอะไร
 // (เจอจริง 2026-08-21 ตอนโควตา LINE เต็ม)
-type LineSendResult = "sent" | "no-line" | "quota" | "failed";
+type LineSendResult = "sent" | "no-line" | LineFailReason;
 
 async function sendBookingConfirmedLine(bookingId: string): Promise<LineSendResult> {
   try {
@@ -260,8 +264,7 @@ async function sendBookingConfirmedLine(bookingId: string): Promise<LineSendResu
   } catch (e) {
     console.error("booking confirm LINE failed", e);
     // LINE ตอบ 429 = ส่งครบ 300 ข้อความ/เดือนของแพ็กเกจฟรีแล้ว
-    const msg = e instanceof Error ? e.message : "";
-    return msg.includes("(429)") || msg.includes("monthly limit") ? "quota" : "failed";
+    return classifyLineError(e);
   }
 }
 
@@ -275,10 +278,24 @@ export async function resendBookingConfirmLine(formData: FormData) {
       `/admin/shoots/${dayId}?error=${encodeURIComponent("คนนี้ไม่ได้จองผ่าน LINE — ใช้ปุ่มคัดลอกข้อความแล้วส่งเองค่ะ")}`,
     );
   }
-  await pushLineMessage(built.lineUserId!, [
-    { type: "text", text: built.text },
-  ]);
+  // ห้ามให้ error หลุดออกไป ไม่งั้น Next.js ขึ้นหน้า "This page couldn't load"
+  // เต็มจอ แทนที่จะบอกแอดมินว่าส่งไม่ได้เพราะอะไร
+  let fail: LineFailReason | null = null;
+  try {
+    await pushLineMessage(built.lineUserId!, [
+      { type: "text", text: built.text },
+    ]);
+  } catch (e) {
+    console.error("resend booking confirm failed", e);
+    fail = classifyLineError(e);
+  }
+
   revalidatePath(`/admin/shoots/${dayId}`);
+  redirect(
+    fail
+      ? `/admin/shoots/${dayId}?linefail=${fail}`
+      : `/admin/shoots/${dayId}?linesent=1`,
+  );
 }
 
 // แอดมินจองแทนลูกค้า (คนจองเองไม่เป็น / ติดปัญหาอุปกรณ์ / walk-in)

@@ -289,7 +289,12 @@ export async function saveProject(formData: FormData) {
     if (isMissingColumn(error)) {
       ({ error } = await supabase.from("projects").update(base).eq("id", id));
     } else if (!error && casting.is_published && !wasPublished) {
-      await notifyCasting(castingLines(id));
+      // แจ้งกลุ่มเป็น best-effort — โควตา LINE เต็มต้องไม่ทำให้บันทึกงานล้ม
+      try {
+        await notifyCasting(castingLines(id));
+      } catch (e) {
+        console.error("notifyCasting (update) failed", e);
+      }
     }
     if (error) throw new Error(error.message);
     revalidatePath("/admin/projects");
@@ -308,7 +313,11 @@ export async function saveProject(formData: FormData) {
       .select("id")
       .single());
   } else if (!error && created && casting.is_published) {
-    await notifyCasting(castingLines(created.id));
+    try {
+      await notifyCasting(castingLines(created.id));
+    } catch (e) {
+      console.error("notifyCasting (create) failed", e);
+    }
   }
   if (error) throw new Error(error.message);
   revalidatePath("/admin/projects");
