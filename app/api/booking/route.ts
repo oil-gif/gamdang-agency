@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
     : null;
   // บังคับ: ชื่อเล่น(อังกฤษ) + เบอร์ + อีเมล + สัญชาติ · ชื่อจริงไม่บังคับ
   const nickname = str(body.nickname);
+  const nicknameTh = str(body.nickname_th);
   const fullNameRaw = str(body.full_name);
   const phone = str(body.phone);
   const email = str(body.email);
@@ -58,10 +59,11 @@ export async function POST(req: NextRequest) {
     : null;
   const dob = /^\d{4}-\d{2}-\d{2}$/.test(String(body.dob ?? "")) ? body.dob : null;
   const slip = typeof body.slip === "string" ? body.slip : "";
-  if (!dayId || !pkg || !hour || !nickname || !phone || !email || !slip) {
+  if (!dayId || !pkg || !hour || !nickname || !nicknameTh || !phone || !email || !slip) {
     console.error("booking invalid:", {
       dayId: !!dayId, pkg: !!pkg, hour: !!hour,
-      nickname: !!nickname, phone: !!phone, email: !!email, slip: !!slip,
+      nickname: !!nickname, nickname_th: !!nicknameTh,
+      phone: !!phone, email: !!email, slip: !!slip,
     });
     return err("invalid");
   }
@@ -132,6 +134,14 @@ export async function POST(req: NextRequest) {
     if (code === "invalid") console.error("booking rpc error:", error.message);
     return err(code, 409);
   }
+
+  // ชื่อเล่นไทย — เก็บแยกหลัง RPC จะได้ไม่ต้องแก้ signature ของ book_shoot_slot
+  // (ยังไม่ได้รัน migration 023 → update พลาด แต่ห้ามให้การจองล้ม)
+  const { error: thErr } = await supabase
+    .from("shoot_bookings")
+    .update({ nickname_th: nicknameTh })
+    .eq("id", bookingId);
+  if (thErr) console.error("booking nickname_th update failed:", thErr.message);
 
   // เชื่อม LINE ถ้าเปิดจอง "ในแอป LINE" (ส่ง id token มา) — เก็บ line_user_id
   // ไว้กับการจอง เพื่อผูกโปรไฟล์ให้แม่อัตโนมัติตอนแอดมินดึงเข้าระบบ talent

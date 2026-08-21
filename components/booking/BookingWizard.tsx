@@ -200,6 +200,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
           hour,
           full_name: fd.get("full_name"),
           nickname: fd.get("nickname"),
+          nickname_th: fd.get("nickname_th"),
           phone: fd.get("phone"),
           line_id: fd.get("line_id"),
           email: fd.get("email"),
@@ -460,6 +461,7 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
             />
             {(
               [
+                ["nickname_th", "ชื่อเล่นภาษาไทย *", "text", true, "เช่น ส้ม, แทมมี่"],
                 ["nickname", "ชื่อเล่น (Nickname — English) *", "text", true, "ชื่อเล่นภาษาอังกฤษ เช่น Som, Tammy"],
                 ["full_name", "ชื่อ-นามสกุลจริง (Full Name)", "text", false, "เช่น สมชาย ใจดี"],
                 ["phone", "เบอร์โทร (Phone) *", "tel", true, "08x-xxx-xxxx"],

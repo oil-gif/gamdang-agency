@@ -382,6 +382,10 @@ export default async function ShootDayDetailPage({
               <Input id="ab_full_name" name="full_name" required />
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="ab_nickname_th">ชื่อเล่น (ไทย)</Label>
+              <Input id="ab_nickname_th" name="nickname_th" placeholder="เช่น ออย" />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="ab_nickname">ชื่อเล่น (อังกฤษ)</Label>
               <Input id="ab_nickname" name="nickname" placeholder="เช่น Oil" />
             </div>

@@ -351,6 +351,14 @@ export async function createBookingAsAdmin(formData: FormData) {
     redirect(`${back}?error=${encodeURIComponent(msg)}`);
   }
 
+  // ชื่อเล่นไทย (migration 023) — เก็บแยกหลัง RPC เหมือนฝั่งฟอร์มลูกค้า
+  if (s("nickname_th")) {
+    await supabase
+      .from("shoot_bookings")
+      .update({ nickname_th: s("nickname_th") })
+      .eq("id", bookingId);
+  }
+
   // แอดมินจองแทน = ตรวจการจ่ายเงินแล้ว → อนุมัติทันที + เก็บข้อมูลเพิ่ม
   await supabase
     .from("shoot_bookings")
@@ -543,10 +551,10 @@ export async function createTalentFromBooking(formData: FormData) {
     .from("talents")
     .insert({
       full_name: b.full_name,
-      // ชื่อเล่นจากฟอร์มจองเป็นภาษาอังกฤษ → ลงช่อง nickname_en ให้ตรง
-      // nickname_th ใส่ค่าเดียวกันไว้ก่อน (แอดมินแก้เป็นชื่อไทยทีหลังได้)
+      // ฟอร์มจองเก็บชื่อเล่นทั้งไทยและอังกฤษแล้ว (migration 023) → ลงช่องให้ตรงกัน
+      // ของเก่าที่จองก่อนหน้านั้นไม่มี nickname_th → ใช้ชื่ออังกฤษไปก่อนเหมือนเดิม
       nickname_en: b.nickname,
-      nickname_th: b.nickname || b.full_name,
+      nickname_th: b.nickname_th || b.nickname || b.full_name,
       gender: b.gender ?? null,
       dob: b.dob ?? null,
       nationality: b.nationality ?? null,
