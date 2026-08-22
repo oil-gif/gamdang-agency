@@ -302,13 +302,17 @@ export default async function ProjectReportPage({
                       <img
                         src={getPhotoProxyUrl(mainImg)}
                         alt={displayName}
-                        className="mt-3 max-h-72 w-full rounded-lg bg-neutral-50 object-contain"
+                        className="mt-3 max-h-56 w-full rounded-lg bg-neutral-50 object-contain"
                       />
                     )}
 
-                    {/* 3) รูปเพิ่มเติม */}
+                    {/* 3) รูปเพิ่มเติม
+                        ⚠️ ขนาดรูปตรงนี้คุมความสูงของการ์ดทั้งใบ · การ์ดต้องสูงไม่เกิน
+                        ~210mm ไม่งั้นรวมกับหัวข้อหน้าแล้วเกิน A4 → break-inside: avoid
+                        จะดันการ์ดทั้งใบไปหน้าถัดไป เหลือหน้าเปล่าที่มีแต่หัวข้อ
+                        (เจอจริง 2026-08-22: การ์ดสูง 242mm + หัวข้อ 20mm + ขอบ 13mm) */}
                     {extraPhotos.length > 0 && (
-                      <div className="mt-3 grid grid-cols-3 gap-2">
+                      <div className="mt-3 grid grid-cols-4 gap-2">
                         {extraPhotos.map((p) => (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
