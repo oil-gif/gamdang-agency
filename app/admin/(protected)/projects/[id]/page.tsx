@@ -1259,6 +1259,9 @@ export default async function ProjectDetailPage({
         <div className="space-y-2">
           {links.map((l) => {
             const url = `${BASE_URL}/p/${l.token}`;
+            // ลิงก์ Report ใช้ token ใบเดียวกัน — ลูกค้าคนเดิม งานเดิม
+            // (ต้องกดยอมรับเงื่อนไขที่หน้า /p ก่อน ถึงจะเปิด /r ได้)
+            const reportUrl = `${BASE_URL}/r/${l.token}`;
             const expired = l.expires_at && new Date(l.expires_at) < new Date();
             return (
               <div key={l.id} className="rounded-xl border bg-white p-3 shadow-sm">
@@ -1285,6 +1288,21 @@ export default async function ProjectDetailPage({
                     </form>
                   )}
                 </div>
+
+                {/* ลิงก์ Casting Report — ใช้ token เดียวกับด้านบน ให้ลูกค้ากดดู
+                    รายงาน (คนที่เขาเลือก + ผลงาน) เองได้ ไม่ต้องส่ง PDF */}
+                {l.status === "active" && !expired && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-1.5">
+                    <span className="shrink-0 text-[11px] font-semibold text-[#B82233]">
+                      📊 Report:
+                    </span>
+                    <code className="min-w-0 flex-1 truncate rounded bg-neutral-50 px-2 py-1 text-xs">
+                      {reportUrl}
+                    </code>
+                    <CopyButton text={reportUrl} label="คัดลอกลิงก์ Report" />
+                  </div>
+                )}
+
                 <p className="mt-1.5 text-xs text-neutral-400">
                   {l.status === "revoked"
                     ? "ยกเลิกแล้ว"
