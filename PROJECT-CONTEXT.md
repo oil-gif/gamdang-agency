@@ -127,6 +127,7 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 | Route | ใคร | อายุ token |
 |---|---|---|
 | `/p/[token]` | **ลูกค้า** — ดู proposal + กด "สนใจ" | ตั้งวันหมดอายุต่อลิงก์ (เก็บใน `project_links`) |
+| `/r/[token]` | **ลูกค้า** — ดู Casting Report (token ใบเดียวกับ `/p`) | เหมือน `/p` · ต้องยอมรับ T&C ที่ `/p` ก่อน |
 | `/job/[token]` | talent — ดูงานที่ถูกเสนอ + ตอบรับ/ปฏิเสธ | 14 วัน |
 | `/submit/[token]` | talent — ส่งรูป/ลิงก์ผลงาน | 60 วัน |
 
@@ -195,6 +196,8 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 | `lib/supabase/server.ts` | client ที่ถือ **service-role key** — ถ้าหลุดไปฝั่ง browser = ข้อมูลทั้งระบบเปิดโล่ง (ต้องเป็น server-only เสมอ) |
 | `lib/supabase/auth-server.ts` | เซสชันแอดมิน + `isAdminAuthed()` ที่ทุก API ใช้ตัดสินสิทธิ์ |
 | `app/admin/(protected)/layout.tsx` | **ประตูเดียว**ที่กันหน้าแอดมินทั้งหมด (ไม่มี middleware) — พังเมื่อไหร่ = หลังบ้านเปิดสาธารณะ |
+| `components/report/CastingReportView.tsx` | เนื้อ Casting Report ใช้ร่วมกันทั้งหน้าแอดมินและลิงก์ลูกค้า `/r/[token]` · **ขนาดรูปในนี้คุมการแบ่งหน้า PDF** การ์ดต้องสูงไม่เกิน ~210mm ไม่งั้นเกิดหน้าว่าง |
+| `components/admin/DragOrderList.tsx` | ลากวางจัดลำดับ · **ห้ามเก็บ node ไว้ใน state** (เก็บได้แค่ลำดับ id) ไม่งั้นปุ่มในการ์ดกดแล้วหน้าจอไม่อัปเดต |
 | `lib/auth/upload-guard.ts` | ยามของ API อัพรูปทั้ง 5 ตัว — แอดมิน/เจ้าของเท่านั้น · **ห้ามกลับไปเขียนแบบ `if (session && ...)`** เพราะจะกลายเป็น "ไม่มี session = ผ่าน" (ช่องโหว่ที่ปิดไป 2026-08-20) |
 | `lib/auth/talent-session.ts` | ออก/ตรวจ JWT ของ talent + token ของ `/job` `/submit` `?link=` — แก้ผิด = ลิงก์เก่าใช้ไม่ได้ทั้งหมด หรือคนอื่นเข้าโปรไฟล์ข้ามบัญชีได้ |
 | `app/api/line/verify/route.ts` | ทางเข้าเดียวของ talent — เคยพังทั้งระบบมาแล้ว (ดู GOTCHA เรื่อง LIFF scope / `liff.logout()` ใน PROGRESS.md) |
