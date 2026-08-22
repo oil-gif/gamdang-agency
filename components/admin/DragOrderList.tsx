@@ -30,20 +30,40 @@ export function DragOrderList({
   saveAction: (orderedIds: string[]) => Promise<void>;
   showGroupHeaders?: boolean;
 }) {
-  const [order, setOrder] = useState(items);
+  // ⚠️ เก็บไว้ใน state แค่ "ลำดับ" (id) เท่านั้น ห้ามเก็บ node
+  //
+  // ของเดิมเก็บ items ทั้งก้อน (รวม node ที่ render มาแล้ว) ไว้ใน state แล้ว sync
+  // ต่อเมื่อ "รายชื่อ" เปลี่ยน · พอกดปุ่มในการ์ด (ลูกค้าสนใจ / รับงาน / ฯลฯ)
+  // server action อัพเดต DB แล้ว revalidate ส่งการ์ดใบใหม่มา แต่ id ชุดเดิม
+  // → ไม่เข้าเงื่อนไข sync → หน้าจอยังโชว์การ์ดใบเก่าค้างไว้ กดแล้วเหมือนไม่มี
+  // อะไรเกิดขึ้นทั้งที่บันทึกสำเร็จ (พี่เจ้าของแจ้ง 2026-08-22)
+  //
+  // ตอนนี้ render จาก items ล่าสุดเสมอ แล้วใช้ orderIds จัดแค่ลำดับ
+  const [orderIds, setOrderIds] = useState<string[]>(() => items.map((i) => i.id));
   const [dragId, setDragId] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   // ลำดับที่บันทึกไปแล้ว — กันยิงซ้ำเมื่อลากแล้ววางที่เดิม
   const [savedIds, setSavedIds] = useState(items.map((i) => i.id).join(","));
 
-  // items เปลี่ยนจากฝั่ง server (เพิ่ม/ลบคน) → sync ตาม
-  const incoming = items.map((i) => i.id).join(",");
-  const [seen, setSeen] = useState(incoming);
-  if (incoming !== seen) {
-    setSeen(incoming);
-    setOrder(items);
-    setSavedIds(incoming);
+  // เทียบแบบ "ชุดของ id" (เรียงแล้ว) — ลำดับต่างได้หลังลาก ไม่ถือว่าเปลี่ยน
+  const incomingKey = items
+    .map((i) => i.id)
+    .slice()
+    .sort()
+    .join(",");
+  const [seenKey, setSeenKey] = useState(incomingKey);
+  if (incomingKey !== seenKey) {
+    // มีคนถูกเพิ่ม/เอาออก → ยึดลำดับจาก server ใหม่
+    setSeenKey(incomingKey);
+    setOrderIds(items.map((i) => i.id));
+    setSavedIds(items.map((i) => i.id).join(","));
   }
+
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const order = orderIds
+    .map((id) => byId.get(id))
+    .filter((i): i is ReorderItem => Boolean(i));
+  const setOrder = (next: ReorderItem[]) => setOrderIds(next.map((i) => i.id));
 
   // ให้ event handler อ่านลำดับล่าสุดได้ตอนปล่อยนิ้ว (อ่าน state ตรงๆ ไม่ได้
   // เพราะ closure ของ handler จับค่าเก่าไว้)
