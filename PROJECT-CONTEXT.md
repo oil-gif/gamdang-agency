@@ -100,6 +100,8 @@ lib/
 ├── danger.ts                 # รหัสยืนยันชั้นที่ 2 ก่อนลบถาวร
 ├── datetime.ts               # ⚠️ ต้องใช้แทน toLocale* (ล็อก Asia/Bangkok)
 ├── extra-details.ts          # ข้อมูลเพิ่มเติมที่ลูกค้าถาม (ติ๊กโชว์เอง)
+├── social-posts.ts           # โพสต์ influencer แยกช่องทาง + engagement
+├── youtube-stats.ts          # ดึงยอดวิว YouTube (ต้องมี YOUTUBE_API_KEY)
 ├── age.ts · social.ts · tier.ts · storage.ts · site.ts · constants.ts · zip.ts
 
 actions/   (Server Actions — "use server")
@@ -196,6 +198,7 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 | `lib/supabase/server.ts` | client ที่ถือ **service-role key** — ถ้าหลุดไปฝั่ง browser = ข้อมูลทั้งระบบเปิดโล่ง (ต้องเป็น server-only เสมอ) |
 | `lib/supabase/auth-server.ts` | เซสชันแอดมิน + `isAdminAuthed()` ที่ทุก API ใช้ตัดสินสิทธิ์ |
 | `app/admin/(protected)/layout.tsx` | **ประตูเดียว**ที่กันหน้าแอดมินทั้งหมด (ไม่มี middleware) — พังเมื่อไหร่ = หลังบ้านเปิดสาธารณะ |
+| `components/report/CampaignCharts.tsx` | กราฟใน Report — **SVG ล้วน ห้ามเปลี่ยนเป็นไลบรารีกราฟ** (canvas พิมพ์ PDF แล้วหาย) · ทุกสีพื้นต้องมี `printColorAdjust: "exact"` |
 | `components/report/CastingReportView.tsx` | เนื้อ Casting Report ใช้ร่วมกันทั้งหน้าแอดมินและลิงก์ลูกค้า `/r/[token]` · **ขนาดรูปในนี้คุมการแบ่งหน้า PDF** การ์ดต้องสูงไม่เกิน ~210mm ไม่งั้นเกิดหน้าว่าง |
 | `components/admin/DragOrderList.tsx` | ลากวางจัดลำดับ · **ห้ามเก็บ node ไว้ใน state** (เก็บได้แค่ลำดับ id) ไม่งั้นปุ่มในการ์ดกดแล้วหน้าจอไม่อัปเดต |
 | `lib/auth/upload-guard.ts` | ยามของ API อัพรูปทั้ง 5 ตัว — แอดมิน/เจ้าของเท่านั้น · **ห้ามกลับไปเขียนแบบ `if (session && ...)`** เพราะจะกลายเป็น "ไม่มี session = ผ่าน" (ช่องโหว่ที่ปิดไป 2026-08-20) |
