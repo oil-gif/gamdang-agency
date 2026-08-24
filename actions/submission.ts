@@ -1,6 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  PLATFORMS,
+  detectPlatform,
+  type SubmissionPost,
+} from "@/lib/social-posts";
+import { fetchYoutubeStats } from "@/lib/youtube-stats";
 import { redirect } from "next/navigation";
 import { verifySubmitToken } from "@/lib/auth/talent-session";
 import {
@@ -11,6 +17,7 @@ import {
 import { SITE_URL } from "@/lib/site";
 import { supabase } from "@/lib/supabase/server";
 
+const MAX_POSTS = 8; // โพสต์ได้สูงสุด 8 ช่องทาง/แคมเปญ
 const MAX_LINKS = 5;
 const BASE_URL = SITE_URL;
 
@@ -32,6 +39,46 @@ export async function saveSubmission(formData: FormData) {
     const value = typeof raw === "string" ? raw.trim() : "";
     if (!value) continue;
     links.push(normalize(value));
+  }
+
+  // ===== งาน Influencer: โพสต์แยกช่องทาง + ยอด engagement (migration 024) =====
+  const posts: SubmissionPost[] = [];
+  for (let i = 0; i < MAX_POSTS; i++) {
+    const raw = formData.get(`post_url_${i}`);
+    const url = typeof raw === "string" ? raw.trim() : "";
+    if (!url) continue;
+    const n = (f: string) => {
+      const v = formData.get(`post_${f}_${i}`);
+      if (typeof v !== "string" || v.trim() === "") return null;
+      const x = Number(v.replace(/,/g, ""));
+      return Number.isFinite(x) && x >= 0 ? Math.round(x) : null;
+    };
+    const platRaw = String(formData.get(`post_platform_${i}`) ?? "");
+    const post: SubmissionPost = {
+      platform: (PLATFORMS.some((p) => p.key === platRaw)
+        ? platRaw
+        : detectPlatform(url)) as SubmissionPost["platform"],
+      url: normalize(url),
+      views: n("views"),
+      likes: n("likes"),
+      comments: n("comments"),
+      shares: n("shares"),
+      saves: n("saves"),
+      source: "manual",
+    };
+    // YouTube ดึงยอดให้เอง (ช่องทางเดียวที่ทำได้โดยไม่ต้องให้เจ้าของคลิปกดอนุญาต)
+    // ตัวเลขที่กรอกมือมาก่อนเสมอ — ระบบเติมให้เฉพาะช่องที่เว้นว่าง
+    if (post.platform === "youtube") {
+      const stats = await fetchYoutubeStats(post.url);
+      if (stats) {
+        if (post.views === null) post.views = stats.views;
+        if (post.likes === null) post.likes = stats.likes;
+        if (post.comments === null) post.comments = stats.comments;
+        post.source = "youtube";
+        post.fetched_at = new Date().toISOString();
+      }
+    }
+    posts.push(post);
   }
 
   const introRaw = formData.get("intro_video");
@@ -56,9 +103,9 @@ export async function saveSubmission(formData: FormData) {
 
   // influ ต้องมีลิงก์อย่างน้อย 1 · model ขอให้มีอย่างใดอย่างหนึ่ง
   // (รูป/ลิงก์/คลิป) ก็บันทึกได้
-  if (!isModel && links.length === 0) {
+  if (!isModel && posts.length === 0) {
     redirect(
-      `/submit/${token}?error=${encodeURIComponent("กรุณาใส่ลิงก์ผลงานอย่างน้อย 1 ลิงก์")}${fromAdminQS}`,
+      `/submit/${token}?error=${encodeURIComponent("กรุณาใส่ลิงก์โพสต์อย่างน้อย 1 ช่องทางค่ะ")}${fromAdminQS}`,
     );
   }
   if (isModel && links.length === 0 && !introVideo && !hasPhotos && !note) {
@@ -70,7 +117,9 @@ export async function saveSubmission(formData: FormData) {
   const { error } = await supabase
     .from("project_talents")
     .update({
-      submission_links: links,
+      submission_posts: posts,
+      // เก็บ URL ลงช่องเดิมด้วย เพื่อให้หน้าที่ยังอ่าน submission_links ทำงานได้
+      submission_links: posts.length > 0 ? posts.map((p) => p.url) : links,
       submission_note: note,
       intro_video_url: introVideo,
       submitted_at: new Date().toISOString(),

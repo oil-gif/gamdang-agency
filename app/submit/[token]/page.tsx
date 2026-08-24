@@ -1,4 +1,9 @@
 import type { Metadata } from "next";
+import { PostLinksForm } from "@/components/talent/PostLinksForm";
+import {
+  parseSubmissionPosts,
+  postsFromLegacyLinks,
+} from "@/lib/social-posts";
 import { saveSubmission } from "@/actions/submission";
 import { CastingPhotoUploader } from "@/components/talent/CastingPhotoUploader";
 import { verifySubmitToken } from "@/lib/auth/talent-session";
@@ -60,7 +65,9 @@ export default async function SubmitWorkPage({
   const { data: pt } = await supabase
     .from("project_talents")
     .select(
-      "id, project_id, submission_links, submission_note, submitted_at, extra_photo_paths, intro_video_url, talent:talents(nickname_th, nickname_en, portfolio_links, intro_video_url), project:projects(name, client_name, project_type)",
+      // ใช้ * แทนการไล่ชื่อ column — ถ้า deploy ก่อนรัน migration แล้วชื่อ column
+      // ใหม่ยังไม่มี query จะ error ทั้งก้อนจนหน้าขึ้น "ไม่พบงานนี้แล้ว"
+      "*, talent:talents(nickname_th, nickname_en, portfolio_links, intro_video_url), project:projects(name, client_name, project_type)",
     )
     .eq("id", verified.projectTalentId)
     .maybeSingle();
@@ -82,12 +89,22 @@ export default async function SubmitWorkPage({
   const project = pt.project as any;
   const isModel = project.project_type === "model";
   const name = talent?.nickname_en || talent?.nickname_th || "";
-  // เติมลิงก์ที่ส่งไว้ก่อน — ถ้ายังไม่เคยส่งงานนี้ ใช้ผลงานที่กรอกไว้ตอนสมัคร
-  // (talent.portfolio_links / intro) เพื่อไม่ต้องกรอกซ้ำ ส่งลูกค้าได้เลย
-  const existing: string[] =
-    (pt.submission_links ?? []).length > 0
+  // ⚠️ งาน Influencer ห้ามเอา portfolio_links (ผลงานเก่าในโปรไฟล์) มาเติม —
+  // คนละเรื่องกับ "โพสต์ที่ทำให้แคมเปญนี้" ของเดิมเติมให้แล้วปนกันจนแยกไม่ออก
+  // ว่าอันไหนคืองานจริง (พี่เจ้าของแจ้ง 2026-08-24) · งาน Model ยังเติมเหมือนเดิม
+  // เพราะรายงานโชว์ "ผลงานที่ผ่านมา" อยู่แล้ว
+  const existing: string[] = isModel
+    ? (pt.submission_links ?? []).length > 0
       ? pt.submission_links
-      : (talent?.portfolio_links ?? []);
+      : (talent?.portfolio_links ?? [])
+    : (pt.submission_links ?? []);
+
+  // โพสต์แยกช่องทางของงาน influencer (migration 024) — ของเก่าที่เก็บเป็น
+  // URL ลอยๆ แปลงให้อัตโนมัติ จะได้แก้ต่อได้ไม่ต้องพิมพ์ใหม่
+  const existingPosts =
+    parseSubmissionPosts(pt.submission_posts).length > 0
+      ? parseSubmissionPosts(pt.submission_posts)
+      : postsFromLegacyLinks(pt.submission_links);
   const existingIntro: string =
     pt.intro_video_url || talent?.intro_video_url || "";
   const extraPhotos: string[] = pt.extra_photo_paths ?? [];
@@ -112,7 +129,7 @@ export default async function SubmitWorkPage({
       <p className="mt-1 text-sm text-neutral-500">
         {isModel
           ? "รบกวนส่งข้อมูลเพิ่มเติมเพื่อเสนอลูกค้าค่ะ: รูปเพิ่ม 3 รูป, ลิงก์ผลงานที่เคยทำ และคลิปแนะนำตัว"
-          : `แนบลิงก์โพสต์ผลงานของคุณ (สูงสุด ${MAX_LINKS} ลิงก์) — ทีมงานจะรวบรวมทำรายงานส่งลูกค้าค่ะ`}
+          : "แนบลิงก์โพสต์ที่ลงให้งานนี้ แยกตามช่องทาง พร้อมยอด ณ วันที่ส่งงาน — ทีมงานจะรวบรวมทำรายงานส่งลูกค้าค่ะ"}
       </p>
 
       {saved && (
@@ -160,7 +177,10 @@ export default async function SubmitWorkPage({
           </div>
         )}
 
-        {Array.from({ length: MAX_LINKS }).map((_, i) => (
+        {!isModel && <PostLinksForm initial={existingPosts} />}
+
+        {isModel &&
+          Array.from({ length: MAX_LINKS }).map((_, i) => (
           <div key={i} className="space-y-1">
             <label
               htmlFor={`link_${i}`}
@@ -180,7 +200,7 @@ export default async function SubmitWorkPage({
               className="h-11 w-full rounded-xl border border-neutral-300 px-3 text-sm outline-none transition focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
             />
           </div>
-        ))}
+          ))}
         <div className="space-y-1">
           <label htmlFor="note" className="text-xs font-medium text-neutral-500">
             โน้ตถึงทีมงาน (ถ้ามี)

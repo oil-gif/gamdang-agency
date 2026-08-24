@@ -1,0 +1,21 @@
+-- ผลงานที่ Influencer โพสต์จริงในแคมเปญ แยกตามช่องทาง + ยอด engagement
+--
+-- ทำไมต้องมี: เดิมเก็บเป็น submission_links (text[]) ซึ่งเป็นแค่ URL ลอยๆ
+-- ไม่รู้ว่าโพสต์ที่ช่องทางไหน ไม่มียอดวิว/ไลก์ → ทำ Report กับ Dashboard
+-- ให้ลูกค้าไม่ได้ · และหน้าส่งงานยังเผลอเอา "ลิงก์ผลงานเก่า" จากโปรไฟล์
+-- มาเติมให้ ทำให้ปนกับ "ลิงก์งานที่โพสต์จริง" (พี่เจ้าของแจ้ง 2026-08-24)
+--
+-- รูปแบบ submission_posts:
+-- [{
+--   "platform": "tiktok" | "instagram" | "youtube" | "facebook" | "lemon8" | "other",
+--   "url": "https://...",
+--   "posted_at": "2026-08-20",          -- ไม่บังคับ
+--   "views": 12500, "likes": 890, "comments": 45, "shares": 12, "saves": 8,
+--   "source": "manual" | "youtube",     -- ตัวเลขมาจากกรอกมือ หรือดึงอัตโนมัติ
+--   "fetched_at": "2026-08-24T10:00:00Z"
+-- }]
+--
+-- ⚠️ submission_links (ของเดิม) ยังอยู่ ห้ามลบ — งานเก่าใช้อยู่ และ Report
+--    อ่านทั้งสองที่ (ดู lib/social-posts.ts)
+alter table project_talents
+  add column if not exists submission_posts jsonb not null default '[]'::jsonb;
