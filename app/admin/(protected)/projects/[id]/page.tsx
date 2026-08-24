@@ -34,6 +34,10 @@ import {
 import { notifyTalentViaLine, sendJobConfirmed } from "@/actions/job-notify";
 import { requestSubmissionViaLine } from "@/actions/submission";
 import { CopyButton } from "@/components/admin/CopyButton";
+import {
+  SubmittedPosts,
+  readPosts,
+} from "@/components/admin/SubmittedPosts";
 import { JobCopyButton } from "@/components/admin/JobCopyButton";
 import { ProjectForm } from "@/components/admin/ProjectForm";
 import { Badge } from "@/components/ui/badge";
@@ -572,6 +576,9 @@ export default async function ProjectDetailPage({
             const showLinks =
               submissionLinks.length > 0 ? submissionLinks : portfolioLinks;
             const linksFromProfile = submissionLinks.length === 0;
+            // โพสต์แยกช่องทาง + ยอด (migration 024) — งาน influencer ใช้ตัวนี้
+            const posts = readPosts(pt);
+            const showPosts = project.project_type !== "model" && posts.length > 0;
             const introVideo = t.intro_video_url ?? pt.intro_video_url ?? null;
             const responseChip = pt.talent_response
               ? RESPONSE_CHIP[pt.talent_response]
@@ -787,7 +794,8 @@ export default async function ProjectDetailPage({
                 </form>
                 {pt.submitted_at ? (
                   <span className="rounded-full bg-[#1D4ED8]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#1D4ED8]">
-                    📤 ส่งงานแล้ว {submissionLinks.length} ลิงก์
+                    📤 ส่งงานแล้ว{" "}
+                    {showPosts ? `${posts.length} โพสต์` : `${submissionLinks.length} ลิงก์`}
                   </span>
                 ) : showLinks.length > 0 ? (
                   <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-semibold text-neutral-600">
@@ -813,7 +821,8 @@ export default async function ProjectDetailPage({
                     🎬 คลิปแนะนำตัว
                   </a>
                 )}
-                {showLinks.map((link, li) => (
+                {!showPosts &&
+                  showLinks.map((link, li) => (
                   <a
                     key={li}
                     href={link}
@@ -824,7 +833,7 @@ export default async function ProjectDetailPage({
                   >
                     🔗 {link.replace(/^https?:\/\/(www\.)?/, "")}
                   </a>
-                ))}
+                  ))}
                 <span className="flex-1" />
                 {t.line_user_id && (
                   <form action={requestSubmissionViaLine}>
@@ -857,6 +866,13 @@ export default async function ProjectDetailPage({
                   }
                 />
               </div>
+
+              {/* โพสต์ที่ส่งงานมา แยกช่องทาง + ยอด (งาน Influencer) */}
+              {showPosts && (
+                <div className="border-t border-neutral-100 pt-2.5">
+                  <SubmittedPosts posts={posts} />
+                </div>
+              )}
 
               {/* ข้อมูลเพิ่มเติมที่ลูกค้าถาม (English Level, Passport, Swim ฯลฯ)
                   — วางไว้ตรงนี้เพราะแอดมินคุยกับลูกค้าอยู่หน้านี้ ดู migration 022 */}
