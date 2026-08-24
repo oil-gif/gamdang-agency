@@ -249,6 +249,12 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 - `CASTING_LINE_CHANNEL_SECRET`
 - `CASTING_LINE_GROUP_ID`
 
+### ดึงยอดวิว YouTube (Engagement ของงาน Influencer)
+- `YOUTUBE_API_KEY` — YouTube Data API v3 · ใช้ดึงวิว/ไลก์/คอมเมนต์ของคลิปที่ influencer
+  ส่งงาน (`lib/youtube-stats.ts`) · **ไม่ตั้งก็ใช้ระบบได้** แค่ต้องกรอกตัวเลขเอง
+  · โควตาฟรี 10,000 หน่วย/วัน (1 คลิป = 1 หน่วย) · จำกัดสิทธิ์ไว้เฉพาะ YouTube Data API v3
+  · IG/TikTok/Facebook ดึงแบบนี้ไม่ได้ ต้องให้ influencer แต่ละคน OAuth เข้ามา
+
 ### เว็บ / ความปลอดภัย
 - `NEXT_PUBLIC_SITE_URL` — โดเมนแอป (ลิงก์แชร์/OG/token ทั้งหมดอิงตัวนี้)
 - `NEXT_PUBLIC_MAIN_SITE_URL` — เว็บหลัก WordPress (ปุ่ม "กลับหน้าหลัก")
