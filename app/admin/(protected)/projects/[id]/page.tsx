@@ -251,6 +251,13 @@ export default async function ProjectDetailPage({
           <Button asChild variant="outline" size="sm">
             <Link href={`/admin/projects/${id}/report`}>📊 Report ผลงาน</Link>
           </Button>
+          {/* ทางลัดไปหาลิงก์ Report ที่ส่งให้ลูกค้า — อยู่ในกล่อง "ส่งให้ลูกค้า"
+              ด้านล่าง แต่หาไม่เจอถ้าไม่รู้ว่าอยู่ตรงไหน */}
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/admin/projects/${id}?open=send#send-client`}>
+              🔗 ลิงก์ Report ให้ลูกค้า
+            </Link>
+          </Button>
           <DangerConfirmButton
             action={deleteProject}
             hiddenFields={{ id }}
@@ -1179,11 +1186,12 @@ export default async function ProjectDetailPage({
       {/* ===== ส่งให้ลูกค้า: สถานะที่บันทึกเอง + ลิงก์ ===== */}
       {/* กางเองถ้ายังไม่ได้บันทึกว่าส่ง — เตือนว่ายังมีงานค้าง */}
       <CollapsibleSection
+        id="send-client"
         icon="📤"
         title="ส่งให้ลูกค้า"
         badge={project.client_sent_at ? "ส่งแล้ว ✓" : "ยังไม่ส่ง"}
         hint={`ลิงก์ลูกค้า ${links.length} ลิงก์ · เปิดดู ${totalLinkViews} ครั้ง`}
-        defaultOpen={!project.client_sent_at}
+        defaultOpen={!project.client_sent_at || openParam === "send"}
       >
       <section className="space-y-4">
 
@@ -1362,17 +1370,31 @@ export default async function ProjectDetailPage({
                   )}
                 </div>
 
-                {/* ลิงก์ Casting Report — ใช้ token เดียวกับด้านบน ให้ลูกค้ากดดู
-                    รายงาน (คนที่เขาเลือก + ผลงาน) เองได้ ไม่ต้องส่ง PDF */}
-                {l.status === "active" && !expired && (
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-1.5">
-                    <span className="shrink-0 text-[11px] font-semibold text-[#B82233]">
-                      📊 Report:
-                    </span>
-                    <code className="min-w-0 flex-1 truncate rounded bg-neutral-50 px-2 py-1 text-xs">
-                      {reportUrl}
-                    </code>
-                    <CopyButton text={reportUrl} label="คัดลอกลิงก์ Report" />
+                {/* ลิงก์ Report — ใช้ token เดียวกับด้านบน ให้ลูกค้ากดดูรายงานเองได้
+                    ไม่ต้องส่ง PDF · โชว์แม้ลิงก์หมดอายุ (แค่เตือนให้ต่ออายุก่อน)
+                    เดิมซ่อนทั้งแถวตอนหมดอายุ แอดมินเลยหาปุ่มไม่เจอ นึกว่าไม่มี
+                    ระบบนี้ (พี่เจ้าของแจ้ง 2026-08-24) */}
+                {l.status !== "revoked" && (
+                  <div className="mt-1.5 border-t border-neutral-100 pt-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="shrink-0 text-[11px] font-semibold text-[#B82233]">
+                        📊 Report:
+                      </span>
+                      <code
+                        className={`min-w-0 flex-1 truncate rounded px-2 py-1 text-xs ${
+                          expired ? "bg-neutral-100 text-neutral-400" : "bg-neutral-50"
+                        }`}
+                      >
+                        {reportUrl}
+                      </code>
+                      <CopyButton text={reportUrl} label="คัดลอกลิงก์ Report" />
+                    </div>
+                    {expired && (
+                      <p className="mt-1 text-[11px] font-medium text-amber-700">
+                        ⚠️ ลิงก์หมดอายุแล้ว — กด &quot;ต่ออายุ&quot; ด้านบนก่อน
+                        ลูกค้าถึงจะเปิดดูได้
+                      </p>
+                    )}
                   </div>
                 )}
 
