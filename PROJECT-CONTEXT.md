@@ -101,6 +101,7 @@ lib/
 ├── datetime.ts               # ⚠️ ต้องใช้แทน toLocale* (ล็อก Asia/Bangkok)
 ├── extra-details.ts          # ข้อมูลเพิ่มเติมที่ลูกค้าถาม (ติ๊กโชว์เอง)
 ├── social-posts.ts           # โพสต์ influencer แยกช่องทาง + engagement
+│                             # (socialIconKey: "instagram" → "ig" ของ SocialIcon)
 ├── youtube-stats.ts          # ดึงยอดวิว YouTube (ต้องมี YOUTUBE_API_KEY)
 ├── age.ts · social.ts · tier.ts · storage.ts · site.ts · constants.ts · zip.ts
 
