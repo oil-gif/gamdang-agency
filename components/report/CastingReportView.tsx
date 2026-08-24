@@ -7,6 +7,11 @@ import { getProject, getProjectTalents } from "@/actions/projects";
 import { PrintButton } from "@/components/public/PrintButton";
 import { calculateAge } from "@/lib/age";
 import { CONTACT, ETHNICITIES, TIER_LABEL } from "@/lib/constants";
+import {
+  BarList,
+  DonutChart,
+  PlatformLegend,
+} from "@/components/report/CampaignCharts";
 import { formatFollowers, topSocial, topSocials } from "@/lib/social";
 import {
   formatCount,
@@ -255,6 +260,41 @@ export async function CastingReportView({
                     </div>
                   ))}
                 </dl>
+                {/* กราฟ: สัดส่วนยอดวิวแยกช่องทาง + ยอดวิวรายคน
+                    วาดด้วย SVG เพื่อให้พิมพ์ PDF ออกมาคมและไม่หาย */}
+                <div className="grid grid-cols-1 gap-4 border-b border-neutral-200 p-3 sm:grid-cols-2">
+                  <div className="flex items-center gap-3">
+                    <DonutChart
+                      slices={rows.map((r) => ({ key: r.key, value: r.sum.views }))}
+                      centerValue={formatCount(total.views)}
+                      centerLabel="TOTAL VIEWS"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="mb-1 text-[11px] font-semibold text-neutral-500">
+                        สัดส่วนยอดวิว (Views by platform)
+                      </p>
+                      <PlatformLegend
+                        slices={rows.map((r) => ({ key: r.key, value: r.sum.views }))}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-1.5 text-[11px] font-semibold text-neutral-500">
+                      ยอดวิวรายคน (Views by influencer)
+                    </p>
+                    <BarList
+                      rows={submitted
+                        .map((x) => ({
+                          label:
+                            x.talent.nickname_en || x.talent.nickname_th || x.talent.code,
+                          value: sumEngagement(readReportPosts(x)).views,
+                        }))
+                        .sort((a, b) => b.value - a.value)
+                        .slice(0, 8)}
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-1.5 p-3">
                   <p className="text-[11px] font-semibold text-neutral-500">
                     แยกตามช่องทาง (By platform)
