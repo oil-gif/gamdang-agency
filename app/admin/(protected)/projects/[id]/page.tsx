@@ -255,7 +255,9 @@ export default async function ProjectDetailPage({
               ด้านล่าง แต่หาไม่เจอถ้าไม่รู้ว่าอยู่ตรงไหน */}
           <Button asChild variant="outline" size="sm">
             <Link href={`/admin/projects/${id}?open=send#send-client`}>
-              🔗 ลิงก์ Report ให้ลูกค้า
+              {links.length === 0
+                ? "🔗 สร้างลิงก์ให้ลูกค้า"
+                : "🔗 ลิงก์ Report ให้ลูกค้า"}
             </Link>
           </Button>
           <DangerConfirmButton
@@ -1413,7 +1415,11 @@ export default async function ProjectDetailPage({
           })}
           {links.length === 0 && (
             <p className="rounded-lg border border-dashed bg-white p-6 text-center text-sm text-neutral-400">
-              ยังไม่มีลิงก์ — กด &quot;+ สร้างลิงก์&quot; แล้วส่ง URL ให้ลูกค้า
+              ยังไม่มีลิงก์ — กด &quot;+ สร้างลิงก์&quot; ด้านบนก่อน
+              <span className="mt-1 block text-neutral-500">
+                1 ลิงก์ได้ <b>2 อย่าง</b>: หน้าเสนอทาเลนต์ให้ลูกค้าเลือก
+                และ <b>📊 ลิงก์ Report</b> สรุปผลงาน
+              </span>
             </p>
           )}
         </div>
