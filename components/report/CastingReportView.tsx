@@ -8,6 +8,15 @@ import { PrintButton } from "@/components/public/PrintButton";
 import { calculateAge } from "@/lib/age";
 import { CONTACT, ETHNICITIES, TIER_LABEL } from "@/lib/constants";
 import { formatFollowers, topSocial, topSocials } from "@/lib/social";
+import {
+  formatCount,
+  parseSubmissionPosts,
+  platformColor,
+  platformLabel,
+  postsFromLegacyLinks,
+  sumEngagement,
+  type SubmissionPost,
+} from "@/lib/social-posts";
 import { visibleExtraDetails } from "@/lib/extra-details";
 import { getPhotoProxyUrl } from "@/lib/storage";
 import { formatThaiDate } from "@/lib/datetime";
@@ -20,6 +29,17 @@ const ETHNICITY_LABEL: Record<string, string> = Object.fromEntries(
 // - งาน influencer: Result Report รวมลิงก์โพสต์ผลงานของทุกคนที่ส่งมา
 // - งาน model: Casting Report การ์ดคนที่ลูกค้าเลือก + รูปเพิ่ม 3 รูป +
 //   ลิงก์ผลงานที่เคยทำ + คลิปแนะนำตัว
+
+// โพสต์ที่ influencer ส่งงานมา — ของใหม่เก็บแยกช่องทาง (migration 024)
+// ของเก่าเป็น URL ลอยๆ ใน submission_links → แปลงให้อ่านร่วมกันได้
+function readReportPosts(pt: {
+  submission_posts?: unknown;
+  submission_links?: unknown;
+}): SubmissionPost[] {
+  const posts = parseSubmissionPosts(pt.submission_posts);
+  return posts.length > 0 ? posts : postsFromLegacyLinks(pt.submission_links);
+}
+
 export async function CastingReportView({
   id,
   forClient = false,
@@ -188,6 +208,84 @@ export async function CastingReportView({
               : "ยังไม่มีใครส่งลิงก์ผลงาน — ใช้ปุ่ม \"📤 ขอส่งงานทาง LINE\" ในหน้าโปรเจกต์ก่อน"}
           </p>
         )}
+
+        {/* ===== Dashboard รวมทั้งแคมเปญ (งาน Influencer) =====
+            ลูกค้าเปิดรายงานมาต้องเห็นภาพรวมก่อนว่าแคมเปญนี้ได้อะไรกลับไป
+            แล้วค่อยไล่ดูรายคนด้านล่าง */}
+        {!isModel &&
+          (() => {
+            const all = submitted.flatMap((pt) => readReportPosts(pt));
+            const total = sumEngagement(all);
+            if (all.length === 0) return null;
+            // แยกยอดตามช่องทาง — ลูกค้าอยากรู้ว่าช่องไหนได้ผลที่สุด
+            const byPlatform = new Map<string, SubmissionPost[]>();
+            for (const p of all) {
+              byPlatform.set(p.platform, [...(byPlatform.get(p.platform) ?? []), p]);
+            }
+            const rows = [...byPlatform.entries()]
+              .map(([key, list]) => ({ key, sum: sumEngagement(list) }))
+              .sort((a, b) => b.sum.views - a.sum.views);
+            const stats = [
+              { label: "Influencers", value: String(submitted.length) },
+              { label: "Posts", value: String(total.posts) },
+              { label: "Total Views", value: formatCount(total.views) },
+              { label: "Engagement", value: formatCount(total.engagement) },
+              {
+                label: "Avg. ER",
+                value: total.rate !== null ? `${total.rate.toFixed(1)}%` : "—",
+              },
+            ];
+            return (
+              <div className="report-block mb-4 overflow-hidden rounded-xl border border-neutral-200">
+                <div
+                  className="bg-gradient-to-r from-[#1D4ED8] to-[#B82233] px-4 py-2.5 text-white"
+                  style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+                >
+                  <p className="text-sm font-bold">📊 Campaign Summary — ภาพรวมแคมเปญ</p>
+                </div>
+                <dl className="grid grid-cols-3 divide-neutral-200 border-b border-neutral-200 sm:grid-cols-5 sm:divide-x">
+                  {stats.map((x) => (
+                    <div key={x.label} className="px-3 py-3 text-center">
+                      <dt className="text-[10px] font-medium tracking-wide text-neutral-400 uppercase">
+                        {x.label}
+                      </dt>
+                      <dd className="mt-0.5 text-lg font-extrabold text-neutral-800">
+                        {x.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="space-y-1.5 p-3">
+                  <p className="text-[11px] font-semibold text-neutral-500">
+                    แยกตามช่องทาง (By platform)
+                  </p>
+                  {rows.map(({ key, sum }) => (
+                    <div key={key} className="flex flex-wrap items-center gap-2 text-xs">
+                      <span
+                        className="w-20 shrink-0 rounded px-1.5 py-0.5 text-center text-[10px] font-bold text-white"
+                        style={{
+                          backgroundColor: platformColor(key),
+                          WebkitPrintColorAdjust: "exact",
+                          printColorAdjust: "exact",
+                        }}
+                      >
+                        {platformLabel(key)}
+                      </span>
+                      <span className="text-neutral-600">
+                        {sum.posts} posts · {formatCount(sum.views)} views ·{" "}
+                        {formatCount(sum.engagement)} engagement
+                        {sum.rate !== null && (
+                          <span className="ml-1 font-semibold text-emerald-700">
+                            (ER {sum.rate.toFixed(1)}%)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
         <div className="space-y-4">
           {submitted.map((pt) => {
@@ -425,23 +523,84 @@ export async function CastingReportView({
                       </span>
                     )}
                   </div>
-                  <ul className="mt-2 space-y-1">
-                    {links.map((link, li) => (
-                      <li key={li} className="flex items-baseline gap-1.5 text-sm">
-                        <span className="text-[11px] text-neutral-400">
-                          {li + 1}.
-                        </span>
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="break-all text-[#1D4ED8] underline underline-offset-2"
-                        >
-                          {link}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+                  {/* สรุปยอดของคนนี้ — ลูกค้าดูตัวเลขนี้เป็นหลัก */}
+                  {(() => {
+                    const posts = readReportPosts(pt);
+                    const sum = sumEngagement(posts);
+                    if (posts.length === 0) {
+                      return (
+                        <p className="mt-2 text-sm text-neutral-400">
+                          ยังไม่ได้ส่งผลงาน (No posts submitted yet)
+                        </p>
+                      );
+                    }
+                    return (
+                      <>
+                        {(sum.views > 0 || sum.engagement > 0) && (
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 rounded-lg bg-neutral-50 px-3 py-2 text-xs">
+                            <span className="text-neutral-500">
+                              Posts{" "}
+                              <b className="text-neutral-800">{sum.posts}</b>
+                            </span>
+                            <span className="text-neutral-500">
+                              Views{" "}
+                              <b className="text-neutral-800">
+                                {formatCount(sum.views)}
+                              </b>
+                            </span>
+                            <span className="text-neutral-500">
+                              Engagement{" "}
+                              <b className="text-neutral-800">
+                                {formatCount(sum.engagement)}
+                              </b>
+                            </span>
+                            {sum.rate !== null && (
+                              <span className="font-bold text-emerald-700">
+                                ER {sum.rate.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <ul className="mt-2 space-y-1.5">
+                          {posts.map((p: SubmissionPost, li: number) => (
+                            <li key={li} className="text-sm">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span
+                                  className="rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
+                                  style={{ backgroundColor: platformColor(p.platform) }}
+                                >
+                                  {platformLabel(p.platform)}
+                                </span>
+                                {[
+                                  p.views != null ? `${formatCount(p.views)} views` : null,
+                                  p.likes != null ? `${formatCount(p.likes)} likes` : null,
+                                  p.comments != null
+                                    ? `${formatCount(p.comments)} comments`
+                                    : null,
+                                  p.shares ? `${formatCount(p.shares)} shares` : null,
+                                  p.saves ? `${formatCount(p.saves)} saves` : null,
+                                ]
+                                  .filter(Boolean)
+                                  .map((x, xi) => (
+                                    <span key={xi} className="text-xs text-neutral-600">
+                                      {x}
+                                    </span>
+                                  ))}
+                              </div>
+                              <a
+                                href={p.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="break-all text-[#1D4ED8] underline underline-offset-2"
+                              >
+                                {p.url}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    );
+                  })()}
                   {pt.submission_note && (
                     <p className="mt-1.5 text-xs text-neutral-500">
                       หมายเหตุ: {pt.submission_note}
