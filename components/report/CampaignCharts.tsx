@@ -1,4 +1,5 @@
-import { formatCount, platformColor, platformLabel } from "@/lib/social-posts";
+import { PlatformTag } from "@/components/report/PlatformTag";
+import { formatCount, platformColor } from "@/lib/social-posts";
 
 // กราฟสรุปแคมเปญสำหรับรายงานลูกค้า — วาดด้วย SVG ล้วน ไม่ใช้ไลบรารีกราฟ
 //
@@ -143,8 +144,8 @@ export function PlatformLegend({ slices }: { slices: Slice[] }) {
               className="size-2.5 shrink-0 rounded-sm"
               style={{ backgroundColor: platformColor(s.key), ...exact }}
             />
-            <span className="w-20 shrink-0 font-medium text-neutral-700">
-              {platformLabel(s.key)}
+            <span className="flex w-24 shrink-0 items-center gap-1">
+              <PlatformTag platform={s.key} size={14} />
             </span>
             <span className="text-neutral-500">{formatCount(s.value)}</span>
             <span className="ml-auto font-bold text-neutral-800">

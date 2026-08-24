@@ -7,6 +7,7 @@ import { getProject, getProjectTalents } from "@/actions/projects";
 import { PrintButton } from "@/components/public/PrintButton";
 import { calculateAge } from "@/lib/age";
 import { CONTACT, ETHNICITIES, TIER_LABEL } from "@/lib/constants";
+import { PlatformTag } from "@/components/report/PlatformTag";
 import {
   BarList,
   DonutChart,
@@ -16,8 +17,6 @@ import { formatFollowers, topSocial, topSocials } from "@/lib/social";
 import {
   formatCount,
   parseSubmissionPosts,
-  platformColor,
-  platformLabel,
   postsFromLegacyLinks,
   sumEngagement,
   type SubmissionPost,
@@ -301,15 +300,8 @@ export async function CastingReportView({
                   </p>
                   {rows.map(({ key, sum }) => (
                     <div key={key} className="flex flex-wrap items-center gap-2 text-xs">
-                      <span
-                        className="w-20 shrink-0 rounded px-1.5 py-0.5 text-center text-[10px] font-bold text-white"
-                        style={{
-                          backgroundColor: platformColor(key),
-                          WebkitPrintColorAdjust: "exact",
-                          printColorAdjust: "exact",
-                        }}
-                      >
-                        {platformLabel(key)}
+                      <span className="flex w-24 shrink-0 items-center gap-1">
+                        <PlatformTag platform={key} size={16} />
                       </span>
                       <span className="text-neutral-600">
                         {sum.posts} posts · {formatCount(sum.views)} views ·{" "}
@@ -605,12 +597,7 @@ export async function CastingReportView({
                           {posts.map((p: SubmissionPost, li: number) => (
                             <li key={li} className="text-sm">
                               <div className="flex flex-wrap items-center gap-1.5">
-                                <span
-                                  className="rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
-                                  style={{ backgroundColor: platformColor(p.platform) }}
-                                >
-                                  {platformLabel(p.platform)}
-                                </span>
+                                <PlatformTag platform={p.platform} size={17} />
                                 {[
                                   p.views != null ? `${formatCount(p.views)} views` : null,
                                   p.likes != null ? `${formatCount(p.likes)} likes` : null,

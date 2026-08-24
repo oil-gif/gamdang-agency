@@ -1,8 +1,7 @@
+import { PlatformTag } from "@/components/report/PlatformTag";
 import {
   formatCount,
   parseSubmissionPosts,
-  platformColor,
-  platformLabel,
   postsFromLegacyLinks,
   sumEngagement,
   type SubmissionPost,
@@ -47,7 +46,6 @@ export function SubmittedPosts({ posts }: { posts: SubmissionPost[] }) {
 
       <div className="space-y-1">
         {posts.map((p, i) => {
-          const color = platformColor(p.platform);
           const stats = [
             p.views !== null && p.views !== undefined ? `${formatCount(p.views)} วิว` : null,
             p.likes !== null && p.likes !== undefined ? `${formatCount(p.likes)} ไลก์` : null,
@@ -59,11 +57,8 @@ export function SubmittedPosts({ posts }: { posts: SubmissionPost[] }) {
           ].filter(Boolean);
           return (
             <div key={i} className="flex flex-wrap items-center gap-1.5 text-[11px]">
-              <span
-                className="shrink-0 rounded-full px-2 py-0.5 font-bold text-white"
-                style={{ backgroundColor: color }}
-              >
-                {platformLabel(p.platform)}
+              <span className="shrink-0">
+                <PlatformTag platform={p.platform} size={16} />
               </span>
               {stats.length > 0 ? (
                 <span className="text-neutral-600">{stats.join(" · ")}</span>

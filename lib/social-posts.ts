@@ -140,3 +140,11 @@ export function formatCount(n: number | null | undefined): string {
   if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
   return String(n);
 }
+
+// map ไป key ของ <SocialIcon /> ที่ใช้โลโก้จริง (lib/social ใช้ "ig" ไม่ใช่ "instagram")
+// คืน null สำหรับ "other" ที่ไม่มีโลโก้ → ให้ผู้เรียกวาดป้ายข้อความแทน
+export function socialIconKey(platform: string): string | null {
+  if (platform === "instagram") return "ig";
+  if (["tiktok", "youtube", "facebook", "lemon8"].includes(platform)) return platform;
+  return null;
+}
