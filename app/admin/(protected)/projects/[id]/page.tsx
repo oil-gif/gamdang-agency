@@ -557,6 +557,52 @@ export default async function ProjectDetailPage({
             </span>
           )}
         </div>
+        {/* คำอธิบายปุ่ม — พนักงานสับสนว่าปุ่มไหนส่งข้อความหาน้องจริง ปุ่มไหน
+            แค่บันทึกไว้เฉยๆ (พี่เจ้าของแจ้ง 2026-08-24) · พับไว้ ไม่ให้รก */}
+        {projectTalents.length > 0 && (
+          <details className="rounded-lg border border-neutral-200 bg-neutral-50/70 text-xs">
+            <summary className="cursor-pointer list-none px-3 py-2 font-medium text-neutral-500 hover:text-neutral-700">
+              ℹ️ ปุ่มไหนทำอะไร? (กดดูคำอธิบาย)
+            </summary>
+            <div className="space-y-2 border-t border-neutral-200 px-3 py-2.5">
+              <p className="text-neutral-600">
+                <b className="text-neutral-800">สีของปุ่มบอกว่าเกิดอะไรขึ้น:</b>
+              </p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                <span className="flex items-center gap-1.5">
+                  <span className="rounded-full bg-[#06C755] px-2 py-0.5 font-semibold text-white">
+                    เขียว
+                  </span>
+                  <span className="text-neutral-600">
+                    = <b>ส่งข้อความหาน้องทาง LINE จริง</b> (น้องได้รับทันที)
+                  </span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="rounded-full border border-neutral-300 bg-white px-2 py-0.5 font-semibold text-neutral-600">
+                    ขาว/เส้นขอบ
+                  </span>
+                  <span className="text-neutral-600">
+                    = <b>บันทึกในระบบเฉยๆ</b> ไม่มีอะไรส่งออกไป
+                  </span>
+                </span>
+              </div>
+              <div className="space-y-1 border-t border-neutral-200 pt-2 text-neutral-600">
+                <p>
+                  <b className="text-neutral-700">① แจ้งงาน</b> — ส่งงานให้น้องดู
+                  แล้วบันทึกว่าเขารับหรือปฏิเสธ (บันทึกแทนได้ถ้าคุยกันนอกระบบ)
+                </p>
+                <p>
+                  <b className="text-neutral-700">② ส่งงาน</b> — ขอให้น้องส่งผลงาน
+                  · &quot;กรอกแทน&quot; = เปิดฟอร์มเดียวกับน้องเพื่อกรอกให้เอง
+                </p>
+                <p>
+                  <b className="text-neutral-700">③ โพสต์ที่ลง</b> — ผลงานที่ส่งมาแล้ว
+                  แยกตามช่องทาง · ป้าย <b>⟳ auto</b> = ยอดที่ระบบดึงมาเอง
+                </p>
+              </div>
+            </div>
+          </details>
+        )}
         {projectTalents.length === 0 && (
           <p className="rounded-lg border border-dashed bg-white p-6 text-center text-sm text-neutral-400">
             ยังไม่มี talent — ค้นหาแล้วกด &quot;เพิ่ม&quot; ด้านล่าง
@@ -675,6 +721,9 @@ export default async function ProjectDetailPage({
 
               {/* แถบแจ้งงาน + สถานะตอบรับ */}
               <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-2.5">
+                <span className="w-full shrink-0 text-[10px] font-bold tracking-wide text-neutral-400 sm:w-20">
+                  ① แจ้งงาน
+                </span>
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                     responseChip
@@ -772,6 +821,9 @@ export default async function ProjectDetailPage({
 
               {/* แถบส่งงาน/ผลงาน + สถานะลูกค้าเลือก */}
               <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-2.5">
+                <span className="w-full shrink-0 text-[10px] font-bold tracking-wide text-neutral-400 sm:w-20">
+                  ② ส่งงาน
+                </span>
                 {/* แอดมินติ๊ก "ลูกค้าสนใจ" แทนลูกค้าได้ */}
                 <form action={toggleClientInterestAdmin}>
                   <input type="hidden" name="pt_id" value={pt.id} />
@@ -869,8 +921,13 @@ export default async function ProjectDetailPage({
 
               {/* โพสต์ที่ส่งงานมา แยกช่องทาง + ยอด (งาน Influencer) */}
               {showPosts && (
-                <div className="border-t border-neutral-100 pt-2.5">
-                  <SubmittedPosts posts={posts} />
+                <div className="flex flex-wrap gap-2 border-t border-neutral-100 pt-2.5">
+                  <span className="w-full shrink-0 text-[10px] font-bold tracking-wide text-neutral-400 sm:w-20">
+                    ③ โพสต์ที่ลง
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <SubmittedPosts posts={posts} />
+                  </div>
                 </div>
               )}
 
