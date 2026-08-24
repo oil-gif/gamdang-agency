@@ -108,21 +108,26 @@ export function PostLinksForm({ initial }: { initial: SubmissionPost[] }) {
 
             <div>
               <p className="text-[11px] font-medium text-neutral-500">
-                ยอด ณ วันที่ส่งงาน (ไม่บังคับ — ใส่เท่าที่มี)
+                ยอด ณ วันที่ส่งงาน{" "}
+                <span className="font-normal text-neutral-400">
+                  (ไม่บังคับ — ไม่ใส่ก็ได้ ทีมงานเติมให้ทีหลัง)
+                </span>
                 {isYoutube && (
                   <span className="ml-1 text-emerald-600">
                     · YouTube ระบบดึงให้อัตโนมัติ
                   </span>
                 )}
               </p>
-              <div className="mt-1 grid grid-cols-3 gap-1.5 sm:grid-cols-5">
+
+              {/* 3 ช่องหลัก — ดูได้จากหน้าโพสต์ทุกแพลตฟอร์ม ทีมงานจึงกรอกแทนได้
+                  ส่วนแชร์/เซฟ ของ IG ต้องเปิด Insights ถึงจะเห็น เลยซ่อนไว้
+                  ไม่ให้เป็นภาระตอนกรอก (พี่เจ้าของเลือกไว้ 2026-08-24) */}
+              <div className="mt-1 grid grid-cols-3 gap-1.5">
                 {(
                   [
                     ["views", "วิว"],
                     ["likes", "ไลก์"],
                     ["comments", "คอมเมนต์"],
-                    ["shares", "แชร์"],
-                    ["saves", "เซฟ"],
                   ] as const
                 ).map(([field, label]) => (
                   <div key={field}>
@@ -139,6 +144,33 @@ export function PostLinksForm({ initial }: { initial: SubmissionPost[] }) {
                   </div>
                 ))}
               </div>
+
+              <details className="mt-1.5" open={Boolean(r.shares || r.saves)}>
+                <summary className="cursor-pointer list-none text-[11px] text-neutral-400 hover:text-[#1D4ED8]">
+                  + เพิ่มตัวเลข (แชร์ / เซฟ) — ถ้ามี
+                </summary>
+                <div className="mt-1 grid grid-cols-2 gap-1.5">
+                  {(
+                    [
+                      ["shares", "แชร์"],
+                      ["saves", "เซฟ"],
+                    ] as const
+                  ).map(([field, label]) => (
+                    <div key={field}>
+                      <label className="text-[10px] text-neutral-400">{label}</label>
+                      <input
+                        name={`post_${field}_${i}`}
+                        type="text"
+                        inputMode="numeric"
+                        value={r[field]}
+                        onChange={(e) => set(i, { [field]: e.target.value } as Partial<Row>)}
+                        placeholder="—"
+                        className="h-9 w-full rounded-md border border-neutral-300 px-2 text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </details>
             </div>
           </div>
         );
