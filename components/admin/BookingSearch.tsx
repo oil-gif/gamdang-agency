@@ -5,9 +5,28 @@ import { useState } from "react";
 // ค้นหาการจองแบบกรองทันที (client-side) สำหรับเช็คอินหน้างาน — พิมพ์ชื่อ/
 // ชื่อเล่น/เบอร์ แล้วซ่อนการ์ดที่ไม่ตรงทันที ไม่ต้องโหลดหน้าใหม่
 // (การ์ดการจองแต่ละใบมี data-b-search = ข้อความค้นหา lowercase)
-export function BookingSearch({ total }: { total: number }) {
-  const [q, setQ] = useState("");
-  const [shown, setShown] = useState(total);
+//
+// ⚠️ ตั้งแต่คิวจองถูกแบ่งหน้า (รอบละ 20 คิว) การกรองทันทีเห็นแค่ "หน้าที่เปิดอยู่"
+// เท่านั้น · คนที่ยืนรออยู่หน้างานอาจอยู่หน้า 3 → เลยทำเป็นฟอร์ม GET ด้วย
+// กด Enter = ให้เซิร์ฟเวอร์ค้นทั้งรอบแล้วโชว์ครบทุกคนที่ตรง ไม่ว่าอยู่หน้าไหน
+// พิมพ์เฉยๆ ยังกรองทันทีเหมือนเดิม (เร็วกว่า ถ้าคนที่หาอยู่ในหน้านี้)
+export function BookingSearch({
+  total,
+  shownTotal,
+  action,
+  defaultValue = "",
+}: {
+  /** จำนวนคิวทั้งรอบ */
+  total: number;
+  /** จำนวนคิวที่แสดงอยู่ในหน้านี้ — ฐานของการกรองทันที */
+  shownTotal?: number;
+  /** URL ของหน้ารอบนี้ (ฟอร์ม GET ยิงกลับมาที่เดิมพร้อม ?bq=) */
+  action?: string;
+  defaultValue?: string;
+}) {
+  const base = shownTotal ?? total;
+  const [q, setQ] = useState(defaultValue);
+  const [shown, setShown] = useState(base);
 
   function handle(value: string) {
     setQ(value);
@@ -33,10 +52,17 @@ export function BookingSearch({ total }: { total: number }) {
     }
   }
 
+  const paged = base < total;
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <form
+      action={action}
+      method="get"
+      className="flex flex-wrap items-center gap-2"
+    >
       <div className="relative min-w-64 flex-1">
         <input
+          name="bq"
           value={q}
           onChange={(e) => handle(e.target.value)}
           placeholder="🔍 พิมพ์ชื่อ / ชื่อเล่น / เบอร์ เพื่อหาเร็วๆ ตอนเช็คอิน"
@@ -53,11 +79,20 @@ export function BookingSearch({ total }: { total: number }) {
           </button>
         )}
       </div>
+      {/* ปุ่มนี้โผล่เฉพาะตอนคิวถูกแบ่งหน้า — ไม่งั้นกรองทันทีก็ครบอยู่แล้ว */}
+      {paged && (
+        <button
+          type="submit"
+          className="h-11 shrink-0 rounded-xl bg-[#1D4ED8] px-4 text-sm font-semibold text-white hover:bg-[#1D4ED8]/90"
+        >
+          ค้นทั้งรอบ ({total} คิว)
+        </button>
+      )}
       {q && (
         <span className="text-sm font-medium text-neutral-500">
-          พบ {shown}/{total} รายการ
+          พบ {shown}/{base} รายการ{paged ? " ในหน้านี้" : ""}
         </span>
       )}
-    </div>
+    </form>
   );
 }

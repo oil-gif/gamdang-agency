@@ -51,6 +51,30 @@ export async function getShootDay(id: string) {
   return data;
 }
 
+// พากลับมาที่ "หน้าที่แอดมินยืนอยู่" ของคิวจอง
+//
+// ตั้งแต่คิวถูกแบ่งหน้า (สถานะ ?bs= / หน้า ?bpage= / คำค้น ?bq=) การ redirect
+// กลับไป /admin/shoots/[id] เฉยๆ จะเด้งกลับหน้า 1 ทุกครั้งที่กดปุ่ม — คนที่
+// กำลังตรวจคิวหน้า 3 อยู่จะหลงทันที · ฟอร์มแต่ละใบเลยแนบ hidden "view" =
+// query string ปัจจุบันมาด้วย แล้วเอามาต่อกลับตรงนี้
+function backToDay(
+  dayId: string,
+  formData: FormData,
+  extra?: Record<string, string>,
+) {
+  const raw = String(formData.get("view") ?? "").replace(/^\?/, "");
+  // อ่านเฉพาะคีย์ที่รู้จัก — กันคนยัด query แปลกๆ ผ่านฟอร์ม
+  const incoming = new URLSearchParams(raw);
+  const p = new URLSearchParams();
+  for (const key of ["bs", "bpage", "bq"]) {
+    const v = incoming.get(key);
+    if (v) p.set(key, v);
+  }
+  for (const [k, v] of Object.entries(extra ?? {})) p.set(k, v);
+  const qs = p.toString();
+  return `/admin/shoots/${dayId}${qs ? `?${qs}` : ""}#queue`;
+}
+
 export async function getShootBookings(dayId: string) {
   const { data, error } = await supabase
     .from("shoot_bookings")
@@ -210,7 +234,7 @@ export async function setBookingStatus(formData: FormData) {
 
   // ส่งไม่ออก → พากลับมาพร้อม flag ให้หน้าจอขึ้นเตือนว่าต้องแจ้งลูกค้าเอง
   if (lineResult === "quota" || lineResult === "failed") {
-    redirect(`/admin/shoots/${dayId}?linefail=${lineResult}`);
+    redirect(backToDay(dayId, formData, { linefail: lineResult }));
   }
 }
 
@@ -275,7 +299,9 @@ export async function resendBookingConfirmLine(formData: FormData) {
   const built = await buildBookingConfirmText(id);
   if (!built?.lineUserId) {
     redirect(
-      `/admin/shoots/${dayId}?error=${encodeURIComponent("คนนี้ไม่ได้จองผ่าน LINE — ใช้ปุ่มคัดลอกข้อความแล้วส่งเองค่ะ")}`,
+      backToDay(dayId, formData, {
+        error: "คนนี้ไม่ได้จองผ่าน LINE — ใช้ปุ่มคัดลอกข้อความแล้วส่งเองค่ะ",
+      }),
     );
   }
   // ห้ามให้ error หลุดออกไป ไม่งั้น Next.js ขึ้นหน้า "This page couldn't load"
@@ -292,9 +318,7 @@ export async function resendBookingConfirmLine(formData: FormData) {
 
   revalidatePath(`/admin/shoots/${dayId}`);
   redirect(
-    fail
-      ? `/admin/shoots/${dayId}?linefail=${fail}`
-      : `/admin/shoots/${dayId}?linesent=1`,
+    backToDay(dayId, formData, fail ? { linefail: fail } : { linesent: "1" }),
   );
 }
 
@@ -313,10 +337,11 @@ export async function createBookingAsAdmin(formData: FormData) {
   const fullName = s("full_name") ?? s("nickname");
   const phone = s("phone");
 
-  const back = `/admin/shoots/${dayId}`;
+  const back = (extra: Record<string, string>) =>
+    backToDay(dayId, formData, extra);
   if (!fullName || !phone || !hour || !(pkg in BOOKING.packages)) {
     redirect(
-      `${back}?error=${encodeURIComponent("กรอกให้ครบ: ชื่อ เบอร์โทร รอบเวลา และแพ็กเกจ")}`,
+      back({ error: "กรอกให้ครบ: ชื่อ เบอร์โทร รอบเวลา และแพ็กเกจ" }),
     );
   }
 
@@ -334,7 +359,7 @@ export async function createBookingAsAdmin(formData: FormData) {
       });
     if (upErr) {
       redirect(
-        `${back}?error=${encodeURIComponent(`อัพโหลดสลิปไม่สำเร็จ: ${upErr.message}`)}`,
+        back({ error: `อัพโหลดสลิปไม่สำเร็จ: ${upErr.message}` }),
       );
     }
   }
@@ -365,7 +390,7 @@ export async function createBookingAsAdmin(formData: FormData) {
     const msg = error.message?.includes("full")
       ? "รอบนี้เต็มแล้ว (หรือรอบถูกปิด/เป็นวันที่ผ่านมาแล้ว)"
       : `จองไม่สำเร็จ: ${error.message}`;
-    redirect(`${back}?error=${encodeURIComponent(msg)}`);
+    redirect(back({ error: msg }));
   }
 
   // ชื่อเล่นไทย (migration 023) — เก็บแยกหลัง RPC เหมือนฝั่งฟอร์มลูกค้า
@@ -387,10 +412,10 @@ export async function createBookingAsAdmin(formData: FormData) {
     })
     .eq("id", bookingId);
 
-  revalidatePath(back);
+  revalidatePath(`/admin/shoots/${dayId}`);
   revalidatePath("/admin/shoots");
   revalidatePath("/booking");
-  redirect(`${back}?added=1`);
+  redirect(back({ added: "1" }));
 }
 
 // ย้ายรอบเวลา / เปลี่ยนแพ็กเกจของการจองที่มีอยู่ (ลูกค้าขอเลื่อน)
@@ -400,11 +425,12 @@ export async function moveBooking(formData: FormData) {
   const dayId = String(formData.get("day_id"));
   const toHour = String(formData.get("hour") ?? "");
   const toPkg = String(formData.get("package") ?? "");
-  const back = `/admin/shoots/${dayId}`;
+  const back = (extra: Record<string, string>) =>
+    backToDay(dayId, formData, extra);
 
   const validHours: readonly string[] = BOOKING.hours;
   if (!validHours.includes(toHour) || !(toPkg in BOOKING.packages)) {
-    redirect(`${back}?error=${encodeURIComponent("รอบเวลาหรือแพ็กเกจไม่ถูกต้อง")}`);
+    redirect(back({ error: "รอบเวลาหรือแพ็กเกจไม่ถูกต้อง" }));
   }
 
   const { data: current } = await supabase
@@ -412,9 +438,9 @@ export async function moveBooking(formData: FormData) {
     .select("hour, package, status")
     .eq("id", id)
     .maybeSingle();
-  if (!current) redirect(`${back}?error=${encodeURIComponent("ไม่พบการจองนี้")}`);
+  if (!current) redirect(back({ error: "ไม่พบการจองนี้" }));
   if (current.hour === toHour && current.package === toPkg) {
-    redirect(`${back}?moved=1`); // ไม่ได้เปลี่ยนอะไร
+    redirect(back({ moved: "1" })); // ไม่ได้เปลี่ยนอะไร
   }
 
   // รอบปลายทางเปิดรับอยู่ไหม
@@ -440,12 +466,12 @@ export async function moveBooking(formData: FormData) {
 
   if (!photoOpen || photoUsed >= BOOKING.photoCap) {
     redirect(
-      `${back}?error=${encodeURIComponent(`ย้ายไม่ได้ — รอบ ${toHour} น. เต็มหรือถูกปิดอยู่`)}`,
+      back({ error: `ย้ายไม่ได้ — รอบ ${toHour} น. เต็มหรือถูกปิดอยู่` }),
     );
   }
   if (toPkg === "A" && (!videoOpen || videoUsed >= BOOKING.videoCap)) {
     redirect(
-      `${back}?error=${encodeURIComponent(`ย้ายไม่ได้ — ห้องวิดีโอรอบ ${toHour} น. เต็มหรือถูกปิดอยู่`)}`,
+      back({ error: `ย้ายไม่ได้ — ห้องวิดีโอรอบ ${toHour} น. เต็มหรือถูกปิดอยู่` }),
     );
   }
 
@@ -455,10 +481,10 @@ export async function moveBooking(formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(error.message);
 
-  revalidatePath(back);
+  revalidatePath(`/admin/shoots/${dayId}`);
   revalidatePath("/admin/shoots");
   revalidatePath("/booking");
-  redirect(`${back}?moved=1`);
+  redirect(back({ moved: "1" }));
 }
 
 // ลบการจองรายคน (เช่น รายการที่แอดมินสร้างไว้เทส) — คืนที่นั่งให้รอบนั้นด้วย
@@ -468,7 +494,9 @@ export async function deleteBooking(formData: FormData) {
   const dayId = String(formData.get("day_id"));
   if (!verifyDangerCode(String(formData.get("danger_code") ?? ""))) {
     redirect(
-      `/admin/shoots/${dayId}?error=${encodeURIComponent("รหัสยืนยันไม่ถูกต้อง — ยังไม่ได้ลบการจอง")}`,
+      backToDay(dayId, formData, {
+        error: "รหัสยืนยันไม่ถูกต้อง — ยังไม่ได้ลบการจอง",
+      }),
     );
   }
 

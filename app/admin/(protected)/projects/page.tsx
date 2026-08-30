@@ -39,9 +39,17 @@ export default async function ProjectsListPage({
         : undefined,
     year: params.year ? parseInt(params.year, 10) || undefined : undefined,
   };
-  const page = Math.max(parseInt(params.page ?? "1", 10) || 1, 1);
-  const { projects, total } = await getProjectsPage(filters, page);
+  const asked = Math.max(parseInt(params.page ?? "1", 10) || 1, 1);
+  const first = await getProjectsPage(filters, asked);
+  const total = first.total;
   const totalPages = Math.max(Math.ceil(total / PROJECTS_PAGE_SIZE), 1);
+  // ขอหน้าที่เลยของจริง (เช่นกรองแล้วเหลือหน้าเดียว แต่ url ยังค้าง ?page=3)
+  // → ดึงหน้าสุดท้ายมาแทน ดีกว่าโชว์หน้าว่างเปล่าจนนึกว่างานหาย
+  const page = Math.min(asked, totalPages);
+  const projects =
+    page === asked
+      ? first.projects
+      : (await getProjectsPage(filters, page)).projects;
 
   // ตัวเลือกปี: ปีหน้า → ย้อนหลัง 6 ปี (พ.ศ. ในหน้าจอ)
   const nowYear = new Date().getFullYear();

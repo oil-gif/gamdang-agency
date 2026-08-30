@@ -45,17 +45,80 @@ export default async function ShootDayDetailPage({
     moved?: string;
     linefail?: string;
     linesent?: string;
+    bs?: string;
+    bpage?: string;
+    bq?: string;
   }>;
 }) {
   const { id } = await params;
-  const { error, added, moved, linefail, linesent } = await searchParams;
+  const { error, added, moved, linefail, linesent, bs, bpage, bq } =
+    await searchParams;
   const [day, bookings, counts] = await Promise.all([
     getShootDay(id),
     getShootBookings(id),
     getSlotCounts(id),
   ]);
+
+  // ===== แบ่งหน้าคิวจอง =====
+  // รอบที่มี 77 คิว ส่งหน้าเว็บไป 2 MB (ฟอร์ม 402 อัน ปุ่ม 638 อัน) เบราว์เซอร์
+  // ต้องต่อสายให้ครบก่อนปุ่มถึงกดติด — อาการเดียวกับหน้าโปรเจกต์ที่คนเยอะ
+  // + ยังต้องขอลิงก์สลิปจาก Storage ทีละใบครบทุกคน (77 คำขอ) ทั้งที่เห็นแค่จอเดียว
+  const BOOKINGS_PER_PAGE = 20;
+  const statusCounts = {
+    pending: bookings.filter((b) => b.status === "pending").length,
+    approved: bookings.filter((b) => b.status === "approved").length,
+    rejected: bookings.filter((b) => b.status === "rejected").length,
+  };
+  const bStatus =
+    bs === "pending" || bs === "approved" || bs === "rejected" ? bs : "all";
+  // ค้นหา = หาทั้งรอบ ไม่สนสถานะ/หน้า — เช็คอินหน้างานต้องเจอทุกคนเสมอ
+  const bTerm = (bq ?? "").trim().toLowerCase();
+  const searching = bTerm.length > 0;
+  const matched = searching
+    ? bookings.filter((b) =>
+        `${b.full_name ?? ""} ${b.nickname ?? ""} ${b.nickname_th ?? ""} ${b.phone ?? ""} ${b.email ?? ""}`
+          .toLowerCase()
+          .includes(bTerm),
+      )
+    : bStatus === "all"
+      ? bookings
+      : bookings.filter((b) => b.status === bStatus);
+  const bTotalPages = Math.max(
+    Math.ceil(matched.length / BOOKINGS_PER_PAGE),
+    1,
+  );
+  const bPage = Math.min(
+    Math.max(parseInt(bpage ?? "1", 10) || 1, 1),
+    bTotalPages,
+  );
+  // ตอนค้นหาโชว์ผลทั้งหมด (ปกติไม่กี่คน) ไม่ต้องกดเปลี่ยนหน้าให้เสียเวลา
+  const visibleBookings = searching
+    ? matched
+    : matched.slice((bPage - 1) * BOOKINGS_PER_PAGE, bPage * BOOKINGS_PER_PAGE);
+  // แนบไปกับทุกฟอร์มในคิว — ให้ปุ่มที่ redirect พากลับมาหน้าเดิม ไม่เด้งไปหน้า 1
+  const viewParam = (() => {
+    const p = new URLSearchParams();
+    if (bStatus !== "all") p.set("bs", bStatus);
+    if (searching && bq) p.set("bq", bq);
+    if (bPage > 1) p.set("bpage", String(bPage));
+    return p.toString();
+  })();
+
+  const bookingHref = (over: { bs?: string; bpage?: number; bq?: string }) => {
+    const p = new URLSearchParams();
+    const st = over.bs ?? bStatus;
+    if (st !== "all") p.set("bs", st);
+    const term = over.bq ?? (searching ? (bq ?? "") : "");
+    if (term) p.set("bq", term);
+    const pg = over.bpage ?? 1;
+    if (pg > 1) p.set("bpage", String(pg));
+    const str = p.toString();
+    return `/admin/shoots/${id}${str ? `?${str}` : ""}#queue`;
+  };
+
+  // ขอลิงก์สลิปเฉพาะใบที่โชว์จริง — เดิมขอครบทุกคิวทุกครั้งที่เปิดหน้า
   const slipUrls = await Promise.all(
-    bookings.map((b) => (b.slip_path ? getSlipUrl(b.slip_path) : null)),
+    visibleBookings.map((b) => (b.slip_path ? getSlipUrl(b.slip_path) : null)),
   );
 
   return (
@@ -97,7 +160,12 @@ export default async function ShootDayDetailPage({
           <p className="mb-2 text-sm font-semibold text-[#1D4ED8]">
             🏁 เช็คอินหน้างาน — ค้นหาคนจองในรอบนี้ ({bookings.length} คิว)
           </p>
-          <BookingSearch total={bookings.length} />
+          <BookingSearch
+            total={bookings.length}
+            shownTotal={visibleBookings.length}
+            action={`/admin/shoots/${id}`}
+            defaultValue={bq ?? ""}
+          />
         </div>
       )}
 
@@ -348,6 +416,7 @@ export default async function ShootDayDetailPage({
             className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2"
           >
             <input type="hidden" name="day_id" value={id} />
+                    <input type="hidden" name="view" value={viewParam} />
             <div className="space-y-1.5">
               <Label htmlFor="ab_hour">รอบเวลา *</Label>
               <select
@@ -466,12 +535,66 @@ export default async function ShootDayDetailPage({
       </section>
 
       {/* คิวตรวจสลิป */}
-      <section className="space-y-3">
+      <section id="queue" className="space-y-3 scroll-mt-4">
         <h2 className="text-lg font-semibold text-[#1D4ED8]">
           การจอง ({bookings.length}) — ตรวจสลิปแล้วกดอนุมัติ/ปฏิเสธ
         </h2>
+
+        {searching ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#1D4ED8]/30 bg-[#1D4ED8]/5 p-2.5 text-sm">
+            <span className="font-semibold text-[#1D4ED8]">
+              🔍 ค้นทั้งรอบ &quot;{bq}&quot; — พบ {matched.length} คิว
+            </span>
+            <Link
+              href={bookingHref({ bq: "" })}
+              className="rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-semibold text-neutral-600 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+            >
+              ✕ ล้างการค้นหา
+            </Link>
+          </div>
+        ) : (
+          bookings.length > BOOKINGS_PER_PAGE && (
+            <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 p-2">
+              <span className="px-1 text-[11px] font-semibold text-neutral-500">
+                กรองตามสถานะ:
+              </span>
+              {(
+                [
+                  ["all", `ทั้งหมด (${bookings.length})`],
+                  ["pending", `⏳ รอตรวจ (${statusCounts.pending})`],
+                  ["approved", `✅ อนุมัติ (${statusCounts.approved})`],
+                  ["rejected", `❌ ปฏิเสธ (${statusCounts.rejected})`],
+                ] as const
+              ).map(([key, label]) => (
+                <Link
+                  key={key}
+                  href={bookingHref({ bs: key })}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                    bStatus === key
+                      ? "bg-[#1D4ED8] text-white shadow-sm"
+                      : "border border-neutral-300 bg-white text-neutral-600 hover:border-[#1D4ED8]"
+                  }`}
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+          )
+        )}
+
+        {!searching && matched.length > BOOKINGS_PER_PAGE && (
+          <p className="text-xs text-neutral-500">
+            แสดง {(bPage - 1) * BOOKINGS_PER_PAGE + 1}–
+            {(bPage - 1) * BOOKINGS_PER_PAGE + visibleBookings.length} จาก{" "}
+            {matched.length} คิว
+            <span className="ml-1 text-neutral-400">
+              — หาคนใดคนหนึ่ง ให้พิมพ์ชื่อในช่องเช็คอินด้านบนแล้วกด Enter
+            </span>
+          </p>
+        )}
+
         <div className="space-y-2">
-          {bookings.map((b, i) => {
+          {visibleBookings.map((b, i) => {
             const chip = STATUS_CHIP[b.status] ?? STATUS_CHIP.pending;
             return (
               <div
@@ -537,6 +660,7 @@ export default async function ShootDayDetailPage({
                   <form action={setBookingArrival}>
                     <input type="hidden" name="id" value={b.id} />
                     <input type="hidden" name="day_id" value={id} />
+                    <input type="hidden" name="view" value={viewParam} />
                     <input type="hidden" name="arrived" value={b.arrived_at ? "0" : "1"} />
                     <Button
                       type="submit"
@@ -562,6 +686,7 @@ export default async function ShootDayDetailPage({
                     <form action={createTalentFromBooking}>
                       <input type="hidden" name="id" value={b.id} />
                       <input type="hidden" name="day_id" value={id} />
+                    <input type="hidden" name="view" value={viewParam} />
                       <Button type="submit" size="sm" variant="outline">
                         ➕ เพิ่มเข้าระบบ Talent
                       </Button>
@@ -572,6 +697,7 @@ export default async function ShootDayDetailPage({
                     <form action={setBookingStatus}>
                       <input type="hidden" name="id" value={b.id} />
                       <input type="hidden" name="day_id" value={id} />
+                    <input type="hidden" name="view" value={viewParam} />
                       <input type="hidden" name="status" value="approved" />
                       <Button
                         type="submit"
@@ -588,6 +714,7 @@ export default async function ShootDayDetailPage({
                     <form action={resendBookingConfirmLine}>
                       <input type="hidden" name="id" value={b.id} />
                       <input type="hidden" name="day_id" value={id} />
+                    <input type="hidden" name="view" value={viewParam} />
                       <Button type="submit" size="sm" variant="outline">
                         📨 ส่ง LINE ยืนยันอีกครั้ง
                       </Button>
@@ -597,6 +724,7 @@ export default async function ShootDayDetailPage({
                     <form action={setBookingStatus}>
                       <input type="hidden" name="id" value={b.id} />
                       <input type="hidden" name="day_id" value={id} />
+                    <input type="hidden" name="view" value={viewParam} />
                       <input type="hidden" name="status" value="rejected" />
                       <Button type="submit" size="sm" variant="outline">
                         ❌ ปฏิเสธ (คืนที่นั่ง)
@@ -607,6 +735,7 @@ export default async function ShootDayDetailPage({
                     <form action={setBookingStatus}>
                       <input type="hidden" name="id" value={b.id} />
                       <input type="hidden" name="day_id" value={id} />
+                    <input type="hidden" name="view" value={viewParam} />
                       <input type="hidden" name="status" value="pending" />
                       <Button type="submit" size="sm" variant="ghost">
                         ↩︎ กลับเป็นรอตรวจ
@@ -620,6 +749,7 @@ export default async function ShootDayDetailPage({
                   >
                     <input type="hidden" name="id" value={b.id} />
                     <input type="hidden" name="day_id" value={id} />
+                    <input type="hidden" name="view" value={viewParam} />
                     <span className="text-[11px] text-neutral-400">ย้ายไป</span>
                     <select
                       name="hour"
@@ -679,7 +809,47 @@ export default async function ShootDayDetailPage({
               ยังไม่มีการจองในรอบนี้
             </p>
           )}
+          {bookings.length > 0 && visibleBookings.length === 0 && (
+            <p className="rounded-lg border border-dashed bg-white p-8 text-center text-sm text-neutral-400">
+              {searching
+                ? "ไม่พบคิวที่ตรงกับคำค้นในรอบนี้"
+                : "ไม่มีคิวในสถานะนี้"}
+            </p>
+          )}
         </div>
+
+        {/* เปลี่ยนหน้า (ไม่โชว์ตอนค้นหา เพราะค้นหาแสดงผลครบอยู่แล้ว) */}
+        {!searching && bTotalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-1">
+            {bPage > 1 ? (
+              <Link
+                href={bookingHref({ bpage: bPage - 1 })}
+                className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+              >
+                ← ก่อนหน้า
+              </Link>
+            ) : (
+              <span className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-300">
+                ← ก่อนหน้า
+              </span>
+            )}
+            <span className="px-2 text-xs font-semibold text-neutral-500">
+              หน้า {bPage} / {bTotalPages}
+            </span>
+            {bPage < bTotalPages ? (
+              <Link
+                href={bookingHref({ bpage: bPage + 1 })}
+                className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+              >
+                ถัดไป →
+              </Link>
+            ) : (
+              <span className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-300">
+                ถัดไป →
+              </span>
+            )}
+          </div>
+        )}
       </section>
     </div>
   );

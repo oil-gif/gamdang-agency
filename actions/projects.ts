@@ -26,30 +26,42 @@ export type ProjectFilters = {
 // list โปรเจกต์แบบแบ่งหน้า + ค้นหา — รองรับเป็นร้อยเป็นพันโปรเจกต์
 export async function getProjectsPage(filters: ProjectFilters = {}, page = 1) {
   const { PROJECTS_PAGE_SIZE } = await import("@/lib/constants");
-  let query = supabase
-    .from("projects")
-    .select("*, project_talents(count)", { count: "exact" })
-    .order("created_at", { ascending: false });
+  const build = (headOnly = false) => {
+    let query = supabase
+      .from("projects")
+      .select("*, project_talents(count)", {
+        count: "exact",
+        head: headOnly,
+      })
+      .order("created_at", { ascending: false });
 
-  if (filters.q) {
-    const term = filters.q.replace(/[%,]/g, "");
-    query = query.or(`name.ilike.%${term}%,client_name.ilike.%${term}%`);
-  }
-  if (filters.type) query = query.eq("project_type", filters.type);
-  if (filters.year) {
-    const y = filters.year;
-    // ปีของงาน = ปีวันถ่าย ถ้าไม่มีวันถ่ายใช้ปีที่สร้างโปรเจกต์แทน
-    query = query.or(
-      `and(shooting_date.gte.${y}-01-01,shooting_date.lte.${y}-12-31),and(shooting_date.is.null,created_at.gte.${y}-01-01,created_at.lte.${y}-12-31)`,
-    );
-  }
+    if (filters.q) {
+      const term = filters.q.replace(/[%,]/g, "");
+      query = query.or(`name.ilike.%${term}%,client_name.ilike.%${term}%`);
+    }
+    if (filters.type) query = query.eq("project_type", filters.type);
+    if (filters.year) {
+      const y = filters.year;
+      // ปีของงาน = ปีวันถ่าย ถ้าไม่มีวันถ่ายใช้ปีที่สร้างโปรเจกต์แทน
+      query = query.or(
+        `and(shooting_date.gte.${y}-01-01,shooting_date.lte.${y}-12-31),and(shooting_date.is.null,created_at.gte.${y}-01-01,created_at.lte.${y}-12-31)`,
+      );
+    }
+    return query;
+  };
 
   const from = (page - 1) * PROJECTS_PAGE_SIZE;
-  const { data, count, error } = await query.range(
+  const { data, count, error } = await build().range(
     from,
     from + PROJECTS_PAGE_SIZE - 1,
   );
-  if (error) throw new Error(error.message);
+  if (error) {
+    // ขอหน้าที่เลยจำนวนงานจริง (เช่น url ค้าง ?page=9 แล้วมากรองจนเหลือหน้าเดียว)
+    // PostgREST ตอบ "Requested range not satisfiable" → เดิมหน้าจอพังทั้งหน้า
+    // คืนหน้าว่างพร้อมยอดรวมจริงแทน ให้หน้าเรียกเด้งกลับหน้าสุดท้ายเอง
+    const { count: real } = await build(true);
+    return { projects: [], total: real ?? 0 };
+  }
   return { projects: data ?? [], total: count ?? 0 };
 }
 

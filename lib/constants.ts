@@ -65,7 +65,8 @@ export const SHOW_TALENT_STATS: boolean = false;
 export const TALENTS_PAGE_SIZE = 60;
 
 // จำนวนแถวต่อหน้าของ list โปรเจกต์ (pagination)
-export const PROJECTS_PAGE_SIZE = 50;
+// 20 ไม่ใช่ 50 — พี่เจ้าของขอ (2026-08-30) เลื่อนหาน้อยลง เปลี่ยนหน้าเอาเร็วกว่า
+export const PROJECTS_PAGE_SIZE = 20;
 
 // ระบบจองถ่ายโปรไฟล์ (ดู supabase/migrations/007_booking.sql)
 // หมายเหตุ: ตามเอกสารแนะนำให้ย้ายเป็น setting แก้ได้เองในอนาคต — ตอนนี้เก็บ
