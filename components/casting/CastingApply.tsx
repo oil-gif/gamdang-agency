@@ -151,17 +151,30 @@ export function CastingApply({
           {/* เปิดจาก Facebook/IG → LINE login ยุ่งยาก แนะนำทางที่ง่ายกว่า */}
           {inFbBrowser && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-800">
-              <p className="font-bold">📱 คุณเปิดจากแอป Facebook อยู่</p>
+              <p className="font-bold">
+                📱 คุณเปิดจากแอป Facebook อยู่ (You are in the Facebook app)
+              </p>
               <p className="mt-1 text-[13px]">
                 เข้าสู่ระบบ LINE จากตรงนี้จะยุ่งยาก (ต้องกรอกอีเมล/รหัส) — แนะนำ:
+                <span className="mt-0.5 block text-amber-700/80">
+                  Signing in with LINE here is awkward — we suggest:
+                </span>
               </p>
-              <ul className="mt-1.5 space-y-1 text-[13px]">
+              <ul className="mt-1.5 space-y-1.5 text-[13px]">
                 <li>
                   ✅ <b>กรอกใบสมัครด้านล่างได้เลย</b> — ไม่ต้องเข้าสู่ระบบ (แนบรูป 1 รูป)
+                  <span className="mt-0.5 block text-amber-700/80">
+                    Just fill in the form below — no sign-in needed (attach 1
+                    photo)
+                  </span>
                 </li>
                 <li>
                   หรือกด <b>•••</b> มุมขวาบน →{" "}
                   <b>&quot;เปิดในเบราว์เซอร์&quot;</b> (Safari/Chrome) แล้วค่อยเข้าสู่ระบบ LINE
+                  <span className="mt-0.5 block text-amber-700/80">
+                    Or tap <b>•••</b> at the top right → <b>Open in browser</b>,
+                    then sign in with LINE
+                  </span>
                 </li>
               </ul>
             </div>
@@ -178,6 +191,10 @@ export function CastingApply({
               </a>
               <p className="text-center text-xs text-neutral-400">
                 เป็นสมาชิกอยู่แล้ว? เข้าสู่ระบบแล้วกดสมัครได้เลย ไม่ต้องกรอกใหม่
+                <span className="mt-0.5 block">
+                  Already a member? Sign in and apply — no need to fill the form
+                  again.
+                </span>
               </p>
             </>
           )}
@@ -189,6 +206,9 @@ export function CastingApply({
               className="w-full text-center text-sm font-medium text-[#1D4ED8] underline underline-offset-4"
             >
               หรือกรอกข้อมูลใหม่ (ต้องแนบรูป Compcard)
+              <span className="mt-0.5 block text-xs font-normal text-neutral-400">
+                Or apply as a new applicant (Compcard photo required)
+              </span>
             </button>
           ) : (
             <ManualApply
@@ -352,7 +372,7 @@ function MemberApply({
       {roles.length > 0 && (
         <div className="space-y-1">
           <label htmlFor="role_id" className="text-xs font-medium text-neutral-500">
-            สมัคร Role
+            สมัคร Role (Apply for role)
           </label>
           <select
             id="role_id"
@@ -372,7 +392,7 @@ function MemberApply({
 
       <div className="space-y-1">
         <label htmlFor="note" className="text-xs font-medium text-neutral-500">
-          ข้อความถึงทีมงาน (Message to our team — ถ้ามี)
+          ข้อความถึงทีมงาน (Message to our team — optional)
         </label>
         <textarea
           id="note"
@@ -453,6 +473,9 @@ function ManualApply({
       <input type="hidden" name="photo_path" value={photoPath ?? ""} />
       <p className="text-sm font-semibold text-neutral-700">
         กรอกข้อมูลเพื่อสมัคร — ทีมงานจะติดต่อกลับ
+        <span className="mt-0.5 block text-xs font-normal text-neutral-400">
+          Fill in your details — our team will get back to you.
+        </span>
       </p>
 
       {/* รูป Compcard (บังคับ) — กรอบแนวนอน */}
@@ -460,7 +483,7 @@ function ManualApply({
         <label className="text-xs font-medium text-neutral-500">
           รูป Compcard *{" "}
           <span className="text-neutral-400">
-            (Required — ต้องแนบ เอาไปเสนอลูกค้า)
+            (Required — ต้องแนบ เอาไปเสนอลูกค้า / we show this to the client)
           </span>
         </label>
         <div className="aspect-[3/2] w-full overflow-hidden rounded-xl border border-dashed border-neutral-300 bg-neutral-50">
@@ -469,7 +492,7 @@ function ManualApply({
             <img src={`/photo/${photoPath}`} alt="" className="size-full object-cover" />
           ) : (
             <div className="flex size-full items-center justify-center text-center text-xs text-neutral-400">
-              รูป Compcard (แนวนอน)
+              รูป Compcard (แนวนอน / landscape)
             </div>
           )}
         </div>
@@ -508,7 +531,7 @@ function ManualApply({
             defaultValue=""
             className="h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm"
           >
-            <option value="">— เลือก Role (ถ้ามี) —</option>
+            <option value="">— เลือก Role ถ้ามี (Select a role, optional) —</option>
             {roles.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.title}
@@ -520,10 +543,10 @@ function ManualApply({
 
       {(
         [
-          ["nickname", "ชื่อเล่น (Nickname) *", "text", true, "เช่น Som"],
+          ["nickname", "ชื่อเล่น (Nickname) *", "text", true, "เช่น / e.g. Som"],
           ["phone", "เบอร์โทร (Phone) *", "tel", true, "08x-xxx-xxxx"],
           ["email", "อีเมล (Email)", "email", false, "example@email.com"],
-          ["nationality", "สัญชาติ (Nationality)", "text", false, "เช่น Thai"],
+          ["nationality", "สัญชาติ (Nationality)", "text", false, "เช่น / e.g. Thai"],
         ] as const
       ).map(([name, label, type, required, ph]) => (
         <div key={name} className="space-y-1">
@@ -553,7 +576,7 @@ function ManualApply({
             className="h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm"
           >
             <option value="" disabled>
-              — เลือกเพศ —
+              — เลือกเพศ (Select) —
             </option>
             <option value="male">ชาย (Male)</option>
             <option value="female">หญิง (Female)</option>
@@ -584,7 +607,7 @@ function ManualApply({
             required
             min={30}
             max={230}
-            placeholder="เช่น 165"
+            placeholder="เช่น / e.g. 165"
             className="h-11 w-full rounded-xl border border-neutral-300 px-3 text-sm outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
           />
         </div>
@@ -599,7 +622,7 @@ function ManualApply({
             required
             min={5}
             max={200}
-            placeholder="เช่น 50"
+            placeholder="เช่น / e.g. 50"
             className="h-11 w-full rounded-xl border border-neutral-300 px-3 text-sm outline-none focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
           />
         </div>
