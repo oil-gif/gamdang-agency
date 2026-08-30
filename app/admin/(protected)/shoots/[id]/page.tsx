@@ -678,7 +678,16 @@ export default async function ShootDayDetailPage({
                   {/* ดึงเข้าระบบสมัครสมาชิก (talent) */}
                   {b.talent_id ? (
                     <Button asChild size="sm" variant="outline">
-                      <Link href={`/admin/talents/${b.talent_id}`}>
+                      {/* ?from= พาปุ่มย้อนกลับในหน้า Talent กลับมาที่คิวใบนี้
+                          (หน้า/สถานะเดิม + เลื่อนไปที่การ์ดคนนี้เลย) แทนที่จะ
+                          กลับรายการ Talent แล้วแอดมินต้องไล่หาใหม่
+                          — พี่เจ้าของแจ้ง 2026-08-30 · ?from ยังติดไปกับปุ่ม
+                          บันทึกด้วย (hidden "from" ใน TalentForm) */}
+                      <Link
+                        href={`/admin/talents/${b.talent_id}?from=${encodeURIComponent(
+                          `/admin/shoots/${id}${viewParam ? `?${viewParam}` : ""}#b-${b.id}`,
+                        )}`}
+                      >
                         👤 ดูโปรไฟล์ Talent
                       </Link>
                     </Button>

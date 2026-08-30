@@ -36,9 +36,11 @@ export default async function EditTalentPage({
       ? "← กลับหน้ารออนุมัติ"
       : backHref?.startsWith("/admin/compcards")
         ? "← กลับคิวรอคอมการ์ด"
-        : backHref === "/admin"
-          ? "← กลับ Dashboard"
-          : "← กลับรายการ Talent";
+        : backHref?.startsWith("/admin/shoots")
+          ? "← กลับหน้าจองถ่ายโปรไฟล์"
+          : backHref === "/admin"
+            ? "← กลับ Dashboard"
+            : "← กลับรายการ Talent";
 
   return (
     <div className="max-w-6xl space-y-6">
