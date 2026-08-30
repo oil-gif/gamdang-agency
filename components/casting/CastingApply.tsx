@@ -32,6 +32,9 @@ export function CastingApply({
   const [manualOpen, setManualOpen] = useState(false);
   // เปิดจากเบราว์เซอร์ในแอป FB/IG/TikTok ที่ login LINE ยาก (ไม่ใช่แอป LINE)
   const [inFbBrowser, setInFbBrowser] = useState(false);
+  // เปิดในแอป LINE แต่เป็นเบราว์เซอร์ธรรมดา (ไม่ใช่ LIFF) → พาไปทาง LIFF ให้
+  const [goingToLiff, setGoingToLiff] = useState(false);
+  const [inLineBrowser, setInLineBrowser] = useState(false);
 
   useEffect(() => {
     // ตรวจ UA ได้เฉพาะฝั่ง client (ไม่มีตอน SSR) → ต้องเช็คใน effect
@@ -44,6 +47,54 @@ export function CastingApply({
       setManualOpen(true); // เปิดฟอร์มกรอกเองให้เลย จะได้ไม่ติด LINE login
     }
   }, []);
+
+  // ===== ลิงก์เดียวใช้ได้ทุกช่องทาง =====
+  //
+  // ปัญหา: ส่ง /casting/[id] ให้น้องทาง LINE แล้วกด จะเปิดใน "เบราว์เซอร์ของแอป
+  // LINE" ซึ่ง LIFF ยังไม่ถือว่าอยู่ในแอป (SDK ดูจาก User-Agent: ต้องเป็น
+  // `Line/x.y.z LIFF` ถึงจะนับ · ลิงก์ธรรมดาได้แค่ `Line/x.y.z`) → ล็อกอิน
+  // อัตโนมัติไม่ทำงาน น้องต้องกดปุ่มเขียวเองอีกที
+  //
+  // แก้: เจอว่าอยู่ในแอป LINE และยังไม่ล็อกอิน → พาไปเปิดผ่าน liff.line.me
+  // (endpoint = /apply) แล้ว ?next= เด้งกลับมาหน้างานนี้แบบล็อกอินแล้ว
+  // → พี่เจ้าของส่งลิงก์ /casting/[id] อันเดียวได้ทุกช่องทาง (แจ้ง 2026-08-30)
+  //
+  // ⚠️ กันลูปสำคัญมาก: ถ้าเด้งวนหน้าสมัครจะใช้ไม่ได้เลย · กันสี่ชั้น
+  //   1. ล็อกอินแล้วไม่เด้ง
+  //   2. UA เป็น LIFF อยู่แล้วไม่เด้ง (ขากลับจาก LIFF อยู่ในกลุ่มนี้)
+  //   3. ขากลับติด ?liff=1 มาด้วย — เจอปุ๊บไม่เด้งอีก (กันเคสล็อกอินไม่สำเร็จ
+  //      แล้ววนไปกลับไม่จบ · ไม่พึ่ง storage เพราะ LIFF อาจเปิด webview ใหม่
+  //      ที่ sessionStorage ว่างเปล่า)
+  //   4. เด้งได้ครั้งเดียวต่อ session — ใครกดยกเลิกที่หน้ายินยอม LINE
+  //      แล้วย้อนกลับมา จะอ่านรายละเอียดงาน/กรอกเองต่อได้ ไม่โดนเด้งซ้ำ
+  //      (อ่าน sessionStorage ไม่ได้ เช่นโหมดส่วนตัว → ยังมีชั้น 3 กันอยู่)
+  useEffect(() => {
+    if (loggedIn) return;
+    const ua = navigator.userAgent || "";
+    const inLine = /Line\/\d+\.\d+\.\d+/.test(ua);
+    const inLiff = /Line\/\d+\.\d+\.\d+ LIFF/.test(ua);
+    if (!inLine || inLiff) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInLineBrowser(true);
+
+    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+    if (!liffId) return;
+    // กลับมาจาก LIFF แล้ว (ไม่ว่าจะสำเร็จหรือไม่) → ไม่เด้งอีก
+    if (new URLSearchParams(window.location.search).get("liff") === "1") return;
+    const KEY = "gd_casting_liff_once";
+    try {
+      if (sessionStorage.getItem(KEY) === "1") return;
+      sessionStorage.setItem(KEY, "1");
+    } catch {
+      /* เขียน storage ไม่ได้ — ยังมี ?liff=1 กันลูปอยู่ */
+    }
+    setGoingToLiff(true);
+    window.location.replace(
+      `https://liff.line.me/${liffId}?next=${encodeURIComponent(
+        `/casting/${projectId}?liff=1`,
+      )}`,
+    );
+  }, [loggedIn, projectId]);
 
   // เปิดในแอป LINE + ยังไม่ login → ผูก session ให้อัตโนมัติ แล้ว refresh
   useEffect(() => {
@@ -77,10 +128,33 @@ export function CastingApply({
 
   // ล็อกอินผ่านหน้า /apply (เป็น LIFF endpoint ที่ลงทะเบียนไว้ — login ได้
   // ทั้งในแอป LINE และ browser/Facebook) แล้ว ?next เด้งกลับมาหน้านี้
-  const loginHref = `/apply?next=${encodeURIComponent(`/casting/${projectId}`)}`;
+  const nextParam = encodeURIComponent(`/casting/${projectId}`);
+  const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+  // อยู่ในแอป LINE → ยิงผ่าน liff.line.me ตรงๆ (ล็อกอินเงียบ ไม่ต้องกรอกอะไร)
+  // นอกแอป LINE → ทาง /apply เหมือนเดิม (liff.line.me เปิดนอกแอปไม่ได้)
+  const loginHref =
+    inLineBrowser && liffId
+      ? `https://liff.line.me/${liffId}?next=${encodeURIComponent(
+          `/casting/${projectId}?liff=1`,
+        )}`
+      : `/apply?next=${nextParam}`;
 
   const fbShare = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
   const lineShare = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`;
+
+  // กำลังพาไปเข้าสู่ระบบผ่าน LINE — ขึ้นข้อความคั่นไว้ ไม่ให้เห็นหน้ากะพริบ
+  if (goingToLiff) {
+    return (
+      <div className="rounded-2xl border border-[#06C755]/30 bg-[#06C755]/5 px-4 py-6 text-center">
+        <p className="text-sm font-semibold text-neutral-700">
+          กำลังพาไปเข้าสู่ระบบด้วย LINE...
+        </p>
+        <p className="mt-1 text-xs text-neutral-500">
+          Signing you in with LINE — one moment.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
