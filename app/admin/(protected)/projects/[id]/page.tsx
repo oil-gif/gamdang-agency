@@ -209,6 +209,11 @@ export default async function ProjectDetailPage({
   // เจอกล่องปิด เหมือนปุ่มไม่ทำงาน · anchor (#picker) ส่งมาถึง server ไม่ได้
   // เลยต้องใช้ ?open=<ชื่อกล่อง> ควบคู่ไปด้วย
   const openParam = one(sp.open);
+  // แบ่งรายชื่อ Talent ตาม Role (พี่เจ้าของเสนอ 2026-08-30) — หน้าที่มี 80 คน
+  // ส่งข้อมูล 3 MB / ฟอร์ม 815 อัน ทำให้เบราว์เซอร์ต่อสายปุ่มไม่ทันจนกดไม่ติด
+  // ลากจัดลำดับถูกจำกัดให้อยู่ใน Role เดียวกันอยู่แล้ว แบ่งแบบนี้เลยไม่เสียอะไร
+  const troleParam = one(sp.trole);
+  const tpage = numOr(sp.tpage) ?? 1;
   const pickerActive =
     openParam === "picker" ||
     Boolean(pq || prole || pgender || ptiers.length || pcats.length || pminage || pmaxage) ||
@@ -220,11 +225,57 @@ export default async function ProjectDetailPage({
     0,
   );
 
+  // ===== แบ่งรายชื่อ Talent: เลือก Role → แล้วแบ่งหน้าถ้ายังเยอะ =====
+  const TALENTS_PER_PAGE = 20;
+  const roleGroups: { key: string; title: string; count: number }[] = [];
+  for (const pt of projectTalents) {
+    const key = pt.role_id ?? "none";
+    const found = roleGroups.find((g) => g.key === key);
+    if (found) found.count += 1;
+    else
+      roleGroups.push({
+        key,
+        title: pt.role_title ?? "ไม่ระบุ Role",
+        count: 1,
+      });
+  }
+  // งานเล็ก (≤20 คน) ไม่ต้องแบ่งอะไรเลย · งานใหญ่เปิดมาที่ Role แรกก่อน
+  const needsSplit = projectTalents.length > TALENTS_PER_PAGE;
+  const selectedRole =
+    troleParam && (troleParam === "all" || roleGroups.some((g) => g.key === troleParam))
+      ? troleParam
+      : needsSplit && roleGroups.length > 1
+        ? roleGroups[0].key
+        : "all";
+  const inRole =
+    selectedRole === "all"
+      ? projectTalents
+      : projectTalents.filter((pt) => (pt.role_id ?? "none") === selectedRole);
+  const talentTotalPages = Math.max(
+    Math.ceil(inRole.length / TALENTS_PER_PAGE),
+    1,
+  );
+  const talentPage = Math.min(Math.max(tpage, 1), talentTotalPages);
+  const visibleTalents = inRole.slice(
+    (talentPage - 1) * TALENTS_PER_PAGE,
+    talentPage * TALENTS_PER_PAGE,
+  );
+  const talentHref = (over: { trole?: string; tpage?: number }) => {
+    const q = new URLSearchParams();
+    const role = over.trole ?? selectedRole;
+    if (role !== "all") q.set("trole", role);
+    const pg = over.tpage ?? 1;
+    if (pg > 1) q.set("tpage", String(pg));
+    const str = q.toString();
+    return `/admin/projects/${id}${str ? `?${str}` : ""}#talents`;
+  };
+
   // token ต่อแถว (แจ้งงาน 14 วัน / ส่งงาน 60 วัน) — stateless JWT สร้างใหม่
   // ทุก render ได้ ของเก่ายังใช้ได้จนหมดอายุ
+  // สร้างเฉพาะคนที่โชว์จริง — เดิมสร้างให้ทุกคน (81 คน = 162 JWT ฝังในหน้า)
   const [jobTokens, submitTokens] = await Promise.all([
-    Promise.all(projectTalents.map((pt) => createJobToken(pt.id))),
-    Promise.all(projectTalents.map((pt) => createSubmitToken(pt.id))),
+    Promise.all(visibleTalents.map((pt) => createJobToken(pt.id))),
+    Promise.all(visibleTalents.map((pt) => createSubmitToken(pt.id))),
   ]);
 
   return (
@@ -554,7 +605,7 @@ export default async function ProjectDetailPage({
 
       {/* ===== Talents in project ===== */}
       {/* งานประจำวัน — ไม่พับ อยู่ใกล้บนสุดเสมอ (การ์ดแต่ละคนคงรูปแบบเดิม) */}
-      <section className="max-w-3xl space-y-4">
+      <section id="talents" className="max-w-3xl space-y-4 scroll-mt-4">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-lg font-semibold text-[#1D4ED8]">
             Talent ในโปรเจกต์ ({projectTalents.length})
@@ -617,10 +668,56 @@ export default async function ProjectDetailPage({
             ยังไม่มี talent — ค้นหาแล้วกด &quot;เพิ่ม&quot; ด้านล่าง
           </p>
         )}
+        {/* เลือกดูทีละ Role — งานใหญ่ 80 คนโหลดพร้อมกันแล้วปุ่มกดไม่ติด
+            (ลากจัดลำดับจำกัดอยู่ใน Role เดียวกันอยู่แล้ว เลยไม่เสียอะไร) */}
+        {needsSplit && roleGroups.length > 1 && (
+          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 p-2">
+            <span className="px-1 text-[11px] font-semibold text-neutral-500">
+              ดูทีละ Role:
+            </span>
+            {roleGroups.map((g) => (
+              <Link
+                key={g.key}
+                href={talentHref({ trole: g.key })}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                  selectedRole === g.key
+                    ? "bg-[#B82233] text-white shadow-sm"
+                    : "border border-neutral-300 bg-white text-neutral-600 hover:border-[#B82233]"
+                }`}
+              >
+                🎭 {g.title.length > 26 ? g.title.slice(0, 26) + "…" : g.title}{" "}
+                ({g.count})
+              </Link>
+            ))}
+            <Link
+              href={talentHref({ trole: "all" })}
+              title="ช้ากว่า แต่ลากสลับข้าม Role ได้"
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                selectedRole === "all"
+                  ? "bg-neutral-700 text-white"
+                  : "border border-neutral-300 bg-white text-neutral-500 hover:border-neutral-500"
+              }`}
+            >
+              ทั้งหมด ({projectTalents.length})
+            </Link>
+          </div>
+        )}
+
+        {inRole.length > TALENTS_PER_PAGE && (
+          <p className="text-xs text-neutral-500">
+            แสดง {(talentPage - 1) * TALENTS_PER_PAGE + 1}–
+            {(talentPage - 1) * TALENTS_PER_PAGE + visibleTalents.length} จาก{" "}
+            {inRole.length} คน
+            <span className="ml-1 text-neutral-400">
+              — ลากจัดลำดับได้เฉพาะคนที่อยู่ในหน้านี้
+            </span>
+          </p>
+        )}
+
         {/* ลากวางจัดลำดับ (ในกลุ่ม Role เดียวกัน) — บันทึกทีเดียวตอนปล่อยนิ้ว */}
         <DragOrderList
           saveAction={reorderProjectTalents.bind(null, id)}
-          items={projectTalents.map((pt, i) => {
+          items={visibleTalents.map((pt, i) => {
             const t = pt.talent;
             const jobUrl = `${BASE_URL}/job/${jobTokens[i]}`;
             const submitUrl = `${BASE_URL}/submit/${submitTokens[i]}`;
@@ -960,6 +1057,39 @@ export default async function ProjectDetailPage({
             };
           })}
         />
+
+        {/* เปลี่ยนหน้า (เมื่อ Role เดียวมีเกิน 20 คน) */}
+        {talentTotalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 pt-1">
+            {talentPage > 1 ? (
+              <Link
+                href={talentHref({ tpage: talentPage - 1 })}
+                className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:border-[#B82233] hover:text-[#B82233]"
+              >
+                ← ก่อนหน้า
+              </Link>
+            ) : (
+              <span className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-300">
+                ← ก่อนหน้า
+              </span>
+            )}
+            <span className="px-2 text-xs font-semibold text-neutral-500">
+              หน้า {talentPage} / {talentTotalPages}
+            </span>
+            {talentPage < talentTotalPages ? (
+              <Link
+                href={talentHref({ tpage: talentPage + 1 })}
+                className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:border-[#B82233] hover:text-[#B82233]"
+              >
+                ถัดไป →
+              </Link>
+            ) : (
+              <span className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-300">
+                ถัดไป →
+              </span>
+            )}
+          </div>
+        )}
       </section>
 
       {/* ===== Talent picker ===== */}

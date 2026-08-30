@@ -753,10 +753,39 @@ export async function clearSentToClient(formData: FormData) {
 export async function reorderProjectTalents(projectId: string, orderedIds: string[]) {
   if (!projectId || orderedIds.length === 0) return;
 
+  // หน้าโปรเจกต์แบ่งรายชื่อทีละ Role/ทีละ 20 คน → ที่ส่งมาเป็นแค่ "ส่วนหนึ่ง"
+  // ของงาน ถ้าเขียน display_order = 0,1,2… ตรงๆ คนในหน้าอื่นจะเลขชนกันทันที
+  // จึงอ่านลำดับทั้งงานมาก่อน แล้วสลับเฉพาะ "ช่อง" ที่คนกลุ่มนี้นั่งอยู่
+  const { data: allRows, error: readErr } = await supabase
+    .from("project_talents")
+    .select("id, display_order")
+    .eq("project_id", projectId)
+    .order("display_order", { ascending: true });
+  if (readErr) throw new Error(readErr.message);
+  if (!allRows) return;
+
+  const moving = orderedIds.filter((id) => allRows.some((r) => r.id === id));
+  if (moving.length === 0) return;
+  const movingSet = new Set(moving);
+  // ช่องที่กลุ่มนี้ครองอยู่ (เรียงตามลำดับปัจจุบัน) แล้วยัดลำดับใหม่ลงไปทีละช่อง
+  const slots = allRows
+    .map((r, i) => ({ i, id: r.id }))
+    .filter((x) => movingSet.has(x.id))
+    .map((x) => x.i);
+  const finalIds = allRows.map((r) => r.id);
+  slots.forEach((slot, n) => {
+    finalIds[slot] = moving[n];
+  });
+
+  // เขียนเฉพาะแถวที่เลขเปลี่ยนจริง — ปกติมีไม่กี่แถว
+  const changed = finalIds
+    .map((id, i) => ({ id, i }))
+    .filter(({ id, i }) => allRows[i].id !== id || allRows[i].display_order !== i);
+
   // ยิงขนานกัน — 15 คนก็จบในเวลาประมาณ 1 request
   // .eq("project_id") กันคนส่ง id ของโปรเจกต์อื่นมาแก้
   const results = await Promise.all(
-    orderedIds.map((id, i) =>
+    changed.map(({ id, i }) =>
       supabase
         .from("project_talents")
         .update({ display_order: i })
