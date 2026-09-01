@@ -189,6 +189,16 @@ export default async function ProjectDetailPage({
     ]);
   const candidates = picker.candidates;
 
+  // ใครส่งใบสมัครงานนี้มาแล้วบ้าง — ช่องค้นหาตัดออกเฉพาะ "คนที่อยู่ในงานแล้ว"
+  // คนที่เพิ่งสมัครเข้ามาจึงยังโผล่ในช่องค้นหาอยู่ · ถ้าเจ้าหน้าที่กด + เพิ่ม จาก
+  // ตรงนี้ ใบสมัครของเขาจะค้างเป็น "รอตอบ" ไม่ถูกปิด และ Role ที่เขาเลือกมาเอง
+  // จะหาย → ติดป้ายบอกให้ไปกดอนุมัติที่ใบสมัครแทน (พี่เจ้าของถาม 2026-09-01)
+  const appliedTalentIds = new Map<string, string>();
+  for (const a of applications) {
+    const tid = (a as { talent_id?: string }).talent_id;
+    if (tid) appliedTalentIds.set(tid, String(a.status ?? "pending"));
+  }
+
   // สร้างลิงก์ pagination โดยคงตัวกรอง picker เดิม (anchor #picker)
   const pickerHref = (page: number) => {
     const q = new URLSearchParams();
@@ -1104,6 +1114,14 @@ export default async function ProjectDetailPage({
         defaultOpen={pickerActive}
       >
       <section className="space-y-4">
+        {/* ตอบคำถามที่เจ้าหน้าที่สงสัยบ่อย: ทำไมคนที่สมัครมาแล้วยังขึ้นตรงนี้ */}
+        <p className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs leading-5 text-neutral-500">
+          รายชื่อนี้ตัด <b>คนที่อยู่ในงานนี้แล้ว</b> ออกให้อัตโนมัติ ·
+          ส่วนคนที่ <b>ส่งใบสมัครมา</b> จะยังขึ้นอยู่ (มีป้าย 📩 กำกับ)
+          จนกว่าจะกดอนุมัติใบสมัคร — คนที่มีป้าย ให้กด{" "}
+          <b>อนุมัติที่ใบสมัคร</b> แทนการกด + เพิ่ม ตรงนี้ ใบสมัครจะได้ถูกปิด
+          และได้ Role ที่เขาเลือกมาเอง
+        </p>
         <form
           method="GET"
           className="space-y-3 rounded-xl border bg-white p-4"
@@ -1217,11 +1235,18 @@ export default async function ProjectDetailPage({
             const top = topSocial(t);
             const socials = talentSocials(t);
             const expertise = ((t.categories ?? []) as string[]).slice(0, 3);
+            const appliedStatus = appliedTalentIds.get(t.id);
             return (
               <div
                 key={t.id}
-                className="flex gap-3 rounded-xl border bg-white p-3 shadow-sm"
+                className={`rounded-xl border bg-white p-3 shadow-sm ${
+                  appliedStatus === "pending"
+                    ? "border-amber-300 ring-1 ring-amber-200"
+                    : ""
+                }`}
               >
+                {/* ===== แถวบน: รูป + ชื่อ/รายละเอียด (กว้างเต็มการ์ด) ===== */}
+                <div className="flex gap-3">
                 <div className="size-16 shrink-0 overflow-hidden rounded-full border bg-neutral-100">
                   {t.photo_path ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -1237,18 +1262,38 @@ export default async function ProjectDetailPage({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-1.5">
-                    {/* กดชื่อ → เปิดโปรไฟล์ (มีปุ่มกลับมาโปรเจกต์นี้) */}
+                  <div className="flex flex-wrap items-baseline gap-x-1.5">
+                    {/* กดชื่อ → เปิดโปรไฟล์ (มีปุ่มกลับมาโปรเจกต์นี้)
+                        ชื่อยาวให้ตกบรรทัด ไม่ตัดด้วย … (พี่เจ้าของแจ้ง 2026-09-01
+                        เดิมการ์ดวางเป็นแถวเดียว ชื่อโดนบีบจนเหลือ "Ph…") */}
                     <Link
                       href={`/admin/talents/${t.id}?from=${encodeURIComponent(`/admin/projects/${id}?open=picker#picker`)}`}
-                      className="truncate font-medium text-neutral-800 hover:text-[#1D4ED8] hover:underline"
+                      className="font-medium break-words text-neutral-800 hover:text-[#1D4ED8] hover:underline"
                     >
                       {t.nickname_en ?? t.nickname_th}
                     </Link>
+                    {t.nickname_en && t.nickname_th && (
+                      <span className="text-xs text-neutral-500">
+                        ({t.nickname_th})
+                      </span>
+                    )}
                     <span className="font-mono text-[10px] text-neutral-400">
                       {t.code}
                     </span>
                   </div>
+                  {appliedStatus && (
+                    <p
+                      className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                        appliedStatus === "pending"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-neutral-100 text-neutral-500"
+                      }`}
+                    >
+                      {appliedStatus === "pending"
+                        ? "📩 สมัครงานนี้มาแล้ว — อนุมัติที่ใบสมัครด้านบน"
+                        : "📩 เคยส่งใบสมัครงานนี้"}
+                    </p>
+                  )}
                   <p className="text-xs text-neutral-500">
                     {t.dob ? `${calculateAge(t.dob)} ปี` : ""}
                     {t.is_model ? " · Model" : ""}
@@ -1257,7 +1302,7 @@ export default async function ProjectDetailPage({
                       : ""}
                   </p>
                   {expertise.length > 0 && (
-                    <p className="mt-0.5 truncate text-[11px] text-[#B82233]">
+                    <p className="mt-0.5 text-[11px] text-[#B82233]">
                       {expertise.join(" · ")}
                     </p>
                   )}
@@ -1269,9 +1314,12 @@ export default async function ProjectDetailPage({
                     </div>
                   )}
                 </div>
+                </div>
+
+                {/* ===== แถวล่าง: เลือก Role + ปุ่มเพิ่ม (เต็มความกว้าง) ===== */}
                 <form
                   action={addTalentToProject}
-                  className="flex flex-col items-stretch gap-1.5 self-center"
+                  className="mt-2.5 flex items-center gap-2"
                 >
                   <input type="hidden" name="project_id" value={id} />
                   <input type="hidden" name="talent_id" value={t.id} />
@@ -1279,7 +1327,7 @@ export default async function ProjectDetailPage({
                     <select
                       name="role_id"
                       defaultValue={roles[0].id}
-                      className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-700"
+                      className="h-8 min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-2 text-xs text-neutral-700"
                       aria-label="เลือก Role"
                     >
                       <option value="">— ไม่ระบุ Role —</option>
@@ -1290,7 +1338,7 @@ export default async function ProjectDetailPage({
                       ))}
                     </select>
                   )}
-                  <Button type="submit" size="sm">
+                  <Button type="submit" size="sm" className="shrink-0">
                     + เพิ่ม
                   </Button>
                 </form>
