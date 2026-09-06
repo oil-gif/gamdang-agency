@@ -218,6 +218,12 @@ function digitsOnly(v: string | null | undefined) {
   return d.length >= 9 ? d.slice(-9) : ""; // ตัดรหัสประเทศ/เลข 0 นำหน้าออก
 }
 
+// เทียบชื่อแบบหลวมๆ — ตัดช่องว่าง/วรรคตอน แล้วเทียบตัวพิมพ์เล็ก
+// (ข้อมูลจริงมีเว้นวรรคซ้ำ เช่น "ชนณณี  พันทวี")
+function nameKey(v: string | null | undefined) {
+  return (v ?? "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+}
+
 export async function getPostponedBookings() {
   const { data: postponed, error } = await supabase
     .from("shoot_bookings")
@@ -238,7 +244,9 @@ export async function getPostponedBookings() {
   );
   const { data: later } = await supabase
     .from("shoot_bookings")
-    .select("id, status, phone, line_user_id, hour, created_at, shoot_day:shoot_days(id, shoot_date)")
+    .select(
+      "id, status, full_name, nickname, phone, line_user_id, hour, created_at, shoot_day:shoot_days(id, shoot_date)",
+    )
     .gt("created_at", earliest)
     .not("status", "in", "(postponed,rejected)")
     .order("created_at", { ascending: false })
@@ -247,15 +255,32 @@ export async function getPostponedBookings() {
 
   return postponed.map((p) => {
     const key = digitsOnly(p.phone);
-    // ใบที่จองทีหลัง และเป็นคนเดียวกัน (เบอร์ หรือ LINE user id)
-    const back = candidates.find(
-      (o) =>
-        o.id !== p.id &&
-        o.created_at > p.created_at &&
-        ((key && digitsOnly(o.phone) === key) ||
-          (!!p.line_user_id && o.line_user_id === p.line_user_id)),
+    const nameKeys = [nameKey(p.full_name), nameKey(p.nickname)].filter(Boolean);
+    const newer = candidates.filter(
+      (o) => o.id !== p.id && o.created_at > p.created_at,
     );
-    return { ...p, rebooked: back ?? null };
+
+    // ⚠️ เบอร์เดียวกัน "ไม่ใช่คนเดียวกัน" เสมอไป — ข้อมูลจริงมี 8 เบอร์ที่พี่น้อง
+    // ใช้ร่วมกัน (พ่อแม่พาลูกมาถ่ายทีละคน นามสกุลเดียวกัน เบอร์เดียวกัน)
+    // ถ้าจับคู่ด้วยเบอร์อย่างเดียว น้องคนพี่มาจอง = ระบบบอกว่าคนน้องกลับมาแล้ว
+    // → LINE user id ตรง = มั่นใจ · เบอร์+ชื่อตรง = มั่นใจ ·
+    //   เบอร์ตรงแต่ชื่อไม่ตรง = แค่ "น่าจะ" ให้แอดมินกดดูเอง
+    const sure = newer.find(
+      (o) =>
+        (!!p.line_user_id && o.line_user_id === p.line_user_id) ||
+        (key &&
+          digitsOnly(o.phone) === key &&
+          nameKeys.some(
+            (n) => n === nameKey(o.full_name) || n === nameKey(o.nickname),
+          )),
+    );
+    const maybe =
+      sure ?? newer.find((o) => key && digitsOnly(o.phone) === key);
+    return {
+      ...p,
+      rebooked: sure ?? maybe ?? null,
+      matchKind: sure ? ("sure" as const) : maybe ? ("maybe" as const) : null,
+    };
   });
 }
 

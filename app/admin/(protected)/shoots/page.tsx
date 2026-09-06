@@ -40,6 +40,7 @@ export default async function ShootDaysPage({
   // ยังไม่กลับมาจอง = ที่ต้องตามต่อ · กลับมาแล้ว = เก็บไว้ดูย้อนหลัง
   const waiting = postponed.filter((p) => !p.rebooked);
   const returned = postponed.filter((p) => p.rebooked);
+  const sureCount = postponed.filter((p) => p.matchKind === "sure").length;
 
   return (
     <div className="space-y-5">
@@ -132,9 +133,14 @@ export default async function ShootDaysPage({
                 รอกลับมาจอง {waiting.length}
               </span>
             )}
-            {returned.length > 0 && (
+            {sureCount > 0 && (
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
-                กลับมาแล้ว {returned.length}
+                กลับมาแล้ว {sureCount}
+              </span>
+            )}
+            {returned.length - sureCount > 0 && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
+                น่าจะกลับมา {returned.length - sureCount}
               </span>
             )}
             <span className="flex-1" />
@@ -158,7 +164,11 @@ export default async function ShootDaysPage({
                 <div
                   key={p.id}
                   className={`rounded-xl border bg-white p-3 shadow-sm ${
-                    back ? "border-emerald-200" : "border-violet-200"
+                    p.matchKind === "sure"
+                      ? "border-emerald-200"
+                      : p.matchKind === "maybe"
+                        ? "border-amber-200"
+                        : "border-violet-200"
                   }`}
                 >
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -189,14 +199,25 @@ export default async function ShootDaysPage({
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {back ? (
                       <>
-                        <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                          ✅ กลับมาจองแล้ว
-                        </span>
+                        {p.matchKind === "sure" ? (
+                          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                            ✅ กลับมาจองแล้ว
+                          </span>
+                        ) : (
+                          // เบอร์ตรงแต่ชื่อไม่ตรง — ครอบครัวเดียวกันใช้เบอร์
+                          // ร่วมกันบ่อยมาก (ข้อมูลจริงมี 8 เบอร์แบบนี้)
+                          // ไม่ฟันธงให้ ให้แอดมินกดดูแล้วตัดสินเอง
+                          <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                            🤔 น่าจะกลับมาแล้ว — เบอร์เดียวกันแต่คนละชื่อ
+                            (อาจเป็นพี่น้อง) กดดูให้ชัวร์
+                          </span>
+                        )}
                         <Link
                           href={`/admin/shoots/${backDay?.id}#b-${back.id}`}
                           className="text-xs font-semibold text-[#1D4ED8] hover:underline"
                         >
-                          รอบใหม่{" "}
+                          {back.full_name}
+                          {" · "}
                           {backDay ? thaiDateLabel(backDay.shoot_date) : ""} ·{" "}
                           {back.hour} น. → เปิดดู
                         </Link>
