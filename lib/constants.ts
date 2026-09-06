@@ -34,6 +34,11 @@ export const STATUS_LABEL_TH: Record<string, string> = {
   inactive: "ไม่ใช้งาน",
 };
 
+// สถานะคิวจองถ่ายโปรไฟล์ที่ "ไม่ถือที่นั่ง" — ปฏิเสธ = ไม่ผ่าน · เลื่อนรอบ =
+// เขาขอเลื่อนเอง · ทั้งสองแบบต้องคืนที่ว่างให้คนอื่นจองต่อได้ (ดู migration 025
+// — ฟังก์ชัน book_shoot_slot ใน DB ก็ใช้กติกาเดียวกัน ต้องแก้คู่กันเสมอ)
+export const BOOKING_FREED_STATUSES = ["rejected", "postponed"] as const;
+
 export const TIER_LABEL: Record<string, string> = {
   nano: "NANO",
   micro: "MICRO",

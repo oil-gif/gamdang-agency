@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { thaiDateLabel } from "@/lib/booking";
-import { BOOKING } from "@/lib/constants";
+import { BOOKING, BOOKING_FREED_STATUSES } from "@/lib/constants";
 import { verifyDangerCode } from "@/lib/danger";
 import {
   classifyLineError,
@@ -35,7 +35,10 @@ export async function getShootDays() {
     const mine = (bookings ?? []).filter((b) => b.shoot_day_id === d.id);
     return {
       ...d,
-      booking_count: mine.filter((b) => b.status !== "rejected").length,
+      booking_count: mine.filter(
+        (b) => !BOOKING_FREED_STATUSES.includes(b.status as "rejected"),
+      ).length,
+      postponed_count: mine.filter((b) => b.status === "postponed").length,
       pending_count: mine.filter((b) => b.status === "pending").length,
     };
   });
@@ -202,12 +205,66 @@ export async function deleteShootDay(formData: FormData) {
   redirect("/admin/shoots");
 }
 
+// คนขอเลื่อนรอบ — ตามต่อว่าใครกลับมาจองรอบใหม่แล้วบ้าง
+//
+// พี่เจ้าของแจ้ง 2026-09-06: คนขอเลื่อนเดิมต้องกด "ปฏิเสธ" ซึ่งผิดความหมาย
+// และหายไปเลย ตามต่อไม่ได้ · ตอนนี้กด "เลื่อนไปรอบหน้า" แล้วมาโผล่ที่นี่
+//
+// "กลับมาจองแล้ว" = มีคิวใบใหม่ที่ (เบอร์เดียวกัน หรือ LINE user เดียวกัน)
+// และจองทีหลังใบที่เลื่อน · เทียบเบอร์แบบเอาอักขระที่ไม่ใช่ตัวเลขออกก่อน
+// เพราะคนกรอกมาหลายแบบ (086-123-4567 / 0861234567 / +66861234567)
+function digitsOnly(v: string | null | undefined) {
+  const d = (v ?? "").replace(/\D/g, "");
+  return d.length >= 9 ? d.slice(-9) : ""; // ตัดรหัสประเทศ/เลข 0 นำหน้าออก
+}
+
+export async function getPostponedBookings() {
+  const { data: postponed, error } = await supabase
+    .from("shoot_bookings")
+    .select(
+      "id, status, full_name, nickname, nickname_th, phone, line_id, line_user_id, hour, package, created_at, shoot_day_id, shoot_day:shoot_days(id, shoot_date, location)",
+    )
+    .eq("status", "postponed")
+    .order("created_at", { ascending: false });
+  // ตารางยังไม่รู้จักสถานะนี้ (ยังไม่รัน migration 025) → คืน [] ไม่ให้หน้าพัง
+  if (error || !postponed || postponed.length === 0) return [];
+
+  // ⚠️ ห้ามดึง booking ทั้งตารางมาเทียบ — PostgREST ตัดที่ 1000 แถว แล้วจะ
+  // "หา" คนที่กลับมาจองไม่เจอแบบเงียบๆ (เคยโดนมาแล้วกับ talent_photos)
+  // ดึงเฉพาะใบที่จองหลังใบเลื่อนที่เก่าที่สุด = เท่าที่จำเป็นจริงๆ
+  const earliest = postponed.reduce(
+    (min, p) => (p.created_at < min ? p.created_at : min),
+    postponed[0].created_at as string,
+  );
+  const { data: later } = await supabase
+    .from("shoot_bookings")
+    .select("id, status, phone, line_user_id, hour, created_at, shoot_day:shoot_days(id, shoot_date)")
+    .gt("created_at", earliest)
+    .not("status", "in", "(postponed,rejected)")
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  const candidates = later ?? [];
+
+  return postponed.map((p) => {
+    const key = digitsOnly(p.phone);
+    // ใบที่จองทีหลัง และเป็นคนเดียวกัน (เบอร์ หรือ LINE user id)
+    const back = candidates.find(
+      (o) =>
+        o.id !== p.id &&
+        o.created_at > p.created_at &&
+        ((key && digitsOnly(o.phone) === key) ||
+          (!!p.line_user_id && o.line_user_id === p.line_user_id)),
+    );
+    return { ...p, rebooked: back ?? null };
+  });
+}
+
 // ===== ตรวจสลิป: approve / reject (สลับกลับได้) =====
 export async function setBookingStatus(formData: FormData) {
   const id = String(formData.get("id"));
   const dayId = String(formData.get("day_id"));
   const status = String(formData.get("status"));
-  if (!["pending", "approved", "rejected"].includes(status)) return;
+  if (!["pending", "approved", "rejected", "postponed"].includes(status)) return;
 
   // สถานะเดิม — ส่ง LINE ยืนยันเฉพาะตอน "เพิ่งเปลี่ยนเป็น approved"
   // (กดซ้ำ/สลับกลับไปมาจะไม่ส่งซ้ำ)
@@ -221,7 +278,19 @@ export async function setBookingStatus(formData: FormData) {
     .from("shoot_bookings")
     .update({ status })
     .eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    // ยังไม่ได้รัน migration 025 → DB ยังไม่รู้จักสถานะ "postponed"
+    // (CHECK constraint) · บอกให้รู้ว่าต้องทำอะไร ดีกว่าขึ้นหน้าจอพังเต็มจอ
+    if (status === "postponed" && /constraint|check/i.test(error.message)) {
+      redirect(
+        backToDay(dayId, formData, {
+          error:
+            "ยังใช้ปุ่มเลื่อนรอบไม่ได้ — ต้องรัน migration 025 ใน Supabase ก่อนค่ะ",
+        }),
+      );
+    }
+    throw new Error(error.message);
+  }
 
   let lineResult: LineSendResult | null = null;
   if (status === "approved" && before?.status !== "approved") {
@@ -459,7 +528,7 @@ export async function moveBooking(formData: FormData) {
     .select("id, package")
     .eq("shoot_day_id", dayId)
     .eq("hour", toHour)
-    .neq("status", "rejected")
+    .not("status", "in", `(${BOOKING_FREED_STATUSES.join(",")})`)
     .neq("id", id);
   const photoUsed = (others ?? []).length;
   const videoUsed = (others ?? []).filter((b) => b.package === "A").length;

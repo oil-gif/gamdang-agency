@@ -1,11 +1,11 @@
 import "server-only";
-import { BOOKING } from "@/lib/constants";
+import { BOOKING, BOOKING_FREED_STATUSES } from "@/lib/constants";
 import { supabase } from "@/lib/supabase/server";
 import { TH_TZ } from "@/lib/datetime";
 
 // คำนวณ availability ต่อ (วัน, ชั่วโมง, แพกเกจ) — กฎหัวใจของระบบ:
 // ทั้ง A และ B กินที่ห้อง Photo · เฉพาะ A กินที่ห้อง Video เพิ่ม
-// pending + approved ถือที่นั่ง · rejected คืนที่ · หน้าเว็บเห็นแค่ boolean
+// pending + approved ถือที่นั่ง · rejected/postponed คืนที่ · หน้าเว็บเห็นแค่ boolean
 // ไม่เห็นจำนวน (จำนวนเป็นของ admin เท่านั้น)
 
 export type SlotToggle = { photo_open?: boolean; video_open?: boolean };
@@ -42,7 +42,7 @@ export async function getSlotCounts(shootDayId: string) {
     .from("shoot_bookings")
     .select("hour, package")
     .eq("shoot_day_id", shootDayId)
-    .neq("status", "rejected");
+    .not("status", "in", `(${BOOKING_FREED_STATUSES.join(",")})`);
   const counts: Record<string, SlotCounts> = {};
   for (const b of data ?? []) {
     counts[b.hour] ??= { photo: 0, video: 0 };

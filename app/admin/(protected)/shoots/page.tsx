@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { createShootDay, getShootDays, searchBookings } from "@/actions/shoots";
+import {
+  createShootDay,
+  getPostponedBookings,
+  getShootDays,
+  searchBookings,
+} from "@/actions/shoots";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +23,7 @@ const SEARCH_STATUS: Record<string, string> = {
   pending: "⏳ รอตรวจ",
   approved: "✅ อนุมัติ",
   rejected: "❌ ปฏิเสธ",
+  postponed: "🔁 เลื่อนรอบ",
 };
 
 export default async function ShootDaysPage({
@@ -26,10 +32,14 @@ export default async function ShootDaysPage({
   searchParams: Promise<{ error?: string; q?: string }>;
 }) {
   const { error, q } = await searchParams;
-  const [days, found] = await Promise.all([
+  const [days, found, postponed] = await Promise.all([
     getShootDays(),
     q ? searchBookings(q) : Promise.resolve([]),
+    getPostponedBookings(),
   ]);
+  // ยังไม่กลับมาจอง = ที่ต้องตามต่อ · กลับมาแล้ว = เก็บไว้ดูย้อนหลัง
+  const waiting = postponed.filter((p) => !p.rebooked);
+  const returned = postponed.filter((p) => p.rebooked);
 
   return (
     <div className="space-y-5">
@@ -106,6 +116,108 @@ export default async function ShootDaysPage({
             </p>
           )}
         </div>
+      )}
+
+      {/* ===== คนขอเลื่อนรอบ — ตามต่อว่ากลับมาจองรอบใหม่หรือยัง ===== */}
+      {postponed.length > 0 && (
+        <details
+          open={waiting.length > 0}
+          className="group overflow-hidden rounded-xl border border-violet-200 bg-white"
+        >
+          <summary className="flex cursor-pointer list-none items-center gap-2 bg-violet-50/60 px-4 py-3 hover:bg-violet-50">
+            <span className="text-base">🔁</span>
+            <span className="font-semibold text-violet-800">คนขอเลื่อนรอบ</span>
+            {waiting.length > 0 && (
+              <span className="rounded-full bg-violet-600 px-2 py-0.5 text-xs font-bold text-white">
+                รอกลับมาจอง {waiting.length}
+              </span>
+            )}
+            {returned.length > 0 && (
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
+                กลับมาแล้ว {returned.length}
+              </span>
+            )}
+            <span className="flex-1" />
+            <span className="hidden text-xs text-neutral-400 sm:inline">
+              ระบบจับคู่ให้เองจากเบอร์โทร/LINE
+            </span>
+            <span className="text-xs text-neutral-400 transition group-open:rotate-90">
+              ▶
+            </span>
+          </summary>
+
+          <div className="space-y-2 border-t border-violet-100 p-4">
+            {[...waiting, ...returned].map((p) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const from = p.shoot_day as any;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const back = p.rebooked as any;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const backDay = back?.shoot_day as any;
+              return (
+                <div
+                  key={p.id}
+                  className={`rounded-xl border bg-white p-3 shadow-sm ${
+                    back ? "border-emerald-200" : "border-violet-200"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="font-semibold text-neutral-800">
+                      {p.full_name}
+                      {p.nickname_th || p.nickname
+                        ? ` (${p.nickname_th || p.nickname})`
+                        : ""}
+                    </span>
+                    <span className="text-sm text-neutral-500">
+                      📞 {p.phone}
+                    </span>
+                    {p.line_id && (
+                      <span className="text-sm text-neutral-500">
+                        LINE: {p.line_id}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="mt-1 text-xs text-neutral-500">
+                    เดิมจองรอบ{" "}
+                    <b className="text-neutral-700">
+                      {from ? thaiDateLabel(from.shoot_date) : "-"} · {p.hour} น.
+                      · Package {p.package}
+                    </b>
+                  </p>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {back ? (
+                      <>
+                        <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                          ✅ กลับมาจองแล้ว
+                        </span>
+                        <Link
+                          href={`/admin/shoots/${backDay?.id}#b-${back.id}`}
+                          className="text-xs font-semibold text-[#1D4ED8] hover:underline"
+                        >
+                          รอบใหม่{" "}
+                          {backDay ? thaiDateLabel(backDay.shoot_date) : ""} ·{" "}
+                          {back.hour} น. → เปิดดู
+                        </Link>
+                      </>
+                    ) : (
+                      <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
+                        ⏳ ยังไม่กลับมาจอง
+                      </span>
+                    )}
+                    <Link
+                      href={`/admin/shoots/${p.shoot_day_id}?bs=postponed#b-${p.id}`}
+                      className="ml-auto text-xs text-neutral-400 hover:text-[#1D4ED8]"
+                    >
+                      ดูคิวเดิม →
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </details>
       )}
 
       {/* เปิดรอบใหม่ */}

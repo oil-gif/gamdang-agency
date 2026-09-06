@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BOOKING } from "@/lib/constants";
+import { BOOKING, BOOKING_FREED_STATUSES } from "@/lib/constants";
 import { LINE_FAIL_TEXT, type LineFailReason } from "@/lib/line-messaging";
 import { formatThaiDateTime, formatThaiTime } from "@/lib/datetime";
 
@@ -32,6 +32,10 @@ const STATUS_CHIP: Record<string, { label: string; className: string }> = {
   pending: { label: "⏳ รอตรวจ", className: "bg-amber-100 text-amber-700" },
   approved: { label: "✅ อนุมัติ", className: "bg-emerald-100 text-emerald-700" },
   rejected: { label: "❌ ปฏิเสธ", className: "bg-rose-100 text-rose-700" },
+  postponed: {
+    label: "🔁 เลื่อนรอบหน้า",
+    className: "bg-violet-100 text-violet-700",
+  },
 };
 
 export default async function ShootDayDetailPage({
@@ -68,9 +72,15 @@ export default async function ShootDayDetailPage({
     pending: bookings.filter((b) => b.status === "pending").length,
     approved: bookings.filter((b) => b.status === "approved").length,
     rejected: bookings.filter((b) => b.status === "rejected").length,
+    postponed: bookings.filter((b) => b.status === "postponed").length,
   };
   const bStatus =
-    bs === "pending" || bs === "approved" || bs === "rejected" ? bs : "all";
+    bs === "pending" ||
+    bs === "approved" ||
+    bs === "rejected" ||
+    bs === "postponed"
+      ? bs
+      : "all";
   // ค้นหา = หาทั้งรอบ ไม่สนสถานะ/หน้า — เช็คอินหน้างานต้องเจอทุกคนเสมอ
   const bTerm = (bq ?? "").trim().toLowerCase();
   const searching = bTerm.length > 0;
@@ -154,9 +164,12 @@ export default async function ShootDayDetailPage({
         />
       </div>
 
-      {/* เช็คอินหน้างาน — ค้นหาคนจองในรอบนี้ (อยู่บนสุด กดเข้ามาแล้วหาได้เลย) */}
+      {/* เช็คอินหน้างาน — ค้นหาคนจองในรอบนี้ (อยู่บนสุด กดเข้ามาแล้วหาได้เลย)
+          sticky: เลื่อนดูรายชื่อไปเรื่อยๆ ช่องค้นหายังติดอยู่บนจอ ไม่ต้องเลื่อน
+          กลับขึ้นมาพิมพ์ใหม่ — คู่กับการเอา auto-scroll ตอนพิมพ์ออก
+          (พี่เจ้าของแจ้งว่าช่องพิมพ์เด้ง 2026-09-06) */}
       {bookings.length > 0 && (
-        <div className="rounded-2xl border border-[#1D4ED8]/20 bg-[#1D4ED8]/5 p-4">
+        <div className="sticky top-2 z-20 rounded-2xl border border-[#1D4ED8]/20 bg-[#1D4ED8]/5 p-4 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-[#1D4ED8]/10">
           <p className="mb-2 text-sm font-semibold text-[#1D4ED8]">
             🏁 เช็คอินหน้างาน — ค้นหาคนจองในรอบนี้ ({bookings.length} คิว)
           </p>
@@ -286,7 +299,10 @@ export default async function ShootDayDetailPage({
                   .filter(
                     (b) =>
                       b.hour === hour &&
-                      b.status !== "rejected" &&
+                      // ปฏิเสธ/เลื่อนรอบ = คืนที่นั่งแล้ว ไม่ต้องโชว์ในตารางรอบ
+                      !BOOKING_FREED_STATUSES.includes(
+                        b.status as "rejected",
+                      ) &&
                       (room === "photo" || b.package === "A"),
                   )
                   .sort((a, b) => a.created_at.localeCompare(b.created_at));
@@ -563,6 +579,7 @@ export default async function ShootDayDetailPage({
                   ["all", `ทั้งหมด (${bookings.length})`],
                   ["pending", `⏳ รอตรวจ (${statusCounts.pending})`],
                   ["approved", `✅ อนุมัติ (${statusCounts.approved})`],
+                  ["postponed", `🔁 เลื่อนรอบ (${statusCounts.postponed})`],
                   ["rejected", `❌ ปฏิเสธ (${statusCounts.rejected})`],
                 ] as const
               ).map(([key, label]) => (
@@ -726,6 +743,19 @@ export default async function ShootDayDetailPage({
                     <input type="hidden" name="view" value={viewParam} />
                       <Button type="submit" size="sm" variant="outline">
                         📨 ส่ง LINE ยืนยันอีกครั้ง
+                      </Button>
+                    </form>
+                  )}
+                  {/* ขอเลื่อนเอง — คนละเรื่องกับ "ปฏิเสธ" (ไม่ผ่าน) · คืนที่นั่ง
+                      เหมือนกัน แต่ไปโผล่แท็บ "คนขอเลื่อนรอบ" ให้ตามต่อได้ */}
+                  {b.status !== "postponed" && (
+                    <form action={setBookingStatus}>
+                      <input type="hidden" name="id" value={b.id} />
+                      <input type="hidden" name="day_id" value={id} />
+                      <input type="hidden" name="view" value={viewParam} />
+                      <input type="hidden" name="status" value="postponed" />
+                      <Button type="submit" size="sm" variant="outline">
+                        🔁 เลื่อนไปรอบหน้า
                       </Button>
                     </form>
                   )}
