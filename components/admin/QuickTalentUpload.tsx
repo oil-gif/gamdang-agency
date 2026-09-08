@@ -50,6 +50,31 @@ export function QuickTalentUpload({
     });
   }
 
+  // ⚠️ ย่อรูปตั้งแต่ในเครื่องก่อนส่ง — ห้ามส่งไฟล์เต็มขนาด
+  //
+  // เซิร์ฟเวอร์ย่อให้อยู่แล้ว (sharp 1800px/q84 → เหลือไม่ถึง 1 MB) แต่ "ขาส่ง"
+  // ต้องแบกไฟล์เต็มไปก่อน · คอมการ์ดจากดีไซเนอร์ 4000x3000 = 22 MB พอแปลงเป็น
+  // base64 บวมอีก 33% เป็น ~30 MB → **เกินลิมิต body ของ Vercel (4.5 MB)
+  // อัพไม่ผ่านบน production** ทั้งที่รันในเครื่องผ่าน (วัดจริง 2026-09-08)
+  //
+  // ย่อในเบราว์เซอร์ก่อนเหลือหลักร้อย KB → ส่งไว ประหยัดเน็ตมือถือ และไม่ชนลิมิต
+  // เซิร์ฟเวอร์ยังย่อซ้ำอีกชั้นเหมือนเดิม (กันไฟล์แปลกๆ + ได้ผลลัพธ์คงที่)
+  const MAX_EDGE = 2000; // ใหญ่กว่า 1800 ที่เซิร์ฟเวอร์ใช้เล็กน้อย ไม่ให้เสียความคม
+  async function shrink(file: File): Promise<string> {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("เบราว์เซอร์นี้ย่อรูปไม่ได้");
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    return canvas.toDataURL("image/jpeg", 0.9);
+  }
+
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     setErr(null);
@@ -60,12 +85,7 @@ export function QuickTalentUpload({
     // มีสิทธิ์โดน limit ของ Vercel และแรมฝั่ง sharp
     for (const file of list) {
       try {
-        const data = await new Promise<string>((resolve, reject) => {
-          const r = new FileReader();
-          r.onload = () => resolve(String(r.result));
-          r.onerror = () => reject(new Error("อ่านไฟล์ไม่ได้"));
-          r.readAsDataURL(file);
-        });
+        const data = await shrink(file);
         const res = await fetch("/api/quick-talent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
