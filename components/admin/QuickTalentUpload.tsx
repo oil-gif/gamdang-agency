@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useFormStatus } from "react-dom";
 
 // lib/storage.ts เป็น server-only (มันดึง supabase client มาด้วย) — import
 // จากฝั่ง client ไม่ได้ · URL รูปเป็นแค่ path คงที่ เขียนตรงนี้เองสั้นกว่า
@@ -234,13 +235,7 @@ export function QuickTalentUpload({
             </div>
           ))}
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="submit"
-              disabled={busy > 0}
-              className="rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:opacity-95 disabled:opacity-50"
-            >
-              ✓ บันทึกและเพิ่มเข้าโปรเจกต์ ({drafts.length} คน)
-            </button>
+            <SaveButton count={drafts.length} uploading={busy > 0} />
             <span className="text-xs text-neutral-400">
               คนที่ไม่ใส่ชื่อจะถูกข้ามไว้ก่อน (ใบร่างยังอยู่ในรายการ Talent)
             </span>
@@ -249,5 +244,34 @@ export function QuickTalentUpload({
       )}
 
     </div>
+  );
+}
+
+// ปุ่มบันทึกต้องบอกสถานะให้ชัด — ของเดิมกดแล้วข้อความไม่เปลี่ยน ปุ่มไม่ถูกปิด
+// บันทึก 10 คนใช้เวลาหลายวินาที แอดมินเลยนึกว่าปุ่มค้างแล้วกดซ้ำ
+// (พี่เจ้าของแจ้ง 2026-09-08) · useFormStatus อ่านสถานะของ <form> ที่ครอบอยู่
+function SaveButton({
+  count,
+  uploading,
+}: {
+  count: number;
+  uploading: boolean;
+}) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending || uploading}
+      className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#B82233] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:opacity-95 disabled:cursor-wait disabled:opacity-60"
+    >
+      {pending ? (
+        <>
+          <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+          กำลังบันทึก {count} คน... อย่าปิดหน้านี้
+        </>
+      ) : (
+        <>✓ บันทึกและเพิ่มเข้าโปรเจกต์ ({count} คน)</>
+      )}
+    </button>
   );
 }

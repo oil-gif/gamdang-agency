@@ -621,9 +621,13 @@ export async function saveQuickTalents(projectId: string, formData: FormData) {
     .order("display_order", { ascending: false })
     .limit(1)
     .maybeSingle();
-  let nextOrder = (maxRow?.display_order ?? -1) + 1;
+  const nextOrder = (maxRow?.display_order ?? -1) + 1;
 
+  // ⚠️ ห้ามวนยิงทีละคน — 10 คน = 20 รอบไปกลับฐานข้อมูล ใช้เวลา 3 วินาทีในเครื่อง
+  // บนเซิร์ฟเวอร์จริงยิ่งนานกว่านั้น แอดมินนึกว่าปุ่มค้าง (พี่เจ้าของแจ้ง 2026-09-08)
+  // → อัพเดตข้อมูลคนทั้งหมดขนานกัน แล้ว insert เข้าโปรเจกต์ทีเดียวทั้งชุด
   const thisYear = new Date().getFullYear();
+  const wanted: { id: string; patch: Record<string, unknown> }[] = [];
   for (let i = 0; i < ids.length; i++) {
     const id = ids[i];
     const name = (names[i] ?? "").trim();
@@ -643,26 +647,50 @@ export async function saveQuickTalents(projectId: string, formData: FormData) {
     if (gender === "male" || gender === "female" || gender === "other") {
       patch.gender = gender;
     }
-    // .eq("status","draft") — กันฟอร์มถูกยิงมาแก้ทับ talent ตัวจริงที่ข้อมูลครบแล้ว
-    await supabase.from("talents").update(patch).eq("id", id).eq("status", "draft");
+    wanted.push({ id, patch });
+  }
+  if (wanted.length === 0) return;
 
-    const row = {
+  // .eq("status","draft") — กันฟอร์มถูกยิงมาแก้ทับ talent ตัวจริงที่ข้อมูลครบแล้ว
+  await Promise.all(
+    wanted.map((w) =>
+      supabase
+        .from("talents")
+        .update(w.patch)
+        .eq("id", w.id)
+        .eq("status", "draft"),
+    ),
+  );
+
+  // insert ทีเดียวทั้งชุด — ถ้ามีสักคนซ้ำ ทั้งชุดจะล้ม เลยกรองคนที่อยู่ในงานแล้วออกก่อน
+  const { data: already } = await supabase
+    .from("project_talents")
+    .select("talent_id")
+    .eq("project_id", projectId)
+    .in("talent_id", wanted.map((w) => w.id));
+  const have = new Set((already ?? []).map((r) => r.talent_id));
+
+  const rows = wanted
+    .filter((w) => !have.has(w.id))
+    .map((w, i) => ({
       project_id: projectId,
-      talent_id: id,
+      talent_id: w.id,
       card_type: cardType,
-      display_order: nextOrder,
-      role_id: (roles[i] ?? "").trim() || null,
-    };
-    let { error } = await supabase.from("project_talents").insert(row);
+      display_order: nextOrder + i,
+      role_id:
+        (roles[ids.indexOf(w.id)] ?? "").trim() || null,
+    }));
+  if (rows.length > 0) {
+    let { error } = await supabase.from("project_talents").insert(rows);
+    // ยังไม่รัน migration 017 → column role_id ยังไม่มี, ใส่ base ไปก่อน
     if (isMissingColumn(error)) {
-      const { role_id: _r, ...base } = row;
-      void _r;
-      ({ error } = await supabase.from("project_talents").insert(base));
+      ({ error } = await supabase
+        .from("project_talents")
+        .insert(rows.map(({ role_id: _r, ...base }) => base)));
     }
     if (error && !error.message.includes("duplicate")) {
       throw new Error(error.message);
     }
-    nextOrder++;
   }
 
   revalidatePath(`/admin/projects/${projectId}`);
