@@ -42,6 +42,7 @@ function parseFilters(params: RawParams): TalentFilters {
 const STATUS_CHIP: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
   active: "bg-emerald-100 text-emerald-700",
+  draft: "bg-sky-100 text-sky-700",
   rejected: "bg-rose-100 text-rose-700",
   inactive: "bg-neutral-200 text-neutral-600",
 };

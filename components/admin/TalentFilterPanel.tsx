@@ -64,6 +64,7 @@ export function TalentFilterPanel({ searchParams }: { searchParams: Params }) {
             <SelectItem value="any">ทั้งหมด</SelectItem>
             <SelectItem value="pending">รออนุมัติ</SelectItem>
             <SelectItem value="active">อนุมัติแล้ว</SelectItem>
+            <SelectItem value="draft">⚡ ใบร่าง (มีแต่คอมการ์ด)</SelectItem>
             <SelectItem value="rejected">ปฏิเสธ</SelectItem>
             <SelectItem value="inactive">ไม่ใช้งาน</SelectItem>
           </SelectContent>

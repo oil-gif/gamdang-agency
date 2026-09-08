@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   deleteTalent,
+  promoteDraftTalent,
   getTalent,
   getTalentAdminSummary,
 } from "@/actions/talents";
@@ -62,6 +63,31 @@ export default async function EditTalentPage({
           fallbackPhrase={FALLBACK_PHRASE}
         />
       </div>
+
+      {/* ใบร่างจาก "เพิ่มด่วนจากคอมการ์ด" — เตือนว่ายังไม่อยู่ในระบบจริง
+          และให้ทางย้ายเข้าคิวอนุมัติเมื่อข้อมูลครบ (พี่เจ้าของแจ้ง 2026-09-08) */}
+      {talent.status === "draft" && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-sky-800">
+              ⚡ ใบร่าง — สร้างจากคอมการ์ด ยังไม่เข้าระบบ Talent
+            </p>
+            <p className="mt-0.5 text-xs text-sky-700/80">
+              ใช้เสนอลูกค้าในโปรเจกต์ได้เลย · <b>ยังไม่ขึ้นหน้าเว็บ Public</b> ·
+              กรอกข้อมูลให้ครบแล้วกดปุ่มขวาเพื่อส่งเข้าคิวรออนุมัติ
+            </p>
+          </div>
+          <form action={promoteDraftTalent}>
+            <input type="hidden" name="id" value={id} />
+            <button
+              type="submit"
+              className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+            >
+              ✓ ย้ายเข้าระบบ Talent (รออนุมัติ)
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* แถบสรุป: รูป/ชื่อ/ป้าย/ความครบ/งานที่เคยอยู่ + ปุ่มที่ใช้บ่อย */}
       {saved && (

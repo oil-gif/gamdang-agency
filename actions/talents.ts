@@ -466,6 +466,24 @@ export async function approveTalent(formData: FormData) {
   revalidatePath("/admin/talents");
 }
 
+// ใบร่าง (มีแต่คอมการ์ด) → เข้าคิวรออนุมัติตามปกติ
+//
+// พี่เจ้าของเลือกไว้ 2026-09-08 ว่าให้ไป "รออนุมัติ" ไม่ใช่ active เลย จะได้มี
+// คนตรวจอีกรอบก่อนขึ้นหน้าเว็บ Public (ใบร่างมักยังไม่มีวันเกิด/ส่วนสูง)
+export async function promoteDraftTalent(formData: FormData) {
+  const id = String(formData.get("id"));
+  // .eq("status","draft") — กันกดพลาดไปเปลี่ยนสถานะ talent ตัวจริง
+  const { error } = await supabase
+    .from("talents")
+    .update({ status: "pending" })
+    .eq("id", id)
+    .eq("status", "draft");
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/approvals");
+  revalidatePath("/admin/talents");
+  revalidatePath(`/admin/talents/${id}`);
+}
+
 export async function rejectTalent(formData: FormData) {
   const id = String(formData.get("id"));
   const { error } = await supabase

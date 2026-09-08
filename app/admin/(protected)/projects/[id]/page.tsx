@@ -5,6 +5,7 @@ import {
   addProjectRole,
   addTalentToProject,
   approveApplication,
+  discardQuickTalent,
   clearSentToClient,
   deleteProject,
   deleteProjectRole,
@@ -18,6 +19,7 @@ import {
   unrejectApplication,
   removeTalentFromProject,
   reorderProjectTalents,
+  saveQuickTalents,
   reorderProjectRoles,
   setProjectTalentCardType,
   setProjectTalentRole,
@@ -57,6 +59,7 @@ import { DangerConfirmButton } from "@/components/admin/DangerConfirmButton";
 import { TalentExtraInfo } from "@/components/admin/TalentExtraInfo";
 import { CollapsibleSection } from "@/components/admin/CollapsibleSection";
 import { DragOrderList } from "@/components/admin/DragOrderList";
+import { QuickTalentUpload } from "@/components/admin/QuickTalentUpload";
 import { parseExtraDetails } from "@/lib/extra-details";
 import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
 import { LINE_FAIL_TEXT, type LineFailReason } from "@/lib/line-messaging";
@@ -1102,6 +1105,25 @@ export default async function ProjectDetailPage({
         )}
       </section>
 
+      {/* ===== เพิ่มด่วนจากคอมการ์ด ===== */}
+      {/* บางคนเรามีแค่คอมการ์ด ไม่รู้วันเกิด/ส่วนสูง → เดิมเอาเข้างานไม่ได้เลย
+          เพราะต้องกรอกฟอร์มเต็มทีละคน (พี่เจ้าของแจ้ง 2026-09-08) */}
+      <CollapsibleSection
+        id="quickadd"
+        icon="⚡"
+        title="เพิ่มด่วนจากคอมการ์ด"
+        badge="มีแค่รูป + ชื่อ ก็เสนอลูกค้าได้"
+        hint="ใช้ตอนมีแต่คอมการ์ด"
+        defaultOpen={openParam === "quickadd"}
+      >
+        <QuickTalentUpload
+          projectId={id}
+          roles={roles.map((r) => ({ id: r.id, title: r.title }))}
+          saveAction={saveQuickTalents.bind(null, id)}
+          discardAction={discardQuickTalent}
+        />
+      </CollapsibleSection>
+
       {/* ===== Talent picker ===== */}
       {/* พับไว้ — ใช้ตอนจัดทีมเท่านั้น · แต่ต้องกางเองเมื่อผู้ใช้กำลังค้นหา
           หรือกดเปลี่ยนหน้าอยู่ ไม่งั้นกดแล้วเหมือนไม่มีอะไรเกิดขึ้น */}
@@ -1236,6 +1258,7 @@ export default async function ProjectDetailPage({
             const socials = talentSocials(t);
             const expertise = ((t.categories ?? []) as string[]).slice(0, 3);
             const appliedStatus = appliedTalentIds.get(t.id);
+            const isDraft = t.status === "draft";
             return (
               <div
                 key={t.id}
@@ -1281,6 +1304,11 @@ export default async function ProjectDetailPage({
                       {t.code}
                     </span>
                   </div>
+                  {isDraft && (
+                    <p className="mt-1 inline-block rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
+                      ⚡ ใบร่าง — มีแต่คอมการ์ด ยังไม่เข้าระบบ Talent
+                    </p>
+                  )}
                   {appliedStatus && (
                     <p
                       className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${

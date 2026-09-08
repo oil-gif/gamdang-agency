@@ -184,10 +184,12 @@ export async function getPickerTalents(
     .eq("project_id", projectId);
   const excludeIds = (existing ?? []).map((r) => r.talent_id);
 
+  // "draft" = ใบร่างที่อัพจากคอมการ์ด ข้อมูลยังไม่ครบ แต่ต้องเสนอลูกค้าได้
+  // (พี่เจ้าของเลือกไว้ 2026-09-08 ว่าให้โผล่ในช่องนี้ด้วย) · ในการ์ดมีป้ายกำกับ
   let query = supabase
     .from("talents")
     .select("*", { count: "exact" })
-    .eq("status", "active")
+    .in("status", ["active", "draft"])
     .order("created_at", { ascending: false });
 
   // ตัดคนที่อยู่ในโปรเจกต์แล้วออกในระดับ query (เพื่อให้ paginate + นับถูก)
@@ -583,6 +585,103 @@ export async function addTalentToProject(formData: FormData) {
   }
   // Ignore duplicate (talent already in project) — unique constraint.
   if (error && !error.message.includes("duplicate")) throw new Error(error.message);
+  revalidatePath(`/admin/projects/${projectId}`);
+}
+
+// "เพิ่มด่วนจากคอมการ์ด" — บันทึกชื่อของใบร่างที่เพิ่งอัพ แล้วยัดเข้าโปรเจกต์รวดเดียว
+//
+// ฟอร์มส่งมาเป็นชุด: qt_id[] / qt_name[] / qt_age[] / qt_height[] / qt_weight[]
+// / qt_role[] — เรียงตรงกันทีละแถว · บังคับแค่ "ชื่อ" (พี่เจ้าของเลือกไว้
+// 2026-09-08) ที่เหลือมีก็ใส่ ไม่มีก็ปล่อยว่าง เพราะบางคนเรามีแค่คอมการ์ด
+//
+// อายุ → เก็บเป็น dob วันที่ 1 ม.ค. ของปีที่คำนวณได้ ระบบทั้งเว็บคิดอายุจาก dob
+// ที่เดียว ถ้าเพิ่มคอลัมน์ "อายุ" แยกจะมีสองแหล่งความจริงแล้วเพี้ยนกันภายหลัง
+export async function saveQuickTalents(projectId: string, formData: FormData) {
+  const ids = formData.getAll("qt_id").map(String);
+  if (ids.length === 0) return;
+  const names = formData.getAll("qt_name").map(String);
+  const ages = formData.getAll("qt_age").map(String);
+  const heights = formData.getAll("qt_height").map(String);
+  const weights = formData.getAll("qt_weight").map(String);
+  const roles = formData.getAll("qt_role").map(String);
+  const genders = formData.getAll("qt_gender").map(String);
+
+  const { data: project } = await supabase
+    .from("projects")
+    .select("project_type")
+    .eq("id", projectId)
+    .single();
+  const cardType =
+    project?.project_type === "influencer" ? "influcard" : "compcard";
+
+  const { data: maxRow } = await supabase
+    .from("project_talents")
+    .select("display_order")
+    .eq("project_id", projectId)
+    .order("display_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  let nextOrder = (maxRow?.display_order ?? -1) + 1;
+
+  const thisYear = new Date().getFullYear();
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    const name = (names[i] ?? "").trim();
+    if (!id || !name) continue; // ไม่ใส่ชื่อ = ข้ามไป ใบร่างยังอยู่ให้มาแก้ทีหลัง
+
+    const age = parseInt(ages[i] ?? "", 10);
+    const height = parseInt(heights[i] ?? "", 10);
+    const weight = parseInt(weights[i] ?? "", 10);
+    const gender = (genders[i] ?? "").trim();
+
+    const patch: Record<string, unknown> = { nickname_en: name };
+    if (Number.isFinite(age) && age > 0 && age < 100) {
+      patch.dob = `${thisYear - age}-01-01`;
+    }
+    if (Number.isFinite(height) && height > 0) patch.height_cm = height;
+    if (Number.isFinite(weight) && weight > 0) patch.weight_kg = weight;
+    if (gender === "male" || gender === "female" || gender === "other") {
+      patch.gender = gender;
+    }
+    // .eq("status","draft") — กันฟอร์มถูกยิงมาแก้ทับ talent ตัวจริงที่ข้อมูลครบแล้ว
+    await supabase.from("talents").update(patch).eq("id", id).eq("status", "draft");
+
+    const row = {
+      project_id: projectId,
+      talent_id: id,
+      card_type: cardType,
+      display_order: nextOrder,
+      role_id: (roles[i] ?? "").trim() || null,
+    };
+    let { error } = await supabase.from("project_talents").insert(row);
+    if (isMissingColumn(error)) {
+      const { role_id: _r, ...base } = row;
+      void _r;
+      ({ error } = await supabase.from("project_talents").insert(base));
+    }
+    if (error && !error.message.includes("duplicate")) {
+      throw new Error(error.message);
+    }
+    nextOrder++;
+  }
+
+  revalidatePath(`/admin/projects/${projectId}`);
+  revalidatePath("/admin/talents");
+  redirect(`/admin/projects/${projectId}#talents`);
+}
+
+// ลบใบร่างที่อัพมาแล้วแต่ไม่เอา (เช่นอัพผิดรูป) — ลบได้เฉพาะใบร่างเท่านั้น
+export async function discardQuickTalent(formData: FormData) {
+  const id = String(formData.get("id"));
+  const projectId = String(formData.get("project_id"));
+  const { data: t } = await supabase
+    .from("talents")
+    .select("id, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (!t || t.status !== "draft") return; // ไม่ใช่ใบร่าง = ไม่แตะ
+  await supabase.from("talent_photos").delete().eq("talent_id", id);
+  await supabase.from("talents").delete().eq("id", id);
   revalidatePath(`/admin/projects/${projectId}`);
 }
 
