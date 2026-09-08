@@ -1375,7 +1375,8 @@ export default async function ProjectDetailPage({
           })}
           {candidates.length === 0 && (
             <p className="text-sm text-neutral-400 sm:col-span-2">
-              ไม่พบ talent (แสดงเฉพาะสถานะ &quot;อนุมัติแล้ว&quot; ที่ยังไม่อยู่ในโปรเจกต์)
+              ไม่พบ talent (แสดงคนที่ &quot;อนุมัติแล้ว&quot; และ &quot;ใบร่าง&quot;
+              ที่ยังไม่อยู่ในโปรเจกต์)
             </p>
           )}
         </div>
