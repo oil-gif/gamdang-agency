@@ -1,6 +1,6 @@
 # PROJECT-CONTEXT — gamdang-app
 
-> แผนที่โครงสร้างโปรเจกต์ (สแกนจากโค้ดจริง 2026-08-05) — ไว้ให้คน/AI ที่เพิ่งเข้ามา
+> แผนที่โครงสร้างโปรเจกต์ (สแกนจากโค้ดจริง · อัปเดตล่าสุด 2026-09-09) — ไว้ให้คน/AI ที่เพิ่งเข้ามา
 > เข้าใจระบบเร็วๆ ว่ามีอะไรอยู่ตรงไหน · **ความคืบหน้า/สิ่งที่ทำไปแล้ว อ่านที่ `PROGRESS.md`**
 >
 > ⚠️ ไฟล์นี้อยู่บน GitHub — **ห้ามใส่ค่า key/secret/ข้อมูลส่วนตัวของ talent เด็ดขาด**
@@ -164,6 +164,7 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 | `POST /api/single-photo` | รูปหลักรูปเดียว (Influencer / รอคอมการ์ด) |
 | `POST /api/compcard-upload` | บันทึกคอมการ์ดที่ canvas วาด (แทนใบเดิม) |
 | `POST /api/casting-upload` · `/api/casting-apply-photo` | รูปตอนส่งงาน / ตอนสมัคร casting |
+| `POST /api/quick-talent` | **แอดมินเท่านั้น** — 1 คอมการ์ด = 1 ใบร่าง talent (`status='draft'`) พร้อมอัพรูป · ใช้โดย "เพิ่มด่วนจากคอมการ์ด" |
 | `POST /api/inbox-upload` | batch upload เข้า photo inbox |
 | `POST /api/project-cover-upload` | รูปปกประกาศงาน (1200×630) |
 | `GET /api/talent-photos-zip` | **แอดมินเท่านั้น** — ดาวน์โหลดรูปทั้งหมดเป็น ZIP |
@@ -174,20 +175,24 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 
 | ตาราง | ใช้ทำอะไร | ไฟล์หลักที่เรียก |
 |---|---|---|
-| **talents** | โปรไฟล์นักแสดง/อินฟลูฯ (แกนกลางของระบบ) | `actions/talents.ts`, `actions/casting-apply.ts`, `actions/projects.ts`, `actions/shoots.ts`, `actions/photos.ts`, `actions/submission.ts`, `actions/photo-inbox.ts`, `api/line/verify`, `api/upload`, `api/slot-upload`, `api/single-photo`, `api/compcard-upload`, `api/talent-photos-zip`, `api/booking/*`, `lib/public-talents.ts` |
+| **talents** | โปรไฟล์นักแสดง/อินฟลูฯ (แกนกลางของระบบ · `status`: active/pending/rejected/**draft**) | `actions/talents.ts`, `actions/casting-apply.ts`, `actions/projects.ts`, `actions/shoots.ts`, `actions/photos.ts`, `actions/submission.ts`, `actions/photo-inbox.ts`, `api/line/verify`, `api/upload`, `api/slot-upload`, `api/single-photo`, `api/compcard-upload`, `api/talent-photos-zip`, `api/booking/*`, `lib/public-talents.ts` |
 | **talent_photos** | รูปทุกชนิด (`kind`: gallery / compcard / casting) | `actions/photos.ts`, `actions/talents.ts`, `actions/projects.ts`, `actions/casting-apply.ts`, `actions/photo-inbox.ts`, `api/upload`, `api/slot-upload`, `api/single-photo`, `api/compcard-upload`, `api/casting-upload`, `api/talent-photos-zip`, `app/(liff)/apply/edit/page.tsx`, `lib/public-talents.ts` |
 | **projects** | งาน/โปรเจกต์ + ประกาศ casting | `actions/projects.ts`, `actions/casting-apply.ts`, `lib/casting.ts` |
 | **project_talents** | talent ที่อยู่ในงาน (การ์ดเสนอลูกค้า, สถานะตอบรับ, ผลงานที่ส่ง) | `actions/projects.ts`, `actions/job-notify.ts`, `actions/job-response.ts`, `actions/submission.ts`, `actions/client-selection.ts`, `actions/talents.ts`, `api/line/webhook`, `api/casting-upload`, `app/job/[token]`, `app/submit/[token]` |
 | **project_roles** | Role ที่เปิดรับในงาน | `actions/projects.ts`, `actions/casting-apply.ts`, `lib/casting.ts` |
 | **project_applications** | ใบสมัคร casting (pending/approved/rejected) | `actions/casting-apply.ts`, `actions/projects.ts` |
-| **project_links** | ลิงก์ proposal ของลูกค้า (token, T&C, วันหมดอายุ) | `actions/project-links.ts`, `actions/public-link.ts`, `actions/client-selection.ts`, `lib/public-link.ts` |
+| **project_links** | ลิงก์ proposal ของลูกค้า (token, T&C, วันหมดอายุ, `role_ids` = โชว์เฉพาะบทที่เลือก) | `actions/project-links.ts`, `actions/public-link.ts`, `actions/client-selection.ts`, `lib/public-link.ts` |
 | **shoot_days** | รอบวันถ่ายโปรไฟล์ + เปิด/ปิดสล็อตรายชั่วโมง | `actions/shoots.ts`, `api/booking`, `lib/booking.ts` |
-| **shoot_bookings** | การจองคิวถ่าย + สลิป + เช็คอินหน้างาน | `actions/shoots.ts`, `actions/talents.ts`, `api/booking`, `lib/booking.ts` |
+| **shoot_bookings** | การจองคิวถ่าย + สลิป + เช็คอินหน้างาน (`status`: pending/approved/rejected/**postponed**) | `actions/shoots.ts`, `actions/talents.ts`, `api/booking`, `lib/booking.ts` |
 | **photo_inbox** | รูป batch ที่ยังไม่จับคู่กับ talent | `actions/photo-inbox.ts`, `api/inbox-upload` |
 
 **RPC**: `book_shoot_slot` — จองคิวแบบ atomic (advisory lock กันจองชน) → เรียกจาก `api/booking` และ `actions/shoots.ts`
 **Storage buckets**: `talent-photos` (สาธารณะผ่าน proxy) · `booking-slips` (**ส่วนตัว** — ดูผ่าน signed URL เท่านั้น)
-**Migrations**: `supabase/migrations/` (ล่าสุด `019_talent_rating.sql`) — schema แก้ที่นี่ ไม่มี ORM migrate
+**Migrations**: `supabase/migrations/` (ล่าสุด `027_link_role_filter.sql`) — schema แก้ที่นี่ ไม่มี ORM migrate
+· ที่เพิ่มมาหลัง 019: `020` ส่ง proposal ให้ลูกค้าแล้ว · `021` โน้ตภายในของงาน ·
+`022` ข้อมูลเพิ่มเติม · `023` ชื่อเล่นไทยในฟอร์มจอง · `024` ลิงก์ผลงาน influencer ·
+`025` สถานะจอง **postponed** (เลื่อนรอบ — คืนที่นั่ง แก้ทั้ง CHECK และ RPC `book_shoot_slot`) ·
+`026` สถานะ talent **draft** (ใบร่างจากคอมการ์ด) · `027` `project_links.role_ids` (ลิงก์เฉพาะบท)
 **ไฟล์รูปคงที่**: `public/` — `gamdang-logo.png` (โลโก้บนคอมการ์ด), `gamdang-modeling.png`, `gamdang-influencer.png`, `promptpay-gamdang.jpg` (QR จ่ายเงินค่าถ่าย)
 
 ---
@@ -201,6 +206,8 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 | `app/admin/(protected)/layout.tsx` | **ประตูเดียว**ที่กันหน้าแอดมินทั้งหมด (ไม่มี middleware) — พังเมื่อไหร่ = หลังบ้านเปิดสาธารณะ |
 | `components/report/CampaignCharts.tsx` | กราฟใน Report — **SVG ล้วน ห้ามเปลี่ยนเป็นไลบรารีกราฟ** (canvas พิมพ์ PDF แล้วหาย) · ทุกสีพื้นต้องมี `printColorAdjust: "exact"` |
 | `components/report/CastingReportView.tsx` | เนื้อ Casting Report ใช้ร่วมกันทั้งหน้าแอดมินและลิงก์ลูกค้า `/r/[token]` · **ขนาดรูปในนี้คุมการแบ่งหน้า PDF** การ์ดต้องสูงไม่เกิน ~210mm ไม่งั้นเกิดหน้าว่าง |
+| `lib/constants.ts` → `BOOKING_FREED_STATUSES` | สถานะจองที่ "ไม่ถือที่นั่ง" (rejected/postponed) · **DB ก็ใช้กติกาเดียวกันใน `book_shoot_slot`** แก้ที่เดียวไม่พอ ต้องแก้คู่กันเสมอ ไม่งั้นที่นั่งค้างจนคนอื่นจองไม่ได้ |
+| `actions/projects.ts` → `getProjectTalents(id, onlyRoleIds?)` | จุดเดียวที่ทุกหน้าฝั่งลูกค้าดึงรายชื่อ (`/p`, `/r`, print PDF, report หลังบ้าน) · ตัวเลขทั้งหมด (จำนวน Talent, ที่ลูกค้าเลือก, การแบ่งหน้า A4) คำนวณจาก array นี้ → **กรองที่นี่ที่เดียว ทุกหน้าถูกตาม** |
 | `components/admin/DragOrderList.tsx` | ลากวางจัดลำดับ · **ห้ามเก็บ node ไว้ใน state** (เก็บได้แค่ลำดับ id) ไม่งั้นปุ่มในการ์ดกดแล้วหน้าจอไม่อัปเดต |
 | `lib/auth/upload-guard.ts` | ยามของ API อัพรูปทั้ง 5 ตัว — แอดมิน/เจ้าของเท่านั้น · **ห้ามกลับไปเขียนแบบ `if (session && ...)`** เพราะจะกลายเป็น "ไม่มี session = ผ่าน" (ช่องโหว่ที่ปิดไป 2026-08-20) |
 | `lib/auth/talent-session.ts` | ออก/ตรวจ JWT ของ talent + token ของ `/job` `/submit` `?link=` — แก้ผิด = ลิงก์เก่าใช้ไม่ได้ทั้งหมด หรือคนอื่นเข้าโปรไฟล์ข้ามบัญชีได้ |
