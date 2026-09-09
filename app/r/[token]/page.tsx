@@ -87,7 +87,12 @@ export default async function ClientReportPage({
 
   return (
     <div className="bg-neutral-100 py-6 print:bg-white print:py-0">
-      <CastingReportView id={link.project_id} forClient />
+      {/* ลิงก์เดียวกับ /p/[token] → ถ้าตั้งให้โชว์เฉพาะบทไหน รายงานต้องตรงกัน */}
+      <CastingReportView
+        id={link.project_id}
+        forClient
+        roleIds={(link as { role_ids?: string[] | null }).role_ids ?? null}
+      />
     </div>
   );
 }

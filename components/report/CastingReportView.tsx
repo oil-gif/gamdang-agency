@@ -47,14 +47,17 @@ function readReportPosts(pt: {
 export async function CastingReportView({
   id,
   forClient = false,
+  roleIds,
 }: {
   id: string;
   /** true = ลูกค้าเปิดจากลิงก์ → ไม่โชว์แถบเครื่องมือของแอดมิน */
   forClient?: boolean;
+  /** โชว์เฉพาะบทที่ระบุ (ลิงก์ลูกค้าที่เลือกบทไว้ / ติ๊กบทก่อนพิมพ์) */
+  roleIds?: string[] | null;
 }) {
   const [project, projectTalents] = await Promise.all([
     getProject(id),
-    getProjectTalents(id),
+    getProjectTalents(id, roleIds),
   ]);
   const isModel = project.project_type === "model";
 

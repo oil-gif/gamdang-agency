@@ -1,6 +1,10 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import { getProject, getProjectTalents } from "@/actions/projects";
+import {
+  getProject,
+  getProjectRoles,
+  getProjectTalents,
+} from "@/actions/projects";
 import { PrintButton } from "@/components/public/PrintButton";
 import { PrintMiniCard } from "@/components/public/TalentCards";
 
@@ -81,15 +85,50 @@ function paginateCards<T extends Paginatable>(list: T[]) {
 
 export default async function ProjectPrintPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ roles?: string }>;
 }) {
   const { id } = await params;
-  const [project, projectTalents] = await Promise.all([
+  const { roles: rolesParam } = await searchParams;
+  // ?roles=id1,id2 — ติ๊กบทก่อนกดพิมพ์ (พี่เจ้าของเลือกไว้ 2026-09-09)
+  // ไม่ใส่ = ทุกบทเหมือนเดิม · "none" = คนที่ยังไม่ระบุบท
+  const pickedRoles = (rolesParam ?? "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  const [project, allTalents, projectTalents, roleList] = await Promise.all([
     getProject(id),
     getProjectTalents(id),
+    getProjectTalents(id, pickedRoles),
+    getProjectRoles(id),
   ]);
   const pages = paginateCards(projectTalents);
+
+  // บทที่มีคนอยู่จริงในงานนี้ (+ กลุ่ม "ยังไม่ระบุบท" ถ้ามี) พร้อมจำนวนคน
+  const roleChips = [
+    ...roleList.map((r) => ({
+      key: r.id,
+      title: r.title,
+      count: allTalents.filter((pt) => pt.role_id === r.id).length,
+    })),
+    {
+      key: "none",
+      title: "ยังไม่ระบุบท",
+      count: allTalents.filter((pt) => !pt.role_id).length,
+    },
+  ].filter((c) => c.count > 0);
+
+  const chipHref = (key: string) => {
+    const next = pickedRoles.includes(key)
+      ? pickedRoles.filter((k) => k !== key)
+      : [...pickedRoles, key];
+    return next.length > 0
+      ? `/admin/projects/${id}/print?roles=${next.join(",")}`
+      : `/admin/projects/${id}/print`;
+  };
 
   return (
     <div className="mx-auto max-w-[210mm]">
@@ -128,12 +167,55 @@ export default async function ProjectPrintPage({
         }
       `}</style>
 
+      {/* เลือกบทที่จะเอาลง PDF — เช่นลูกค้าคอนเฟิร์มบทอื่นแล้ว เหลือบทเดียว
+          ที่อยากดูเพิ่ม ก็ส่ง PDF เฉพาะบทนั้น (พี่เจ้าของแจ้ง 2026-09-09) */}
+      {roleChips.length > 1 && (
+        <div className="no-print mb-3 flex flex-wrap items-center gap-1.5 rounded-lg border bg-white px-4 py-3">
+          <span className="mr-1 text-sm font-semibold text-neutral-700">
+            🎭 เลือกบทที่จะพิมพ์:
+          </span>
+          <Link
+            href={`/admin/projects/${id}/print`}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+              pickedRoles.length === 0
+                ? "bg-[#1D4ED8] text-white shadow-sm"
+                : "border border-neutral-300 bg-white text-neutral-600 hover:border-[#1D4ED8]"
+            }`}
+          >
+            ทุกบท ({allTalents.length})
+          </Link>
+          {roleChips.map((c) => {
+            const on = pickedRoles.includes(c.key);
+            return (
+              <Link
+                key={c.key}
+                href={chipHref(c.key)}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                  on
+                    ? "bg-[#1D4ED8] text-white shadow-sm"
+                    : "border border-neutral-300 bg-white text-neutral-600 hover:border-[#1D4ED8]"
+                }`}
+              >
+                {on ? "✓ " : ""}
+                {c.title.length > 30 ? c.title.slice(0, 30) + "…" : c.title} (
+                {c.count})
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
       <div className="no-print mb-4 space-y-2 rounded-lg border bg-white px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-neutral-700">
             ตัวอย่าง PDF: หน้าปก + {projectTalents.length} การ์ด ={" "}
             {pages.length + 1} หน้า (ระบบตัดหน้าให้พอดี A4 อัตโนมัติ
             หน้าที่มีหัวข้อ Role หลายอันจะได้การ์ดน้อยลง)
+            {pickedRoles.length > 0 && (
+              <span className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-bold text-amber-800">
+                เลือกเฉพาะ {pickedRoles.length} บท จาก {allTalents.length} คน
+              </span>
+            )}
           </p>
           <Link
             href={`/admin/projects/${id}`}

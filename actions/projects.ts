@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { notifyCasting } from "@/lib/admin-notify";
 import { yearsAgo } from "@/lib/age";
 import { SITE_URL } from "@/lib/site";
+import { isMissingColumn } from "@/lib/db-errors";
 import { supabase } from "@/lib/supabase/server";
 import { verifyDangerCode } from "@/lib/danger";
 
@@ -94,14 +95,33 @@ export async function getProject(id: string) {
 // A project's talents joined with the talent row + their comp card path, so
 // the manage screen (and later the client link) can render cards without
 // N extra queries.
-export async function getProjectTalents(projectId: string) {
-  const { data: rows, error } = await supabase
+export async function getProjectTalents(
+  projectId: string,
+  /**
+   * กรองเฉพาะบทที่ระบุ — ใช้กับลิงก์ลูกค้าที่เลือกบทไว้ และ PDF ที่ติ๊กบทก่อนพิมพ์
+   * ใส่ "none" เพื่อรวมคนที่ยังไม่ระบุบท · undefined / [] = เอาทุกบท (ค่าเดิม)
+   */
+  onlyRoleIds?: string[] | null,
+) {
+  const { data: allRows, error } = await supabase
     .from("project_talents")
     .select("*, talent:talents(*)")
     .eq("project_id", projectId)
     .order("display_order", { ascending: true });
   if (error) throw new Error(error.message);
-  if (!rows || rows.length === 0) return [];
+  if (!allRows || allRows.length === 0) return [];
+
+  // กรองตั้งแต่ตรงนี้ — รูปและชื่อ Role จะถูกดึงเฉพาะเท่าที่ใช้จริงด้วย
+  const wantRoles =
+    onlyRoleIds && onlyRoleIds.length > 0 ? new Set(onlyRoleIds) : null;
+  const rows = wantRoles
+    ? allRows.filter((r) =>
+        wantRoles.has(
+          (r as { role_id?: string | null }).role_id ?? "none",
+        ),
+      )
+    : allRows;
+  if (rows.length === 0) return [];
 
   const talentIds = rows.map((r) => r.talent_id);
   const { data: photos } = await supabase
@@ -339,14 +359,6 @@ export async function saveProject(formData: FormData) {
 }
 
 // column ที่เพิ่มใน migration ยังไม่มีในฐานข้อมูล (deploy ก่อน run migration)
-function isMissingColumn(error: { code?: string; message?: string } | null) {
-  if (!error) return false;
-  return (
-    error.code === "42703" ||
-    error.code === "PGRST204" ||
-    /column|schema cache|could not find/i.test(error.message ?? "")
-  );
-}
 
 // ===== Roles ในโปรเจกต์ =====
 export async function getProjectRoles(projectId: string) {

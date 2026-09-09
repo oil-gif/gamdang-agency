@@ -1546,6 +1546,75 @@ export default async function ProjectDetailPage({
             <Button type="submit">+ สร้างลิงก์</Button>
           </form>
         </div>
+
+        {/* สร้างลิงก์เฉพาะบท — เคสที่เจอบ่อย: ลูกค้าคอนเฟิร์มบทอื่นไปแล้ว
+            เหลือบทเดียวที่อยากขอดูตัวเลือกเพิ่ม ส่งลิงก์ที่เห็นเฉพาะบทนั้น
+            จะได้ไม่สับสนกับบทที่ปิดไปแล้ว (พี่เจ้าของแจ้ง 2026-09-09) */}
+        {roles.length > 0 && (
+          <details className="rounded-xl border border-[#1D4ED8]/25 bg-[#1D4ED8]/5">
+            <summary className="cursor-pointer list-none px-3 py-2 text-sm font-semibold text-[#1D4ED8] hover:underline">
+              🎭 สร้างลิงก์ที่เห็นเฉพาะบทที่เลือก (กดดู)
+            </summary>
+            <form
+              action={createProjectLink}
+              className="space-y-2 border-t border-[#1D4ED8]/15 p-3"
+            >
+              <input type="hidden" name="project_id" value={id} />
+              <p className="text-xs text-neutral-500">
+                ติ๊กบทที่อยากให้ลูกค้าเห็น — บทที่ไม่ติ๊กจะไม่โผล่ในลิงก์นี้เลย
+                ทั้งใบเสนอและ Casting Report
+              </p>
+              <div className="space-y-1.5">
+                {roles.map((r) => {
+                  const n = projectTalents.filter(
+                    (pt) => pt.role_id === r.id,
+                  ).length;
+                  return (
+                    <label
+                      key={r.id}
+                      className="flex items-start gap-2 rounded-lg bg-white px-2.5 py-1.5 text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        name="role_ids"
+                        value={r.id}
+                        className="mt-0.5 size-4 shrink-0"
+                      />
+                      <span className="min-w-0">
+                        {r.title}{" "}
+                        <span className="text-xs text-neutral-400">
+                          ({n} คน)
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+                {projectTalents.some((pt) => !pt.role_id) && (
+                  <label className="flex items-start gap-2 rounded-lg bg-white px-2.5 py-1.5 text-sm">
+                    <input
+                      type="checkbox"
+                      name="role_ids"
+                      value="none"
+                      className="mt-0.5 size-4 shrink-0"
+                    />
+                    <span>
+                      ยังไม่ระบุบท{" "}
+                      <span className="text-xs text-neutral-400">
+                        ({projectTalents.filter((pt) => !pt.role_id).length} คน)
+                      </span>
+                    </span>
+                  </label>
+                )}
+              </div>
+              <Button type="submit" size="sm">
+                + สร้างลิงก์เฉพาะบทที่ติ๊ก
+              </Button>
+              <span className="ml-2 text-xs text-neutral-400">
+                ไม่ติ๊กเลย = ลิงก์เห็นทุกบท
+              </span>
+            </form>
+          </details>
+        )}
         <div className="space-y-2">
           {links.map((l) => {
             const url = `${BASE_URL}/p/${l.token}`;
@@ -1553,8 +1622,28 @@ export default async function ProjectDetailPage({
             // (ต้องกดยอมรับเงื่อนไขที่หน้า /p ก่อน ถึงจะเปิด /r ได้)
             const reportUrl = `${BASE_URL}/r/${l.token}`;
             const expired = l.expires_at && new Date(l.expires_at) < new Date();
+            // ลิงก์ที่จำกัดบทไว้ ต้องเห็นชัดในหน้านี้ ไม่งั้นแอดมินส่งผิดใบ
+            const lr = (l as { role_ids?: string[] | null }).role_ids ?? null;
+            const lrTitles =
+              lr && lr.length > 0
+                ? lr.map(
+                    (rid) =>
+                      roles.find((r) => r.id === rid)?.title ??
+                      (rid === "none" ? "ยังไม่ระบุบท" : "บทที่ถูกลบแล้ว"),
+                  )
+                : null;
             return (
-              <div key={l.id} className="rounded-xl border bg-white p-3 shadow-sm">
+              <div
+                key={l.id}
+                className={`rounded-xl border bg-white p-3 shadow-sm ${
+                  lrTitles ? "border-amber-300" : ""
+                }`}
+              >
+                {lrTitles && (
+                  <p className="mb-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-800">
+                    🎭 ลิงก์นี้เห็นเฉพาะบท: {lrTitles.join(" · ")}
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-2">
                   <code className="min-w-0 flex-1 truncate rounded bg-neutral-50 px-2 py-1 text-xs">
                     {url}

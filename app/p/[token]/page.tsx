@@ -113,7 +113,9 @@ export default async function ClientPortfolioPage({
   }
 
   // ===== Portfolio =====
-  const projectTalents = await getProjectTalents(project.id);
+  // ลิงก์อาจถูกตั้งให้โชว์เฉพาะบท (migration 027) — null/[] = ทุกบทเหมือนเดิม
+  const linkRoles = (link as { role_ids?: string[] | null }).role_ids ?? null;
+  const projectTalents = await getProjectTalents(project.id, linkRoles);
   await bumpViewCount(link.id, link.view_count);
 
   const influTalents = projectTalents.filter((pt) => pt.card_type === "influcard");
