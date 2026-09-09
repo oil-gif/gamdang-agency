@@ -54,7 +54,8 @@ export async function toggleClientInterest(formData: FormData) {
 }
 
 // เว้นช่วงก่อนแจ้งซ้ำ — ลูกค้ามักนั่งเลือกรวดเดียวหลายคน ควรได้ข้อความเดียว
-const NOTIFY_COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 ชม.
+// 24 ชม. (พี่เจ้าของเลือกเอง 2026-09-10) = อย่างมากวันละข้อความต่องาน
+const NOTIFY_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 ชม.
 
 async function notifyClientSelection(projectId: string) {
   const { data: project } = await supabase
