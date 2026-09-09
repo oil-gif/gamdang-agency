@@ -5,6 +5,17 @@ import { getPhotoProxyUrl } from "@/lib/storage";
 // การ์ด talent ตัวเดียวใช้ทั้งหน้าบ้าน (/) และหลังบ้าน (/admin/talents)
 // สไตล์ตารางรูปล้วน (photo mosaic) แบบเว็บเอเจนซี่: ปกติเห็นแค่รูป
 // เอา cursor ชี้แล้วข้อมูลเด้งขึ้นเป็น overlay — โหลดเร็วด้วย thumbnail ?w=320
+//
+// ⚠️ มือถือ/แท็บเล็ตไม่มี hover → overlay เดิมไม่มีทางขึ้นเลย ลูกค้าเปิดจากมือถือ
+// จึงเห็นแต่รูป ไม่รู้ว่าใครเป็นใคร (พี่เจ้าของแจ้ง 2026-09-09)
+// แก้ด้วย `@media (hover: none)` = เครื่องที่ชี้เมาส์ไม่ได้ → โชว์ข้อมูลค้างไว้เลย
+// (ดีกว่าให้แตะทีละใบ เพราะลูกค้าเลื่อนดูรัวๆ จะได้เห็นชื่อไปเรื่อยๆ ไม่ต้องแตะ)
+// ใช้ CSS ล้วน ไม่เพิ่ม JavaScript — หน้านี้มีการ์ดหลายร้อยใบ
+//
+// ⚠️ บนมือถือการ์ดเรียง 3 คอลัมน์ = กว้างแค่ ~110px · ถ้าโชว์ข้อมูลเต็มชุด
+// ข้อความจะตกบรรทัดยาวจนบังหน้าน้อง (ลูกค้าดูหน้าเป็นอย่างแรก) จึงโชว์แค่
+// ชื่อ + ข้อมูลย่อบรรทัดเดียว ส่วนป้าย MODEL/INFLU กับไอคอนโซเชียลซ่อนไว้
+// — จอใหญ่ที่ชี้เมาส์ได้ยังเห็นครบเหมือนเดิมทุกอย่าง
 
 export type GridCardSocial = {
   key: string;
@@ -44,14 +55,18 @@ const GENDER_SYMBOL: Record<string, string> = {
 };
 
 export function TalentGridCard(props: TalentGridCardProps) {
-  const meta = [
+  // แยกเป็น 2 ชุด — มือถือการ์ดแคบ โชว์ได้แค่ชุดหลัก + รหัส (ลูกค้าใช้รหัส
+  // อ้างอิงตอนทักมา) · จอที่ชี้เมาส์ได้ยังเห็นครบทุกอย่างเหมือนเดิม
+  const metaMain = [
     props.gender ? GENDER_SYMBOL[props.gender] : null,
     props.ageText ?? null,
     props.heightCm ? `${props.heightCm}cm` : null,
+  ].filter(Boolean);
+  const metaMore = [
     props.weightKg ? `${props.weightKg}kg` : null,
     props.nationality ?? null,
-    props.code ?? null,
   ].filter(Boolean);
+  const meta = [...metaMain, ...metaMore, props.code ?? null].filter(Boolean);
 
   const className =
     "group relative block aspect-[3/4] overflow-hidden rounded-lg bg-neutral-200";
@@ -81,19 +96,35 @@ export function TalentGridCard(props: TalentGridCardProps) {
         </span>
       )}
 
-      {/* ข้อมูลเด้งขึ้นเมื่อ hover */}
-      <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/85 via-black/30 to-transparent p-2.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+      {/* ข้อมูล: คอมชี้เมาส์แล้วเด้งขึ้น · มือถือโชว์ค้างไว้ (ไม่มี hover) */}
+      <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/85 via-black/25 to-transparent p-2.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
         <p className="text-sm font-bold leading-tight text-white">
           {props.name}
           {props.nameSub && (
             <span className="ml-1 font-normal text-white/70">{props.nameSub}</span>
           )}
         </p>
+        {/* จอที่ชี้เมาส์ได้: ข้อมูลครบชุดเดียวจบ */}
         {meta.length > 0 && (
-          <p className="mt-0.5 text-[11px] text-white/75">{meta.join(" · ")}</p>
+          <p className="mt-0.5 text-[11px] text-white/75 [@media(hover:none)]:hidden sm:[@media(hover:none)]:block">
+            {meta.join(" · ")}
+          </p>
         )}
+        {/* มือถือ: ข้อมูลหลักบรรทัดเดียว + รหัสบรรทัดล่าง ไม่ให้ล้นบังหน้า */}
+        <div className="hidden [@media(hover:none)]:block sm:[@media(hover:none)]:hidden">
+          {metaMain.length > 0 && (
+            <p className="mt-0.5 truncate text-[11px] text-white/75">
+              {metaMain.join(" · ")}
+            </p>
+          )}
+          {props.code && (
+            <p className="truncate font-mono text-[10px] text-white/55">
+              {props.code}
+            </p>
+          )}
+        </div>
 
-        <div className="mt-1 flex flex-wrap items-center gap-1">
+        <div className="mt-1 flex flex-wrap items-center gap-1 [@media(hover:none)]:hidden sm:[@media(hover:none)]:flex">
           {props.roles.model && (
             <span className="rounded bg-white/20 px-1 py-px text-[8px] font-bold text-white backdrop-blur-sm">
               MODEL
@@ -120,7 +151,7 @@ export function TalentGridCard(props: TalentGridCardProps) {
         </div>
 
         {(props.socials?.length ?? 0) > 0 && (
-          <div className="mt-1.5 flex items-center gap-1">
+          <div className="mt-1.5 flex items-center gap-1 [@media(hover:none)]:hidden sm:[@media(hover:none)]:flex">
             {props.socials!.map((s) => (
               <SocialIcon key={s.key} platform={s.key} size={16} title={s.short} />
             ))}
