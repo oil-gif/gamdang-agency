@@ -101,7 +101,9 @@ export function TalentGridCard(props: TalentGridCardProps) {
         <p className="text-sm font-bold leading-tight text-white">
           {props.name}
           {props.nameSub && (
-            <span className="ml-1 font-normal text-white/70">{props.nameSub}</span>
+            <span className="ml-1 font-normal text-white/70 [@media(hover:none)]:hidden sm:[@media(hover:none)]:inline">
+              {props.nameSub}
+            </span>
           )}
         </p>
         {/* จอที่ชี้เมาส์ได้: ข้อมูลครบชุดเดียวจบ */}
@@ -110,16 +112,13 @@ export function TalentGridCard(props: TalentGridCardProps) {
             {meta.join(" · ")}
           </p>
         )}
-        {/* มือถือ: ข้อมูลหลักบรรทัดเดียว + รหัสบรรทัดล่าง ไม่ให้ล้นบังหน้า */}
+        {/* มือถือ: ชื่ออังกฤษ / อายุ · รหัส / โซเชียล + ผู้ติดตาม
+            (พี่เจ้าของเลือกไว้ 2026-09-09) — ตัดเพศ/ส่วนสูง/สัญชาติออก
+            เพราะการ์ดกว้างแค่ ~110px ใส่หมดแล้วตกบรรทัดจนบังหน้าน้อง */}
         <div className="hidden [@media(hover:none)]:block sm:[@media(hover:none)]:hidden">
-          {metaMain.length > 0 && (
+          {(props.ageText || props.code) && (
             <p className="mt-0.5 truncate text-[11px] text-white/75">
-              {metaMain.join(" · ")}
-            </p>
-          )}
-          {props.code && (
-            <p className="truncate font-mono text-[10px] text-white/55">
-              {props.code}
+              {[props.ageText, props.code].filter(Boolean).join(" · ")}
             </p>
           )}
         </div>
@@ -151,7 +150,7 @@ export function TalentGridCard(props: TalentGridCardProps) {
         </div>
 
         {(props.socials?.length ?? 0) > 0 && (
-          <div className="mt-1.5 flex items-center gap-1 [@media(hover:none)]:hidden sm:[@media(hover:none)]:flex">
+          <div className="mt-1.5 flex items-center gap-1">
             {props.socials!.map((s) => (
               <SocialIcon key={s.key} platform={s.key} size={16} title={s.short} />
             ))}
