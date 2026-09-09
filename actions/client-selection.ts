@@ -37,39 +37,68 @@ export async function toggleClientInterest(formData: FormData) {
     .eq("id", pt.id);
   if (error) throw new Error(error.message);
 
-  // แจ้งกลุ่มทีมงานทันทีที่ลูกค้า "กดเลือก" — เดิมไม่มีอะไรบอกเลย ต้องเปิด
-  // หลังบ้านเช็คเอง กว่าจะรู้ก็ช้า · แจ้งเฉพาะตอนกดเลือก ไม่แจ้งตอนกดยกเลิก
-  // (ลูกค้ากดสลับไปมาระหว่างเลือก กลุ่มจะเด้งรัว)
+  // แจ้งกลุ่มทีมงานเมื่อลูกค้า "กดเลือก" — เดิมไม่มีอะไรบอกเลย ต้องเปิดหลังบ้าน
+  // เช็คเอง กว่าจะรู้ก็ช้า · ไม่แจ้งตอนกดยกเลิก
+  //
+  // ⚠️ ของเดิมแจ้ง "1 ข้อความต่อ 1 คนที่กด" → ลูกค้ากดสลับเลือก/ยกเลิกไปมา
+  // ระหว่างตัดสินใจ กลุ่มไลน์เด้งชื่อเดิมซ้ำๆ (เจอจริง Tony ZL767H 3 ครั้งใน
+  // นาทีเดียว) และเปลืองโควตา LINE · ตอนนี้ **1 งานเด้งครั้งเดียวต่อรอบ**
+  // แล้วเงียบไป 12 ชม. ถ้าลูกค้ากลับมาเลือกเพิ่มวันหลังถึงจะแจ้งใหม่
+  // (พี่เจ้าของแจ้ง 2026-09-10)
   if (nowInterested) {
-    const talent = pt.talent as unknown as {
-      nickname_th: string | null;
-      nickname_en: string | null;
-      code: string | null;
-    } | null;
-    const { data: project } = await supabase
-      .from("projects")
-      .select("name, client_name")
-      .eq("id", pt.project_id)
-      .maybeSingle();
-    const who =
-      talent?.nickname_en || talent?.nickname_th || talent?.code || "(ไม่มีชื่อ)";
-    // แจ้งเตือนล้มเหลวห้ามทำให้ลูกค้ากดปุ่มไม่ได้
-    try {
-      await notifyCasting(
-        [
-          "⭐ ลูกค้ากดเลือกทาเลนต์แล้ว!",
-          `งาน: ${project?.name ?? "-"}`,
-          project?.client_name ? `ลูกค้า: ${project.client_name}` : "",
-          `เลือก: ${who}${talent?.code ? ` (${talent.code})` : ""}`,
-          "",
-          `ดูรายชื่อที่ลูกค้าเลือก: ${SITE_URL}/admin/projects/${pt.project_id}`,
-        ].filter(Boolean),
-      );
-    } catch {
-      // เงียบไว้ — สถานะบันทึกลง DB เรียบร้อยแล้ว
-    }
+    await notifyClientSelection(pt.project_id);
   }
 
   revalidatePath(`/p/${token}`);
   revalidatePath(`/admin/projects/${pt.project_id}`);
+}
+
+// เว้นช่วงก่อนแจ้งซ้ำ — ลูกค้ามักนั่งเลือกรวดเดียวหลายคน ควรได้ข้อความเดียว
+const NOTIFY_COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 ชม.
+
+async function notifyClientSelection(projectId: string) {
+  const { data: project } = await supabase
+    .from("projects")
+    .select("name, client_name, client_select_notified_at")
+    .eq("id", projectId)
+    .maybeSingle();
+  if (!project) return;
+
+  // ยังไม่รัน migration 028 → ไม่มีคอลัมน์ ค่าจะเป็น undefined → ถือว่ายังไม่เคย
+  // แจ้ง แล้วเขียนกลับไม่ได้ ก็จะกลับไปเป็นพฤติกรรมเดิม (แจ้งทุกครั้ง) ไม่พัง
+  const last = (project as { client_select_notified_at?: string | null })
+    .client_select_notified_at;
+  if (last && Date.now() - new Date(last).getTime() < NOTIFY_COOLDOWN_MS) {
+    return; // เพิ่งแจ้งไป — เงียบไว้ ไม่เด้งซ้ำ
+  }
+
+  // นับ "ตอนนี้ลูกค้าเลือกไว้กี่คน" แทนการบอกชื่อทีละคน
+  const { count } = await supabase
+    .from("project_talents")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId)
+    .eq("client_interested", true);
+
+  try {
+    await notifyCasting(
+      [
+        "⭐ ลูกค้ากดเลือกทาเลนต์แล้ว!",
+        `งาน: ${project.name ?? "-"}`,
+        project.client_name ? `ลูกค้า: ${project.client_name}` : "",
+        `ตอนนี้เลือกไว้ ${count ?? 0} คน`,
+        "",
+        `ดูรายชื่อที่ลูกค้าเลือก: ${SITE_URL}/admin/projects/${projectId}?trole=starred`,
+      ].filter(Boolean),
+    );
+  } catch {
+    // เงียบไว้ — สถานะบันทึกลง DB เรียบร้อยแล้ว แจ้งเตือนล้มเหลวไม่ควรทำให้
+    // ลูกค้ากดปุ่มไม่ได้
+    return;
+  }
+
+  // เขียนหลังส่งสำเร็จเท่านั้น — ส่งไม่ออก (เช่นโควตาเต็ม) จะได้มีโอกาสแจ้งใหม่
+  await supabase
+    .from("projects")
+    .update({ client_select_notified_at: new Date().toISOString() })
+    .eq("id", projectId);
 }

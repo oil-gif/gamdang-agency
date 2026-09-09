@@ -252,18 +252,30 @@ export default async function ProjectDetailPage({
         count: 1,
       });
   }
+  // แท็บ "⭐ ลูกค้าสนใจ" — รวมคนที่ลูกค้ากดเลือกจากทุก Role ไว้ที่เดียว
+  // (พี่เจ้าของแจ้ง 2026-09-10: เดิมต้องไล่หาดาวทีละใบในลิสต์เป็นสิบๆ คน)
+  const starredCount = projectTalents.filter(
+    (pt) => pt.client_interested === true,
+  ).length;
+
   // งานเล็ก (≤20 คน) ไม่ต้องแบ่งอะไรเลย · งานใหญ่เปิดมาที่ Role แรกก่อน
   const needsSplit = projectTalents.length > TALENTS_PER_PAGE;
   const selectedRole =
-    troleParam && (troleParam === "all" || roleGroups.some((g) => g.key === troleParam))
-      ? troleParam
-      : needsSplit && roleGroups.length > 1
-        ? roleGroups[0].key
-        : "all";
+    troleParam === "starred" && starredCount > 0
+      ? "starred"
+      : troleParam &&
+          (troleParam === "all" ||
+            roleGroups.some((g) => g.key === troleParam))
+        ? troleParam
+        : needsSplit && roleGroups.length > 1
+          ? roleGroups[0].key
+          : "all";
   const inRole =
-    selectedRole === "all"
-      ? projectTalents
-      : projectTalents.filter((pt) => (pt.role_id ?? "none") === selectedRole);
+    selectedRole === "starred"
+      ? projectTalents.filter((pt) => pt.client_interested === true)
+      : selectedRole === "all"
+        ? projectTalents
+        : projectTalents.filter((pt) => (pt.role_id ?? "none") === selectedRole);
   const talentTotalPages = Math.max(
     Math.ceil(inRole.length / TALENTS_PER_PAGE),
     1,
@@ -623,12 +635,6 @@ export default async function ProjectDetailPage({
           <h2 className="text-lg font-semibold text-[#1D4ED8]">
             Talent ในโปรเจกต์ ({projectTalents.length})
           </h2>
-          {projectTalents.some((pt) => pt.client_interested) && (
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-              ★ ลูกค้าเลือกแล้ว{" "}
-              {projectTalents.filter((pt) => pt.client_interested).length} คน
-            </span>
-          )}
         </div>
         {/* คำอธิบายปุ่ม — พนักงานสับสนว่าปุ่มไหนส่งข้อความหาน้องจริง ปุ่มไหน
             แค่บันทึกไว้เฉยๆ (พี่เจ้าของแจ้ง 2026-08-24) · พับไว้ ไม่ให้รก */}
@@ -683,11 +689,49 @@ export default async function ProjectDetailPage({
         )}
         {/* เลือกดูทีละ Role — งานใหญ่ 80 คนโหลดพร้อมกันแล้วปุ่มกดไม่ติด
             (ลากจัดลำดับจำกัดอยู่ใน Role เดียวกันอยู่แล้ว เลยไม่เสียอะไร) */}
+        {/* ⭐ แท็บลูกค้าสนใจ — โชว์เสมอเมื่อมีคนถูกเลือก แม้งานเล็กที่ไม่ได้แบ่ง
+            Role เพราะเป็นสิ่งที่ทีมงานต้องรีบดูที่สุดหลังลูกค้ากดเลือก */}
+        {starredCount > 0 && (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 p-2.5">
+            <span className="text-sm font-bold text-amber-800">
+              ⭐ ลูกค้าเลือกไว้ {starredCount} คน
+            </span>
+            <span className="flex-1" />
+            {selectedRole === "starred" ? (
+              <Link
+                href={talentHref({ trole: "all" })}
+                className="rounded-full border border-amber-400 bg-white px-3.5 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+              >
+                ← กลับไปดูทุกคน
+              </Link>
+            ) : (
+              <Link
+                href={talentHref({ trole: "starred" })}
+                className="rounded-full bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-amber-600"
+              >
+                ดูเฉพาะคนที่ลูกค้าเลือก →
+              </Link>
+            )}
+          </div>
+        )}
+
         {needsSplit && roleGroups.length > 1 && (
           <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 p-2">
             <span className="px-1 text-[11px] font-semibold text-neutral-500">
               ดูทีละ Role:
             </span>
+            {starredCount > 0 && (
+              <Link
+                href={talentHref({ trole: "starred" })}
+                className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+                  selectedRole === "starred"
+                    ? "bg-amber-500 text-white shadow-sm"
+                    : "border border-amber-300 bg-amber-50 text-amber-800 hover:border-amber-500"
+                }`}
+              >
+                ⭐ ลูกค้าสนใจ ({starredCount})
+              </Link>
+            )}
             {roleGroups.map((g) => (
               <Link
                 key={g.key}
