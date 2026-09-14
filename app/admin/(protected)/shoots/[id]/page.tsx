@@ -90,13 +90,25 @@ export default async function ShootDayDetailPage({
 
   const byStatus =
     bStatus === "all" ? bookings : bookings.filter((b) => b.status === bStatus);
-  // ตัวเลขบนชิปแพ็กเกจ/เช็คอิน นับภายในสถานะที่เลือกอยู่ — จะได้ตรงกับที่เห็นจริง
+
+  // คิวที่ "ถ่ายรอบนี้จริง" — ตัดเลื่อนรอบ/ปฏิเสธออก เพราะคืนที่นั่งไปแล้ว
+  // (กติกาเดียวกับ BOOKING_FREED_STATUSES ที่ใช้นับที่นั่ง)
+  const activeBookings = bookings.filter(
+    (b) => !BOOKING_FREED_STATUSES.includes(b.status as "rejected"),
+  );
+
+  // ⚠️ แพ็กเกจนับเฉพาะคนที่จองรอบนี้ (พี่เจ้าของเสนอ 2026-09-14)
+  // ของเดิม "ทุกแพ็กเกจ (110)" รวมคนเลื่อนรอบ 4 คนที่ย้ายไปรอบหน้าแล้ว →
+  // ตัวเลขห้องถ่าย/ห้องวิดีโอเกินความจริง · ตอนแถวสถานะเป็น "ทั้งหมด" ให้ฐาน
+  // การนับ = คิวรอบนี้ (ตรงกับการ์ดสรุปด้านบนเป๊ะ) · ถ้าเลือกสถานะเจาะจง
+  // (เช่น เลื่อนรอบ) ก็นับภายในสถานะนั้น จะได้ดูแยกแพ็กเกจของคนเลื่อนได้ด้วย
+  const pkgBase = bStatus === "all" ? activeBookings : byStatus;
   const pkgCounts = {
-    A: byStatus.filter((b) => b.package === "A").length,
-    B: byStatus.filter((b) => b.package === "B").length,
+    A: pkgBase.filter((b) => b.package === "A").length,
+    B: pkgBase.filter((b) => b.package === "B").length,
   };
   const byPkg =
-    bPkg === "all" ? byStatus : byStatus.filter((b) => b.package === bPkg);
+    bPkg === "all" ? byStatus : pkgBase.filter((b) => b.package === bPkg);
 
   // ⚠️ เช็คอินนับเฉพาะคน "อนุมัติแล้ว" (พี่เจ้าของเสนอ 2026-09-14)
   // ของเดิมนับจากทุกสถานะ → "ยังไม่มา (110)" รวมคนเลื่อนรอบ 4 + รอตรวจสลิป 1
@@ -123,9 +135,6 @@ export default async function ShootDayDetailPage({
   // ===== สรุปภาพรวมรอบนี้ (แดชบอร์ดบนหัวคิว) =====
   // นับเฉพาะคิวที่ "มาจริง" — ตัดปฏิเสธ/เลื่อนรอบออก เพราะคืนที่นั่งไปแล้ว
   // (กติกาเดียวกับ BOOKING_FREED_STATUSES ที่ใช้นับที่นั่ง)
-  const activeBookings = bookings.filter(
-    (b) => !BOOKING_FREED_STATUSES.includes(b.status as "rejected"),
-  );
   const approvedAll = bookings.filter((b) => b.status === "approved");
   const summary = {
     total: activeBookings.length,
@@ -759,10 +768,14 @@ export default async function ShootDayDetailPage({
                       active: "bg-violet-600 text-white",
                       hover: "hover:border-violet-500",
                       items: [
-                        ["all", `ทุกแพ็กเกจ (${pkgCounts.A + pkgCounts.B})`],
+                        ["all", `ไม่กรอง`],
                         ["A", `🎬 A · รูป+VDO (${pkgCounts.A})`],
                         ["B", `📸 B · รูปอย่างเดียว (${pkgCounts.B})`],
                       ],
+                      hint:
+                        bStatus === "all"
+                          ? `นับเฉพาะคนที่จองรอบนี้ ${pkgCounts.A + pkgCounts.B} คน (ไม่รวมเลื่อนรอบ/ปฏิเสธ)`
+                          : `นับภายในสถานะที่เลือก ${pkgCounts.A + pkgCounts.B} คน`,
                     },
                     {
                       label: "เช็คอิน",
