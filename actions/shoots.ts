@@ -69,7 +69,9 @@ function backToDay(
   // อ่านเฉพาะคีย์ที่รู้จัก — กันคนยัด query แปลกๆ ผ่านฟอร์ม
   const incoming = new URLSearchParams(raw);
   const p = new URLSearchParams();
-  for (const key of ["bs", "bpage", "bq"]) {
+  // bp/ba = ตัวกรองแพ็กเกจ/เช็คอิน (เพิ่ม 2026-09-14) — ต้องพากลับด้วย
+  // ไม่งั้นกดเช็คอินแล้วตัวกรองหลุด แอดมินหลงหน้า
+  for (const key of ["bs", "bp", "ba", "bpage", "bq"]) {
     const v = incoming.get(key);
     if (v) p.set(key, v);
   }

@@ -52,10 +52,12 @@ export default async function ShootDayDetailPage({
     bs?: string;
     bpage?: string;
     bq?: string;
+    bp?: string; // แพ็กเกจ A | B
+    ba?: string; // เช็คอิน in (มาแล้ว) | out (ยังไม่มา)
   }>;
 }) {
   const { id } = await params;
-  const { error, added, moved, linefail, linesent, bs, bpage, bq } =
+  const { error, added, moved, linefail, linesent, bs, bpage, bq, bp, ba } =
     await searchParams;
   const [day, bookings, counts] = await Promise.all([
     getShootDay(id),
@@ -81,6 +83,44 @@ export default async function ShootDayDetailPage({
     bs === "postponed"
       ? bs
       : "all";
+  // กรองเพิ่ม 2 มิติ (พี่เจ้าของขอ 2026-09-14): แพ็กเกจ + เช็คอิน · ใช้ร่วมกับ
+  // สถานะได้ เช่น "อนุมัติ + Package A + ยังไม่มา" = คนที่ต้องโทรตาม
+  const bPkg = bp === "A" || bp === "B" ? bp : "all";
+  const bArr = ba === "in" || ba === "out" ? ba : "all";
+
+  const byStatus =
+    bStatus === "all" ? bookings : bookings.filter((b) => b.status === bStatus);
+  // ตัวเลขบนชิปแพ็กเกจ/เช็คอิน นับภายในสถานะที่เลือกอยู่ — จะได้ตรงกับที่เห็นจริง
+  const pkgCounts = {
+    A: byStatus.filter((b) => b.package === "A").length,
+    B: byStatus.filter((b) => b.package === "B").length,
+  };
+  const byPkg =
+    bPkg === "all" ? byStatus : byStatus.filter((b) => b.package === bPkg);
+  const arrCounts = {
+    in: byPkg.filter((b) => !!b.arrived_at).length,
+    out: byPkg.filter((b) => !b.arrived_at).length,
+  };
+  const byArr =
+    bArr === "all"
+      ? byPkg
+      : byPkg.filter((b) => (bArr === "in" ? !!b.arrived_at : !b.arrived_at));
+
+  // ===== สรุปภาพรวมรอบนี้ (แดชบอร์ดบนหัวคิว) =====
+  // นับเฉพาะคิวที่ "มาจริง" — ตัดปฏิเสธ/เลื่อนรอบออก เพราะคืนที่นั่งไปแล้ว
+  // (กติกาเดียวกับ BOOKING_FREED_STATUSES ที่ใช้นับที่นั่ง)
+  const activeBookings = bookings.filter(
+    (b) => !BOOKING_FREED_STATUSES.includes(b.status as "rejected"),
+  );
+  const summary = {
+    total: activeBookings.length,
+    pkgA: activeBookings.filter((b) => b.package === "A").length,
+    pkgB: activeBookings.filter((b) => b.package === "B").length,
+    arrived: activeBookings.filter((b) => !!b.arrived_at).length,
+  };
+  const arrivedPct =
+    summary.total > 0 ? Math.round((summary.arrived / summary.total) * 100) : 0;
+
   // ค้นหา = หาทั้งรอบ ไม่สนสถานะ/หน้า — เช็คอินหน้างานต้องเจอทุกคนเสมอ
   const bTerm = (bq ?? "").trim().toLowerCase();
   const searching = bTerm.length > 0;
@@ -90,9 +130,7 @@ export default async function ShootDayDetailPage({
           .toLowerCase()
           .includes(bTerm),
       )
-    : bStatus === "all"
-      ? bookings
-      : bookings.filter((b) => b.status === bStatus);
+    : byArr;
   const bTotalPages = Math.max(
     Math.ceil(matched.length / BOOKINGS_PER_PAGE),
     1,
@@ -109,15 +147,27 @@ export default async function ShootDayDetailPage({
   const viewParam = (() => {
     const p = new URLSearchParams();
     if (bStatus !== "all") p.set("bs", bStatus);
+    if (bPkg !== "all") p.set("bp", bPkg);
+    if (bArr !== "all") p.set("ba", bArr);
     if (searching && bq) p.set("bq", bq);
     if (bPage > 1) p.set("bpage", String(bPage));
     return p.toString();
   })();
 
-  const bookingHref = (over: { bs?: string; bpage?: number; bq?: string }) => {
+  const bookingHref = (over: {
+    bs?: string;
+    bp?: string;
+    ba?: string;
+    bpage?: number;
+    bq?: string;
+  }) => {
     const p = new URLSearchParams();
     const st = over.bs ?? bStatus;
     if (st !== "all") p.set("bs", st);
+    const pk = over.bp ?? bPkg;
+    if (pk !== "all") p.set("bp", pk);
+    const ar = over.ba ?? bArr;
+    if (ar !== "all") p.set("ba", ar);
     const term = over.bq ?? (searching ? (bq ?? "") : "");
     if (term) p.set("bq", term);
     const pg = over.bpage ?? 1;
@@ -551,7 +601,9 @@ export default async function ShootDayDetailPage({
       </section>
 
       {/* คิวตรวจสลิป */}
-      <section id="queue" className="space-y-3 scroll-mt-4">
+      {/* scroll-mt-32 (128px) — ต้องเว้นให้พ้นแถบค้นหา sticky ที่สูง ~114px
+          ชิปกรองทุกตัวลิงก์มาที่ #queue ถ้าเว้นน้อยกว่านี้การ์ดสรุปจะโดนบังทุกครั้ง */}
+      <section id="queue" className="space-y-3 scroll-mt-32">
         <h2 className="text-lg font-semibold text-[#1D4ED8]">
           การจอง ({bookings.length}) — ตรวจสลิปแล้วกดอนุมัติ/ปฏิเสธ
         </h2>
@@ -569,33 +621,181 @@ export default async function ShootDayDetailPage({
             </Link>
           </div>
         ) : (
-          bookings.length > BOOKINGS_PER_PAGE && (
-            <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 p-2">
-              <span className="px-1 text-[11px] font-semibold text-neutral-500">
-                กรองตามสถานะ:
-              </span>
-              {(
-                [
-                  ["all", `ทั้งหมด (${bookings.length})`],
-                  ["pending", `⏳ รอตรวจ (${statusCounts.pending})`],
-                  ["approved", `✅ อนุมัติ (${statusCounts.approved})`],
-                  ["postponed", `🔁 เลื่อนรอบ (${statusCounts.postponed})`],
-                  ["rejected", `❌ ปฏิเสธ (${statusCounts.rejected})`],
-                ] as const
-              ).map(([key, label]) => (
+          bookings.length > 0 && (
+            <>
+              {/* ===== สรุปภาพรวมรอบนี้ — กดการ์ดเพื่อกรองได้เลย =====
+                  พี่เจ้าของขอ 2026-09-14: อยากเห็นว่ารูปถ่ายกี่คน VDO กี่คน
+                  และเช็คอินมาแล้วกี่คนจากที่จองทั้งหมด โดยไม่ต้องนั่งนับเอง */}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <Link
-                  key={key}
-                  href={bookingHref({ bs: key })}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                    bStatus === key
-                      ? "bg-[#1D4ED8] text-white shadow-sm"
-                      : "border border-neutral-300 bg-white text-neutral-600 hover:border-[#1D4ED8]"
+                  href={bookingHref({ bp: "all", ba: "all", bs: "all" })}
+                  className="rounded-xl border border-neutral-200 bg-white p-3 shadow-sm transition hover:border-[#1D4ED8]"
+                >
+                  <p className="text-[11px] font-semibold text-neutral-500">
+                    📋 จองมาจริง
+                  </p>
+                  <p className="mt-0.5 text-2xl font-bold text-neutral-800">
+                    {summary.total}
+                    <span className="ml-1 text-sm font-medium text-neutral-400">
+                      คน
+                    </span>
+                  </p>
+                  <p className="text-[10px] text-neutral-400">
+                    ไม่นับเลื่อนรอบ/ปฏิเสธ
+                  </p>
+                </Link>
+                <Link
+                  href={bookingHref({ bp: bPkg === "A" ? "all" : "A" })}
+                  className={`rounded-xl border p-3 shadow-sm transition ${
+                    bPkg === "A"
+                      ? "border-violet-500 bg-violet-50 ring-2 ring-violet-200"
+                      : "border-neutral-200 bg-white hover:border-violet-400"
                   }`}
                 >
-                  {label}
+                  <p className="text-[11px] font-semibold text-violet-700">
+                    🎬 Package A · รูป + VDO
+                  </p>
+                  <p className="mt-0.5 text-2xl font-bold text-violet-800">
+                    {summary.pkgA}
+                    <span className="ml-1 text-sm font-medium text-violet-400">
+                      คน
+                    </span>
+                  </p>
+                  <p className="text-[10px] text-violet-500/80">
+                    ใช้ห้องถ่ายภาพ + ห้องวิดีโอ
+                  </p>
                 </Link>
-              ))}
-            </div>
+                <Link
+                  href={bookingHref({ bp: bPkg === "B" ? "all" : "B" })}
+                  className={`rounded-xl border p-3 shadow-sm transition ${
+                    bPkg === "B"
+                      ? "border-sky-500 bg-sky-50 ring-2 ring-sky-200"
+                      : "border-neutral-200 bg-white hover:border-sky-400"
+                  }`}
+                >
+                  <p className="text-[11px] font-semibold text-sky-700">
+                    📸 Package B · รูปอย่างเดียว
+                  </p>
+                  <p className="mt-0.5 text-2xl font-bold text-sky-800">
+                    {summary.pkgB}
+                    <span className="ml-1 text-sm font-medium text-sky-400">
+                      คน
+                    </span>
+                  </p>
+                  <p className="text-[10px] text-sky-500/80">ใช้ห้องถ่ายภาพ</p>
+                </Link>
+                <Link
+                  href={bookingHref({ ba: bArr === "in" ? "all" : "in" })}
+                  className={`rounded-xl border p-3 shadow-sm transition ${
+                    bArr === "in"
+                      ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200"
+                      : "border-neutral-200 bg-white hover:border-emerald-400"
+                  }`}
+                >
+                  <p className="text-[11px] font-semibold text-emerald-700">
+                    🏁 เช็คอินแล้ว
+                  </p>
+                  <p className="mt-0.5 text-2xl font-bold text-emerald-800">
+                    {summary.arrived}
+                    <span className="ml-1 text-sm font-medium text-emerald-500">
+                      / {summary.total}
+                    </span>
+                  </p>
+                  {/* แถบความคืบหน้า — ดูปราดเดียวรู้ว่ามาครบหรือยัง */}
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-emerald-100">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-all"
+                      style={{ width: `${arrivedPct}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-[10px] text-emerald-600/80">
+                    มาแล้ว {arrivedPct}% · ยังไม่มา{" "}
+                    {summary.total - summary.arrived} คน
+                  </p>
+                </Link>
+              </div>
+
+              {/* ===== ตัวกรอง 3 แถว: สถานะ · แพ็กเกจ · เช็คอิน ===== */}
+              <div className="space-y-1.5 rounded-xl border border-neutral-200 bg-neutral-50 p-2.5">
+                {(
+                  [
+                    {
+                      label: "สถานะ",
+                      param: "bs" as const,
+                      current: bStatus,
+                      active: "bg-[#1D4ED8] text-white",
+                      hover: "hover:border-[#1D4ED8]",
+                      items: [
+                        ["all", `ทั้งหมด (${bookings.length})`],
+                        ["pending", `⏳ รอตรวจ (${statusCounts.pending})`],
+                        ["approved", `✅ อนุมัติ (${statusCounts.approved})`],
+                        ["postponed", `🔁 เลื่อนรอบ (${statusCounts.postponed})`],
+                        ["rejected", `❌ ปฏิเสธ (${statusCounts.rejected})`],
+                      ],
+                    },
+                    {
+                      label: "แพ็กเกจ",
+                      param: "bp" as const,
+                      current: bPkg,
+                      active: "bg-violet-600 text-white",
+                      hover: "hover:border-violet-500",
+                      items: [
+                        ["all", `ทุกแพ็กเกจ (${pkgCounts.A + pkgCounts.B})`],
+                        ["A", `🎬 A · รูป+VDO (${pkgCounts.A})`],
+                        ["B", `📸 B · รูปอย่างเดียว (${pkgCounts.B})`],
+                      ],
+                    },
+                    {
+                      label: "เช็คอิน",
+                      param: "ba" as const,
+                      current: bArr,
+                      active: "bg-emerald-600 text-white",
+                      hover: "hover:border-emerald-500",
+                      items: [
+                        ["all", `ทั้งหมด (${arrCounts.in + arrCounts.out})`],
+                        ["in", `🏁 มาแล้ว (${arrCounts.in})`],
+                        ["out", `⏳ ยังไม่มา (${arrCounts.out})`],
+                      ],
+                    },
+                  ] as const
+                ).map((row) => (
+                  <div
+                    key={row.param}
+                    className="flex flex-wrap items-center gap-1.5"
+                  >
+                    <span className="w-14 shrink-0 px-1 text-[11px] font-semibold text-neutral-500">
+                      {row.label}
+                    </span>
+                    {row.items.map(([key, label]) => (
+                      <Link
+                        key={key}
+                        href={bookingHref({ [row.param]: key })}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                          row.current === key
+                            ? `${row.active} shadow-sm`
+                            : `border border-neutral-300 bg-white text-neutral-600 ${row.hover}`
+                        }`}
+                      >
+                        {label}
+                      </Link>
+                    ))}
+                  </div>
+                ))}
+                {(bStatus !== "all" || bPkg !== "all" || bArr !== "all") && (
+                  <div className="flex items-center gap-2 border-t border-neutral-200 pt-1.5">
+                    <span className="text-[11px] text-neutral-500">
+                      กรองอยู่ — เจอ <b>{matched.length}</b> คิว
+                    </span>
+                    <Link
+                      href={bookingHref({ bs: "all", bp: "all", ba: "all" })}
+                      className="text-[11px] font-semibold text-[#1D4ED8] hover:underline"
+                    >
+                      ✕ ล้างตัวกรองทั้งหมด
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </>
           )
         )}
 
@@ -618,7 +818,7 @@ export default async function ShootDayDetailPage({
                 key={b.id}
                 id={`b-${b.id}`}
                 data-b-search={`${b.full_name ?? ""} ${b.nickname ?? ""} ${b.phone ?? ""} ${b.email ?? ""}`.toLowerCase()}
-                className="scroll-mt-24 rounded-xl border bg-white p-4 shadow-sm target:border-[#1D4ED8] target:ring-2 target:ring-[#1D4ED8]/30"
+                className="scroll-mt-32 rounded-xl border bg-white p-4 shadow-sm target:border-[#1D4ED8] target:ring-2 target:ring-[#1D4ED8]/30"
               >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${chip.className}`}>
