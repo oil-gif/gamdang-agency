@@ -97,14 +97,28 @@ export default async function ShootDayDetailPage({
   };
   const byPkg =
     bPkg === "all" ? byStatus : byStatus.filter((b) => b.package === bPkg);
+
+  // ⚠️ เช็คอินนับเฉพาะคน "อนุมัติแล้ว" (พี่เจ้าของเสนอ 2026-09-14)
+  // ของเดิมนับจากทุกสถานะ → "ยังไม่มา (110)" รวมคนเลื่อนรอบ 4 + รอตรวจสลิป 1
+  // ซึ่งไม่มีใครในนั้นที่ต้องรอเขามาถ่ายวันนี้เลย ตัวเลขพาเข้าใจผิด
+  // → คนที่ต้องมาหน้างานจริง = อนุมัติแล้วเท่านั้น (สลิปผ่าน ที่นั่งยืนยันแล้ว)
+  const approvedInPkg = bookings.filter(
+    (b) =>
+      b.status === "approved" && (bPkg === "all" || b.package === bPkg),
+  );
   const arrCounts = {
-    in: byPkg.filter((b) => !!b.arrived_at).length,
-    out: byPkg.filter((b) => !b.arrived_at).length,
+    all: approvedInPkg.length,
+    in: approvedInPkg.filter((b) => !!b.arrived_at).length,
+    out: approvedInPkg.filter((b) => !b.arrived_at).length,
   };
+  // เลือก "มาแล้ว/ยังไม่มา" = ดูเฉพาะคนอนุมัติ (ไม่สนแถวสถานะ) — คนสถานะอื่น
+  // ไม่มีความหมายเรื่องเช็คอิน · เลือก "ทั้งหมด" = ไม่กรองเรื่องเช็คอิน
   const byArr =
     bArr === "all"
       ? byPkg
-      : byPkg.filter((b) => (bArr === "in" ? !!b.arrived_at : !b.arrived_at));
+      : approvedInPkg.filter((b) =>
+          bArr === "in" ? !!b.arrived_at : !b.arrived_at,
+        );
 
   // ===== สรุปภาพรวมรอบนี้ (แดชบอร์ดบนหัวคิว) =====
   // นับเฉพาะคิวที่ "มาจริง" — ตัดปฏิเสธ/เลื่อนรอบออก เพราะคืนที่นั่งไปแล้ว
@@ -112,14 +126,19 @@ export default async function ShootDayDetailPage({
   const activeBookings = bookings.filter(
     (b) => !BOOKING_FREED_STATUSES.includes(b.status as "rejected"),
   );
+  const approvedAll = bookings.filter((b) => b.status === "approved");
   const summary = {
     total: activeBookings.length,
     pkgA: activeBookings.filter((b) => b.package === "A").length,
     pkgB: activeBookings.filter((b) => b.package === "B").length,
-    arrived: activeBookings.filter((b) => !!b.arrived_at).length,
+    // เช็คอินเทียบกับคนที่อนุมัติแล้ว — คนที่ต้องมาหน้างานจริง
+    approved: approvedAll.length,
+    arrived: approvedAll.filter((b) => !!b.arrived_at).length,
   };
   const arrivedPct =
-    summary.total > 0 ? Math.round((summary.arrived / summary.total) * 100) : 0;
+    summary.approved > 0
+      ? Math.round((summary.arrived / summary.approved) * 100)
+      : 0;
 
   // ค้นหา = หาทั้งรอบ ไม่สนสถานะ/หน้า — เช็คอินหน้างานต้องเจอทุกคนเสมอ
   const bTerm = (bq ?? "").trim().toLowerCase();
@@ -698,7 +717,7 @@ export default async function ShootDayDetailPage({
                   <p className="mt-0.5 text-2xl font-bold text-emerald-800">
                     {summary.arrived}
                     <span className="ml-1 text-sm font-medium text-emerald-500">
-                      / {summary.total}
+                      / {summary.approved}
                     </span>
                   </p>
                   {/* แถบความคืบหน้า — ดูปราดเดียวรู้ว่ามาครบหรือยัง */}
@@ -710,7 +729,7 @@ export default async function ShootDayDetailPage({
                   </div>
                   <p className="mt-1 text-[10px] text-emerald-600/80">
                     มาแล้ว {arrivedPct}% · ยังไม่มา{" "}
-                    {summary.total - summary.arrived} คน
+                    {summary.approved - summary.arrived} คน (จากที่อนุมัติ)
                   </p>
                 </Link>
               </div>
@@ -752,10 +771,11 @@ export default async function ShootDayDetailPage({
                       active: "bg-emerald-600 text-white",
                       hover: "hover:border-emerald-500",
                       items: [
-                        ["all", `ทั้งหมด (${arrCounts.in + arrCounts.out})`],
+                        ["all", `ไม่กรอง`],
                         ["in", `🏁 มาแล้ว (${arrCounts.in})`],
                         ["out", `⏳ ยังไม่มา (${arrCounts.out})`],
                       ],
+                      hint: `นับเฉพาะคนที่อนุมัติแล้ว ${arrCounts.all} คน`,
                     },
                   ] as const
                 ).map((row) => (
@@ -766,6 +786,11 @@ export default async function ShootDayDetailPage({
                     <span className="w-14 shrink-0 px-1 text-[11px] font-semibold text-neutral-500">
                       {row.label}
                     </span>
+                    {"hint" in row && row.hint && (
+                      <span className="order-last text-[10px] text-neutral-400">
+                        · {row.hint}
+                      </span>
+                    )}
                     {row.items.map(([key, label]) => (
                       <Link
                         key={key}
