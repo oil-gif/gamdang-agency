@@ -188,11 +188,12 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 
 **RPC**: `book_shoot_slot` — จองคิวแบบ atomic (advisory lock กันจองชน) → เรียกจาก `api/booking` และ `actions/shoots.ts`
 **Storage buckets**: `talent-photos` (สาธารณะผ่าน proxy) · `booking-slips` (**ส่วนตัว** — ดูผ่าน signed URL เท่านั้น)
-**Migrations**: `supabase/migrations/` (ล่าสุด `027_link_role_filter.sql`) — schema แก้ที่นี่ ไม่มี ORM migrate
+**Migrations**: `supabase/migrations/` (ล่าสุด `028_client_select_notice.sql`) — schema แก้ที่นี่ ไม่มี ORM migrate
 · ที่เพิ่มมาหลัง 019: `020` ส่ง proposal ให้ลูกค้าแล้ว · `021` โน้ตภายในของงาน ·
 `022` ข้อมูลเพิ่มเติม · `023` ชื่อเล่นไทยในฟอร์มจอง · `024` ลิงก์ผลงาน influencer ·
 `025` สถานะจอง **postponed** (เลื่อนรอบ — คืนที่นั่ง แก้ทั้ง CHECK และ RPC `book_shoot_slot`) ·
-`026` สถานะ talent **draft** (ใบร่างจากคอมการ์ด) · `027` `project_links.role_ids` (ลิงก์เฉพาะบท)
+`026` สถานะ talent **draft** (ใบร่างจากคอมการ์ด) · `027` `project_links.role_ids` (ลิงก์เฉพาะบท) ·
+`028` `projects.client_select_notified_at` (กันแจ้ง LINE ซ้ำตอนลูกค้ากดเลือก)
 **ไฟล์รูปคงที่**: `public/` — `gamdang-logo.png` (โลโก้บนคอมการ์ด), `gamdang-modeling.png`, `gamdang-influencer.png`, `promptpay-gamdang.jpg` (QR จ่ายเงินค่าถ่าย)
 
 ---
@@ -232,7 +233,24 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 
 ---
 
-## 6. Environment variables (ชื่อเท่านั้น — ไม่มีค่าจริงในไฟล์นี้)
+## 6. Hosting / โควตา — เรื่องที่ทำเว็บล่มได้โดยไม่ต้องแก้โค้ดผิด
+
+> อัปเดต 2026-09-18 · ตัวเลขเปลี่ยนได้ ดูของจริงที่ dashboard เสมอ
+
+| | สถานะ | ต้องระวัง |
+|---|---|---|
+| **Vercel** | ทีม `gamdang` · **Pro** (อัปจาก Hobby 2026-09-17 ตอน Fluid Active CPU 4h37m/4h) | Hobby เกินโควตา = **รอครบ 30 วัน** ถึงใช้ได้อีก (ไม่ใช่รีเซ็ตต้นเดือน) · Hobby ห้ามใช้เชิงพาณิชย์ · **Spend Management** ถ้าเปิด "Pause production" ไว้ เว็บจะหยุดเองเมื่อถึงวงเงิน และ **ไม่ resume เอง** |
+| **Supabase** | โปรเจกต์ `gamdang-agency` (Singapore) · **Free** · DB nano | **ไม่มี backup เลย** — ข้อมูลหาย = หายถาวร · Storage **1 GB** ใช้ไป ~470 MB แล้วและโตทุกวันจากคนสมัคร → **ห้ามเก็บสำเนารูปขนาดเต็ม** (จะ +662 MB) |
+
+**`vercel.json` → `ignoreCommand`**: ข้าม deploy ถ้า commit ตั้งแต่ deploy ล่าสุด
+แก้แค่ไฟล์ `.md` · ทุก deploy ล้าง CDN cache → รูปถูกแปลงใหม่หมด เปลือง CPU
+· เทียบกับ `VERCEL_GIT_PREVIOUS_SHA` **ไม่ใช่ `HEAD^`** (push โค้ด+doc รวดเดียว
+จะข้ามผิด โค้ดไม่ขึ้นเว็บ) · ทุกกรณีที่ไม่ชัวร์ = deploy · **ควรรวมงานแล้ว
+deploy ทีเดียว** แทน deploy ทุกการแก้เล็กๆ
+
+---
+
+## 7. Environment variables (ชื่อเท่านั้น — ไม่มีค่าจริงในไฟล์นี้)
 
 ตั้งที่ **Vercel → Settings → Environment Variables** และ `.env.local` (ซึ่ง gitignore ไว้)
 
