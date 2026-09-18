@@ -11,6 +11,10 @@ const kanit = Kanit({
 export const metadata: Metadata = {
   title: "Gamdang Agency",
   description: "Gamdang Modeling & Influencer Agency",
+  // ชื่อที่โชว์ใต้ไอคอนตอนกด "เพิ่มไปยังหน้าจอโฮม" บน iPhone/iPad
+  // (ถ้าไม่ตั้ง iOS จะเอา title เต็มมาใช้แล้วโดนตัดเหลือ "Gamdang Ag…")
+  // capable: false = เปิดแล้วอยู่ใน Safari ตามปกติ — ดูเหตุผลใน app/manifest.ts
+  appleWebApp: { title: "GAMDANG", capable: false },
 };
 
 export default function RootLayout({
