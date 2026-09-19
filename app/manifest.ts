@@ -13,7 +13,10 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Gamdang Agency",
     short_name: "GAMDANG", // ชื่อใต้ไอคอนบนหน้าจอโฮม
     description: "Gamdang Modeling & Influencer Agency",
-    start_url: "/",
+    // ⚠️ ตั้งใจไม่ใส่ start_url
+    // ถ้าใส่ "/" เครื่องจะเปิดหน้าแรกสาธารณะทุกครั้ง แม้ผู้ใช้จะบันทึกหน้า
+    // /admin ไว้บนหน้าจอโฮม (พี่เจ้าของเจอปัญหานี้ 2026-09-19)
+    // ไม่ใส่ = ใช้หน้าที่ผู้ใช้กดบันทึกตอนนั้น ซึ่งเป็นสิ่งที่ต้องการ
     display: "browser",
     background_color: "#ffffff",
     theme_color: "#1D4ED8",

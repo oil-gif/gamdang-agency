@@ -205,6 +205,16 @@ export default async function HomePage({
       <footer className="border-t border-neutral-200 bg-white px-4 py-6 text-center text-xs text-neutral-400">
         © {new Date().getFullYear()} GAMDANG AGENCY — Modeling &amp; Influencer
         Agency · LINE Official: {CONTACT.lineId}
+        {/* ทางเข้าหลังบ้านสำหรับทีมงาน — เดิมไม่มีลิงก์เลย ต้องพิมพ์ URL เอง
+            (พี่เจ้าของแจ้ง 2026-09-19) · ไม่ใช่ความลับ เพราะยังไงก็ต้อง
+            ล็อกอินก่อนถึงเข้าได้ แต่ทำให้จืดๆ ไม่เด่นสำหรับลูกค้าทั่วไป */}
+        <span className="mx-1.5 text-neutral-300">·</span>
+        <Link
+          href="/admin"
+          className="text-neutral-400 underline underline-offset-2 hover:text-[#1D4ED8]"
+        >
+          เข้าระบบทีมงาน
+        </Link>
       </footer>
     </div>
   );
