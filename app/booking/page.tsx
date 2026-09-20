@@ -15,6 +15,14 @@ export const dynamic = "force-dynamic";
 
 export default async function BookingPage() {
   const dates = await getPublicShootDates();
+  // getPublicShootDates ตัดรอบที่เลยวันไปแล้วออกให้แล้ว (gte วันนี้)
+  // แต่ยังเหลือกรณี "รอบยังไม่ถึงวัน แต่ที่นั่งเต็มทุกช่อง" ซึ่งเดิมจะโชว้
+  // ตัวเลือกวันให้กดแล้วไปตันเอาข้างใน → เช็คว่ามีช่องว่างจริงอย่างน้อย 1 ช่อง
+  const bookable = dates.some(
+    (d) =>
+      Object.values(d.avail.A).some(Boolean) ||
+      Object.values(d.avail.B).some(Boolean),
+  );
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -68,18 +76,45 @@ export default async function BookingPage() {
           </ul>
         </section>
 
-        {dates.length > 0 ? (
+        {bookable ? (
           <BookingWizard dates={dates} />
         ) : (
-          <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-12 text-center">
-            <p className="font-semibold text-neutral-700">
-              ยังไม่เปิดรอบถ่ายในช่วงนี้ค่ะ
+          /* จองไม่ได้ตอนนี้ — ครอบคลุมทั้ง 3 กรณีด้วยข้อความเดียว เพราะฝั่งลูกค้า
+             เห็นผลเหมือนกันหมด: ยังไม่เปิดรอบ · เลยวันถ่ายไปแล้ว · หรือรอบยัง
+             เปิดอยู่แต่ที่นั่งเต็มทุกช่อง (พี่เจ้าของแจ้ง 2026-09-20)
+             จุดสำคัญคือต้องมีปุ่มทักไลน์ให้กดได้เลย จะได้เก็บคิวคนสนใจไว้ */
+          <div className="rounded-2xl border-2 border-[#06C755]/30 bg-white p-8 text-center shadow-sm sm:p-12">
+            <p className="text-2xl">🈵</p>
+            <h2 className="mt-2 text-xl font-bold text-neutral-800 sm:text-2xl">
+              รอบถ่ายเต็มแล้วค่ะ
+            </h2>
+            <p className="text-base font-semibold text-neutral-500">
+              This round is fully booked
             </p>
-            <p className="mt-1 text-sm text-neutral-500">
-              ติดตามประกาศรอบใหม่ได้ทาง LINE Official:{" "}
-              <a href={CONTACT.lineUrl} className="font-semibold text-[#06C755]">
+
+            <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-neutral-600">
+              กรุณาทักไลน์ Official{" "}
+              <span className="font-semibold text-[#06C755]">
                 {CONTACT.lineId}
-              </a>
+              </span>{" "}
+              เพื่อแจ้งเจ้าหน้าที่ไว้ — <b>รอบถัดไปเปิดเมื่อไหร่ เราจะรีบแจ้งให้ทราบก่อนใคร</b>
+              <span className="mt-2 block text-neutral-500">
+                Message our Official LINE to register your interest — we will
+                let you know as soon as the next round opens, before anyone
+                else.
+              </span>
+            </p>
+
+            <a
+              href={CONTACT.lineUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[#06C755] px-8 py-4 text-base font-bold text-white shadow-md transition hover:opacity-95"
+            >
+              💬 ทักไลน์แจ้งความสนใจ (Message us on LINE)
+            </a>
+            <p className="mt-3 text-xs text-neutral-400">
+              LINE Official: {CONTACT.lineId}
             </p>
           </div>
         )}
