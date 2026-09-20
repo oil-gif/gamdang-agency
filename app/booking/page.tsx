@@ -84,8 +84,27 @@ export default async function BookingPage() {
              เปิดอยู่แต่ที่นั่งเต็มทุกช่อง (พี่เจ้าของแจ้ง 2026-09-20)
              จุดสำคัญคือต้องมีปุ่มทักไลน์ให้กดได้เลย จะได้เก็บคิวคนสนใจไว้ */
           <div className="rounded-2xl border-2 border-[#06C755]/30 bg-white p-8 text-center shadow-sm sm:p-12">
-            <p className="text-2xl">🈵</p>
-            <h2 className="mt-2 text-xl font-bold text-neutral-800 sm:text-2xl">
+            {/* ไอคอนปฏิทินมีกากบาท — สื่อว่า "ไม่มีรอบให้จอง" ตรงกว่าอีโมจิ
+                (เดิมใช้ 🈵 ซึ่งเป็นตัวอักษรญี่ปุ่นแปลว่าเต็ม ดูไม่เข้ากับแบรนด์
+                — พี่เจ้าของแจ้ง 2026-09-20) */}
+            <span
+              aria-hidden
+              className="mx-auto flex size-14 items-center justify-center rounded-full bg-neutral-100"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                className="size-7 text-neutral-400"
+              >
+                <rect x="3" y="5" width="18" height="16" rx="3" />
+                <path d="M3 10h18M8 3v4M16 3v4" />
+                <path d="M9.5 14.5l5 4M14.5 14.5l-5 4" />
+              </svg>
+            </span>
+            <h2 className="mt-3 text-xl font-bold text-neutral-800 sm:text-2xl">
               รอบถ่ายเต็มแล้วค่ะ
             </h2>
             <p className="text-base font-semibold text-neutral-500">
@@ -111,7 +130,7 @@ export default async function BookingPage() {
               rel="noopener noreferrer"
               className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[#06C755] px-8 py-4 text-base font-bold text-white shadow-md transition hover:opacity-95"
             >
-              💬 ทักไลน์แจ้งความสนใจ (Message us on LINE)
+              ทักไลน์แจ้งความสนใจ (Message us on LINE)
             </a>
             <p className="mt-3 text-xs text-neutral-400">
               LINE Official: {CONTACT.lineId}
