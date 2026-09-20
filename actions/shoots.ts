@@ -81,9 +81,16 @@ function backToDay(
 }
 
 export async function getShootBookings(dayId: string) {
+  // ดึงวันเกิด/ส่วนสูงจากโปรไฟล์ Talent มาด้วย (ถ้าคิวนี้ผูกโปรไฟล์แล้ว)
+  //
+  // ⚠️ `shoot_bookings.dob` คือสำเนาที่ผู้ปกครองกรอกตอนจอง — แก้ไม่ได้จากหลังบ้าน
+  // พอแอดมินไปแก้วันเกิดที่โปรไฟล์ การ์ดคิวจองยังโชว์ของเก่าค้างอยู่
+  // (พี่เจ้าของเจอ 2026-09-20: Harper โปรไฟล์ 1 ปี 1 ด. แต่การ์ดโชว์ 1 เดือน ·
+  // ทั้งระบบมี 4 คิวที่ไม่ตรงกัน หนักสุดคือ FOURTH การ์ดโชว์ 62 ปี แทนที่จะเป็น 19)
+  // → โปรไฟล์คือแหล่งข้อมูลที่ทีมงานดูแล ให้ยึดโปรไฟล์เป็นหลัก
   const { data, error } = await supabase
     .from("shoot_bookings")
-    .select("*")
+    .select("*, talent:talents(dob, height_cm, weight_kg)")
     .eq("shoot_day_id", dayId)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);

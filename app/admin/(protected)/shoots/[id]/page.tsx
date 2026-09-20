@@ -880,6 +880,15 @@ export default async function ShootDayDetailPage({
         <div className="space-y-2">
           {visibleBookings.map((b, i) => {
             const chip = STATUS_CHIP[b.status] ?? STATUS_CHIP.pending;
+            // โปรไฟล์ Talent คือข้อมูลที่ทีมงานแก้ได้และดูแลอยู่ — ยึดเป็นหลัก
+            // ส่วน b.dob คือสำเนาตอนจอง แก้ไม่ได้ เลยค้างเป็นของเก่า
+            const tp = b.talent as {
+              dob?: string | null;
+              height_cm?: number | null;
+            } | null;
+            const shownDob = tp?.dob ?? b.dob;
+            const shownHeight = tp?.height_cm ?? b.height;
+            const mismatch = suspiciousDob(shownDob, shownHeight);
             return (
               <div
                 key={b.id}
@@ -919,13 +928,13 @@ export default async function ShootDayDetailPage({
                   {b.gender
                     ? ` · ${b.gender === "male" ? "ชาย" : b.gender === "female" ? "หญิง" : "อื่นๆ"}`
                     : ""}
-                  {b.dob ? ` · อายุ ${ageLabel(b.dob)}` : ""}
-                  {suspiciousDob(b.dob, b.height) && (
+                  {shownDob ? ` · อายุ ${ageLabel(shownDob)}` : ""}
+                  {mismatch && (
                     <span
                       className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800"
-                      title={`${suspiciousDob(b.dob, b.height)} — ผู้ปกครองอาจกรอกปีเกิดผิด ควรโทรเช็คก่อนทำคอมการ์ด`}
+                      title={`${mismatch} — ควรโทรเช็คกับผู้ปกครองก่อนทำคอมการ์ด`}
                     >
-                      ⚠️ วันเกิดน่าจะผิด — {suspiciousDob(b.dob, b.height)}
+                      ⚠️ {mismatch}
                     </span>
                   )}
                   {b.nationality ? ` · ${b.nationality}` : ""}
