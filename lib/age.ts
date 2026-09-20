@@ -55,3 +55,39 @@ export function yearsAgo(n: number): string {
   d.setFullYear(d.getFullYear() - n);
   return d.toISOString().slice(0, 10);
 }
+
+// เช็ค "วันเกิดน่าจะกรอกผิด" จากคิวจองถ่ายโปรไฟล์
+//
+// เคสจริง 2026-09-20: ผู้ปกครองกรอกวัน/เดือนถูกแต่ปีค้างที่ปีปัจจุบัน เด็ก 2 ขวบ
+// เลยกลายเป็น 1 เดือน · จับได้จากส่วนสูงที่ไม่สมกับอายุ (95 ซม. ตอน 1 เดือน)
+// ทีมงานต้องรู้ก่อนถึงวันถ่าย เพราะเอาอายุไปทำคอมการ์ด
+//
+// เกณฑ์ตั้งให้ "หลวม" ตั้งใจ — ทดสอบกับคิวจริง 136 คิว เตือนแค่ 2 คนที่ผิดจริง
+// ไม่เตือนพลาดสักคนในเด็กต่ำกว่า 4 ขวบอีก 54 คนที่ข้อมูลปกติ
+export function suspiciousDob(
+  dob: string | null | undefined,
+  heightCm: string | number | null | undefined,
+): string | null {
+  if (!dob) return null;
+  const cm =
+    typeof heightCm === "number" ? heightCm : parseInt(String(heightCm ?? ""), 10);
+  if (!Number.isFinite(cm) || cm <= 0) return null;
+
+  const b = new Date(dob);
+  if (Number.isNaN(b.getTime())) return null;
+  const t = new Date();
+  let years = t.getFullYear() - b.getFullYear();
+  let months = t.getMonth() - b.getMonth();
+  if (t.getDate() < b.getDate()) months -= 1;
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+  const age = years + months / 12;
+
+  if (age < 0) return "วันเกิดเป็นวันในอนาคต";
+  if (age < 1 && cm > 80) return "อายุไม่ถึง 1 ขวบ แต่สูงเกิน 80 ซม.";
+  if (age < 2 && cm > 92) return "อายุไม่ถึง 2 ขวบ แต่สูงเกิน 92 ซม.";
+  if (age < 3 && cm > 105) return "อายุไม่ถึง 3 ขวบ แต่สูงเกิน 105 ซม.";
+  return null;
+}

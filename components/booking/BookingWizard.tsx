@@ -40,6 +40,10 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
   const [hour, setHour] = useState<string | null>(null);
   const [slipName, setSlipName] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // โชว์อายุทันทีที่เลือกวันเกิด — ผู้ปกครองจะได้เห็นเลยว่าถูกมั้ย
+  // เจอเคสจริง 2026-09-20: กรอกวัน/เดือนถูกแต่ปีค้างที่ปีปัจจุบัน เด็ก 2 ขวบ
+  // กลายเป็น 1 เดือน กว่าจะรู้ก็ตอนทีมงานเห็นว่าส่วนสูง 95 ซม. ไม่สมกับอายุ
+  const [dobValue, setDobValue] = useState("");
   const [result, setResult] = useState<"success" | string | null>(null);
   const [lineIdToken, setLineIdToken] = useState<string | null>(null);
   const [lineLinked, setLineLinked] = useState(false);
@@ -516,9 +520,19 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
                 type="date"
                 lang="en-GB"
                 required
+                value={dobValue}
+                onChange={(e) => setDobValue(e.target.value)}
                 max={new Date().toISOString().slice(0, 10)}
                 className="h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm outline-none transition focus:border-[#1D4ED8] focus:ring-2 focus:ring-[#1D4ED8]/20"
               />
+              {dobValue && (
+                <p className="text-sm font-semibold text-[#1D4ED8]">
+                  = อายุ {ageFromDob(dobValue)}{" "}
+                  <span className="font-normal text-neutral-500">
+                    (ถ้าไม่ตรง กรุณาตรวจ <b>ปีเกิด</b> อีกครั้ง)
+                  </span>
+                </p>
+              )}
             </div>
 
             {/* บังคับกรอก — เจ้าหน้าที่ต้องใช้ตัวเลขนี้ทำคอมการ์ด ถ้าไม่ได้ตอนจอง
@@ -633,4 +647,21 @@ export function BookingWizard({ dates }: { dates: WizardDate[] }) {
       )}
     </form>
   );
+}
+
+// อายุแบบอ่านง่ายสำหรับโชว์ใต้ช่องวันเกิด — เด็กเล็กบอกเป็นเดือนจะเห็นผิดง่ายกว่า
+function ageFromDob(dob: string): string {
+  const b = new Date(dob);
+  if (Number.isNaN(b.getTime())) return "-";
+  const t = new Date();
+  let years = t.getFullYear() - b.getFullYear();
+  let months = t.getMonth() - b.getMonth();
+  if (t.getDate() < b.getDate()) months -= 1;
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+  if (years < 0) return "-";
+  if (years === 0) return `${months} เดือน`;
+  return months > 0 ? `${years} ปี ${months} เดือน` : `${years} ปี`;
 }

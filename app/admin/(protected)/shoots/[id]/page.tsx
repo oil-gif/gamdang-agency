@@ -15,7 +15,7 @@ import {
   toggleShootSlot,
 } from "@/actions/shoots";
 import { getSlotCounts, slotOpen, thaiDateLabel } from "@/lib/booking";
-import { ageLabel } from "@/lib/age";
+import { ageLabel, suspiciousDob } from "@/lib/age";
 import { BookingSearch } from "@/components/admin/BookingSearch";
 import { DangerConfirmButton } from "@/components/admin/DangerConfirmButton";
 import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
@@ -54,11 +54,13 @@ export default async function ShootDayDetailPage({
     bq?: string;
     bp?: string; // แพ็กเกจ A | B
     ba?: string; // เช็คอิน in (มาแล้ว) | out (ยังไม่มา)
+    bfocus?: string; // โชว์คิวเดียว (กดมาจากช่องในตาราง Overview)
   }>;
 }) {
   const { id } = await params;
-  const { error, added, moved, linefail, linesent, bs, bpage, bq, bp, ba } =
-    await searchParams;
+  const {
+    error, added, moved, linefail, linesent, bs, bpage, bq, bp, ba, bfocus,
+  } = await searchParams;
   const [day, bookings, counts] = await Promise.all([
     getShootDay(id),
     getShootBookings(id),
@@ -150,9 +152,21 @@ export default async function ShootDayDetailPage({
       : 0;
 
   // ค้นหา = หาทั้งรอบ ไม่สนสถานะ/หน้า — เช็คอินหน้างานต้องเจอทุกคนเสมอ
+  // กดช่องในตาราง Overview → โชว์คิวนั้นคิวเดียว
+  //
+  // ⚠️ ของเดิมช่องในตารางลิงก์ `#b-<id>` เฉยๆ ซึ่งใช้ได้ตอนที่คิวทั้งรอบอยู่ในหน้า
+  // เดียว · พอแบ่งหน้าละ 20 + มีตัวกรอง (ทำไว้ 2026-09-06/14) การ์ดของคนนั้น
+  // มักไม่ได้ถูก render อยู่ → กดแล้วไม่มีอะไรเกิดขึ้นเลย (พี่เจ้าของแจ้ง
+  // 2026-09-20 จาก iPad) · และ `title` ที่ใช้โชว์ชื่อตอนชี้เมาส์ บนจอสัมผัส
+  // ไม่มีทางขึ้น · ให้กดแล้วเปิดการ์ดคนนั้นเลย แก้ทั้งสองเรื่องพร้อมกัน
+  const focusId = (bfocus ?? "").trim();
+  const focused = focusId ? bookings.find((b) => b.id === focusId) : null;
+
   const bTerm = (bq ?? "").trim().toLowerCase();
   const searching = bTerm.length > 0;
-  const matched = searching
+  const matched = focused
+    ? [focused]
+    : searching
     ? bookings.filter((b) =>
         `${b.full_name ?? ""} ${b.nickname ?? ""} ${b.nickname_th ?? ""} ${b.phone ?? ""} ${b.email ?? ""}`
           .toLowerCase()
@@ -409,10 +423,11 @@ export default async function ShootDayDetailPage({
                             ? "bg-amber-300 hover:bg-amber-400"
                             : "bg-neutral-400 hover:bg-neutral-500";
                         return (
-                          <a
+                          <Link
                             key={b.id}
-                            href={`#b-${b.id}`}
+                            href={`/admin/shoots/${id}?bfocus=${b.id}#queue`}
                             title={`${b.full_name}${b.nickname ? ` (${b.nickname})` : ""} · Package ${b.package}${b.arrived_at ? " · มาถึงแล้ว" : ""}`}
+                            aria-label={`${b.full_name} · Package ${b.package}`}
                             className={`size-6 rounded-sm transition ${color}`}
                           />
                         );
@@ -636,7 +651,21 @@ export default async function ShootDayDetailPage({
           การจอง ({bookings.length}) — ตรวจสลิปแล้วกดอนุมัติ/ปฏิเสธ
         </h2>
 
-        {searching ? (
+        {focused ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#1D4ED8]/30 bg-[#1D4ED8]/5 p-2.5 text-sm">
+            <span className="font-semibold text-[#1D4ED8]">
+              👁 กำลังดูคิวเดียว — {focused.full_name}
+              {focused.nickname ? ` (${focused.nickname})` : ""} ·{" "}
+              {focused.hour} น. · Package {focused.package}
+            </span>
+            <Link
+              href={`/admin/shoots/${id}#queue`}
+              className="rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-semibold text-neutral-600 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+            >
+              ← ดูคิวทั้งหมด
+            </Link>
+          </div>
+        ) : searching ? (
           <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#1D4ED8]/30 bg-[#1D4ED8]/5 p-2.5 text-sm">
             <span className="font-semibold text-[#1D4ED8]">
               🔍 ค้นทั้งรอบ &quot;{bq}&quot; — พบ {matched.length} คิว
@@ -837,7 +866,7 @@ export default async function ShootDayDetailPage({
           )
         )}
 
-        {!searching && matched.length > BOOKINGS_PER_PAGE && (
+        {!searching && !focused && matched.length > BOOKINGS_PER_PAGE && (
           <p className="text-xs text-neutral-500">
             แสดง {(bPage - 1) * BOOKINGS_PER_PAGE + 1}–
             {(bPage - 1) * BOOKINGS_PER_PAGE + visibleBookings.length} จาก{" "}
@@ -891,6 +920,14 @@ export default async function ShootDayDetailPage({
                     ? ` · ${b.gender === "male" ? "ชาย" : b.gender === "female" ? "หญิง" : "อื่นๆ"}`
                     : ""}
                   {b.dob ? ` · อายุ ${ageLabel(b.dob)}` : ""}
+                  {suspiciousDob(b.dob, b.height) && (
+                    <span
+                      className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800"
+                      title={`${suspiciousDob(b.dob, b.height)} — ผู้ปกครองอาจกรอกปีเกิดผิด ควรโทรเช็คก่อนทำคอมการ์ด`}
+                    >
+                      ⚠️ วันเกิดน่าจะผิด — {suspiciousDob(b.dob, b.height)}
+                    </span>
+                  )}
                   {b.nationality ? ` · ${b.nationality}` : ""}
                   {b.height ? ` · สูง ${b.height} ซม.` : ""}
                   {b.weight ? ` · หนัก ${b.weight} กก.` : ""}
@@ -1096,7 +1133,7 @@ export default async function ShootDayDetailPage({
         </div>
 
         {/* เปลี่ยนหน้า (ไม่โชว์ตอนค้นหา เพราะค้นหาแสดงผลครบอยู่แล้ว) */}
-        {!searching && bTotalPages > 1 && (
+        {!searching && !focused && bTotalPages > 1 && (
           <div className="flex items-center justify-center gap-2 pt-1">
             {bPage > 1 ? (
               <Link
