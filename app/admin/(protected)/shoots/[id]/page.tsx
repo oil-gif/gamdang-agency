@@ -17,6 +17,7 @@ import {
 import { getSlotCounts, slotOpen, thaiDateLabel } from "@/lib/booking";
 import { ageLabel, suspiciousDob } from "@/lib/age";
 import { BookingSearch } from "@/components/admin/BookingSearch";
+import { SlotSquare } from "@/components/admin/SlotSquare";
 import { DangerConfirmButton } from "@/components/admin/DangerConfirmButton";
 import { FALLBACK_PHRASE, hasDangerCode } from "@/lib/danger";
 import { Badge } from "@/components/ui/badge";
@@ -423,12 +424,18 @@ export default async function ShootDayDetailPage({
                             ? "bg-amber-300 hover:bg-amber-400"
                             : "bg-neutral-400 hover:bg-neutral-500";
                         return (
-                          <Link
+                          <SlotSquare
                             key={b.id}
                             href={`/admin/shoots/${id}?bfocus=${b.id}#queue`}
-                            title={`${b.full_name}${b.nickname ? ` (${b.nickname})` : ""} · Package ${b.package}${b.arrived_at ? " · มาถึงแล้ว" : ""}`}
-                            aria-label={`${b.full_name} · Package ${b.package}`}
-                            className={`size-6 rounded-sm transition ${color}`}
+                            label={`${b.full_name}${b.nickname ? ` (${b.nickname})` : ""}`}
+                            sub={`Package ${b.package} · ${b.hour} น.${
+                              b.arrived_at
+                                ? ` · มาถึงแล้ว ${formatThaiTime(b.arrived_at)}`
+                                : b.status === "pending"
+                                  ? " · รอตรวจสลิป"
+                                  : " · ยังไม่มา"
+                            }`}
+                            color={color}
                           />
                         );
                       })}
