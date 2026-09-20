@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { BookingWizard } from "@/components/booking/BookingWizard";
+import { SocialIcon } from "@/components/SocialIcon";
 import { LiffBackButton } from "@/components/LiffBackButton";
 import { getPublicShootDates } from "@/lib/booking";
 import { CONTACT } from "@/lib/constants";
@@ -130,7 +131,12 @@ export default async function BookingPage() {
               rel="noopener noreferrer"
               className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[#06C755] px-8 py-4 text-base font-bold text-white shadow-md transition hover:opacity-95"
             >
-              ทักไลน์แจ้งความสนใจ (Message us on LINE)
+              {/* โลโก้ LINE สีจริงในวงกลมขาว — บนพื้นเขียวของปุ่ม ถ้าใช้โลโก้
+                  ขาวล้วนจะเล็กจนดูเหมือนจุด ไม่รู้ว่าเป็นโลโก้อะไร */}
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white">
+                <SocialIcon platform="line" size={24} title="LINE" />
+              </span>
+              <span>ทักไลน์แจ้งความสนใจ (Message us on LINE)</span>
             </a>
             <p className="mt-3 text-xs text-neutral-400">
               LINE Official: {CONTACT.lineId}

@@ -79,6 +79,45 @@ export function SocialIcon({
           />
         </svg>
       );
+    case "line":
+      // โลโก้ LINE — สี่เหลี่ยมมนเขียว + ฟองข้อความขาวมีคำว่า LINE
+      // ใช้ตอนลิงก์ไป OA ของเราเอง (ปุ่ม "ทักไลน์" หน้าจองถ่าย)
+      return (
+        <svg {...common}>
+          {t}
+          <rect width="24" height="24" rx="6" fill="#06C755" />
+          {/* ฟองข้อความ: วงรีมีหางชี้ลงซ้าย แบบโลโก้จริง */}
+          <path
+            fill="#fff"
+            d="M12 4.6c-4.3 0-7.8 2.8-7.8 6.3 0 3.1 2.8 5.7 6.5 6.2.26.05.6.17.69.38.08.2.05.5.02.7l-.11.66c-.03.2-.16.78.69.42.85-.35 4.55-2.68 6.2-4.59 1.14-1.25 1.6-2.5 1.6-3.77 0-3.5-3.5-6.3-7.79-6.3z"
+          />
+          {/* ตัวอักษร LINE ในฟอง */}
+          <text
+            x="12"
+            y="13.2"
+            textAnchor="middle"
+            textLength="9.4"
+            lengthAdjust="spacingAndGlyphs"
+            fontSize="4.6"
+            fontWeight="800"
+            fontFamily="Helvetica, Arial, sans-serif"
+            fill="#06C755"
+          >
+            LINE
+          </text>
+        </svg>
+      );
+    case "line-mark":
+      // แบบสีเดียว (currentColor) — ใช้บนพื้นเขียวที่ต้องการโลโก้สีขาว
+      return (
+        <svg {...common}>
+          {t}
+          <path
+            fill="currentColor"
+            d="M12 3c-5 0-9 3.2-9 7.2 0 3.6 3.2 6.6 7.5 7.15.3.06.7.2.8.45.09.23.06.58.03.81l-.13.77c-.04.23-.18.9.8.49.98-.4 5.28-3.1 7.2-5.32C20.5 12.1 21 10.7 21 10.2 21 6.2 17 3 12 3z"
+          />
+        </svg>
+      );
     case "lemon8":
       return (
         <svg {...common}>
