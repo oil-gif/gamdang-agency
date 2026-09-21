@@ -4,6 +4,8 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { thaiDateLabel } from "@/lib/booking";
+import { ACK_LABEL, buildAckText } from "@/lib/booking-ack";
+import { formatThaiDate } from "@/lib/datetime";
 import { BOOKING, BOOKING_FREED_STATUSES } from "@/lib/constants";
 import { verifyDangerCode } from "@/lib/danger";
 import {
@@ -420,6 +422,13 @@ export async function rescheduleBooking(formData: FormData) {
     redirect(back({ pperr: msg }));
   }
 
+  // ที่กดรับทราบไว้เป็นของรอบเดิม — รอบใหม่ต้องรับทราบใหม่
+  // (ส่ง LINE ด้านล่าง → ตัวส่งตั้งเวลาส่งให้เอง)
+  await supabase
+    .from("shoot_bookings")
+    .update({ line_confirm_sent_at: null, line_ack_at: null })
+    .eq("id", id);
+
   let line: LineSendResult | "off" = "off";
   if (formData.get("send_line") === "on") {
     line = await sendBookingConfirmedLine(id);
@@ -496,9 +505,17 @@ export async function buildBookingConfirmText(bookingId: string) {
   const name = [b.full_name, b.nickname ? `(${b.nickname})` : ""]
     .filter(Boolean)
     .join(" ");
+  // ชื่อในปุ่มรับทราบ: ชื่อเล่นขึ้นก่อน — แอดมินจำน้องจากชื่อเล่น
+  const nick = b.nickname_th || b.nickname;
+  const ackName = nick ? `${nick} (${b.full_name})` : b.full_name;
 
   return {
     lineUserId: b.line_user_id as string | null,
+    ackText: buildAckText({
+      bookingId,
+      name: ackName,
+      when: `${day ? formatThaiDate(day.shoot_date, { year: undefined }) : "-"} ${b.hour} น.`,
+    }),
     text: [
       "✅ แก้มแดง ยืนยันรอบถ่ายโปรไฟล์",
       name,
@@ -513,6 +530,8 @@ export async function buildBookingConfirmText(bookingId: string) {
       `รอบ: ${b.hour} น. · ${pkg ? `${pkg.name} (${pkg.subtitle})` : b.package}`,
       "",
       "ใกล้วันถ่ายทีมงานจะส่งแจ้งเตือนอีกครั้งค่ะ",
+      "",
+      `📌 รบกวนกดปุ่ม "${ACK_LABEL}" ด้านล่าง (หรือพิมพ์ตอบกลับ รับทราบ) เพื่อยืนยันรอบถ่ายด้วยนะคะ`,
       "",
       "ระหว่างรอถ่ายรูปและคอมการ์ดจากแก้มแดง สามารถจัดการโปรไฟล์และเพิ่มรูปถ่ายของตนเองก่อนได้ที่",
       `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID ?? "2010689219-wGKbITGb"}`,
@@ -531,9 +550,28 @@ async function sendBookingConfirmedLine(bookingId: string): Promise<LineSendResu
   try {
     const built = await buildBookingConfirmText(bookingId);
     if (!built?.lineUserId) return "no-line"; // จองจาก browser (ไม่ผูก LINE) → ข้าม
+    // ปุ่ม Quick Reply "รับทราบค่ะ" — ไม่นับเป็นข้อความเพิ่ม (ยัง 1 ข้อความ)
+    // ขึ้นเฉพาะ LINE มือถือ · LINE บนคอมไม่มีปุ่ม เลยมีบรรทัด "หรือพิมพ์ รับทราบ"
     await pushLineMessage(built.lineUserId, [
-      { type: "text", text: built.text },
+      {
+        type: "text",
+        text: built.text,
+        quickReply: {
+          items: [
+            {
+              type: "action",
+              action: { type: "message", label: ACK_LABEL, text: built.ackText },
+            },
+          ],
+        },
+      },
     ]);
+    // ข้อความใหม่ = ต้องรับทราบใหม่ (เช่น ย้ายรอบแล้วส่งยืนยันรอบใหม่)
+    // ยังไม่ได้รัน migration 030 → update พลาดเงียบๆ ไม่ทำให้การส่งล้ม
+    await supabase
+      .from("shoot_bookings")
+      .update({ line_confirm_sent_at: new Date().toISOString(), line_ack_at: null })
+      .eq("id", bookingId);
     return "sent";
   } catch (e) {
     console.error("booking confirm LINE failed", e);
@@ -546,29 +584,24 @@ async function sendBookingConfirmedLine(bookingId: string): Promise<LineSendResu
 export async function resendBookingConfirmLine(formData: FormData) {
   const id = String(formData.get("id"));
   const dayId = String(formData.get("day_id"));
-  const built = await buildBookingConfirmText(id);
-  if (!built?.lineUserId) {
+  // ใช้ตัวส่งเดียวกับตอนอนุมัติ — ได้ปุ่มรับทราบ + บันทึกเวลาส่งเหมือนกัน
+  // (ตัวส่งกลืน error ไว้แล้ว ไม่มีทางขึ้นหน้า "This page couldn't load")
+  const result = await sendBookingConfirmedLine(id);
+  if (result === "no-line") {
     redirect(
       backToDay(dayId, formData, {
-        error: "คนนี้ไม่ได้จองผ่าน LINE — ใช้ปุ่มคัดลอกข้อความแล้วส่งเองค่ะ",
+        error: "คนนี้ไม่ได้จองผ่าน LINE — โทรหรือทักแจ้งเองนะคะ",
       }),
     );
-  }
-  // ห้ามให้ error หลุดออกไป ไม่งั้น Next.js ขึ้นหน้า "This page couldn't load"
-  // เต็มจอ แทนที่จะบอกแอดมินว่าส่งไม่ได้เพราะอะไร
-  let fail: LineFailReason | null = null;
-  try {
-    await pushLineMessage(built.lineUserId!, [
-      { type: "text", text: built.text },
-    ]);
-  } catch (e) {
-    console.error("resend booking confirm failed", e);
-    fail = classifyLineError(e);
   }
 
   revalidatePath(`/admin/shoots/${dayId}`);
   redirect(
-    backToDay(dayId, formData, fail ? { linefail: fail } : { linesent: "1" }),
+    backToDay(
+      dayId,
+      formData,
+      result === "sent" ? { linesent: "1" } : { linefail: result },
+    ),
   );
 }
 

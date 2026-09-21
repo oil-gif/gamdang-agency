@@ -922,6 +922,21 @@ export default async function ShootDayDetailPage({
                       {b.slip_path ? " · จ่ายแล้ว" : ""}
                     </span>
                   )}
+                  {/* ปุ่ม "รับทราบค่ะ" ใต้ LINE ยืนยัน (migration 030) — โชว์เฉพาะคิว
+                      ที่ได้ข้อความแบบมีปุ่มแล้ว คิวเก่าไม่มีปุ่มให้กด อย่าขึ้นว่า "ยังไม่ตอบ" */}
+                  {b.line_ack_at ? (
+                    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                      💬 รับทราบแล้ว{" "}
+                      {formatThaiDateTime(b.line_ack_at, { year: undefined })}
+                    </span>
+                  ) : b.line_confirm_sent_at && b.status === "approved" ? (
+                    <span
+                      className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800"
+                      title="ส่ง LINE ยืนยันแล้ว แต่ลูกค้ายังไม่กดรับทราบ — ใกล้วันถ่ายควรโทรเช็ค"
+                    >
+                      ⏳ ยังไม่กดรับทราบ LINE
+                    </span>
+                  ) : null}
                   <span className="font-semibold text-neutral-800">
                     {b.full_name}
                     {b.nickname ? ` (${b.nickname})` : ""}

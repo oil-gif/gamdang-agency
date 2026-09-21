@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
+import { ackRef, parseAckRef } from "@/lib/booking-ack";
 import { formatDateEN, replyLineMessage } from "@/lib/line-messaging";
 import { supabase } from "@/lib/supabase/server";
 
@@ -44,6 +45,12 @@ export async function POST(req: NextRequest) {
     // ตัวช่วยหา ID ปลายทางแจ้งเตือน: พิมพ์ "id" ในแชท/กลุ่ม → บอทตอบ ID กลับ
     // เอา group id ไปตั้ง ADMIN_LINE_NOTIFY_ID เพื่อให้แจ้งเตือนเด้งเข้ากลุ่ม
     if (event.type === "message" && event.message?.type === "text") {
+      // ปุ่ม "รับทราบค่ะ" ใต้ข้อความยืนยันรอบถ่าย (lib/booking-ack.ts)
+      const ref = parseAckRef(event.message.text ?? "");
+      if (ref) {
+        await markBookingAck(ref, event.source?.userId, event.replyToken);
+        continue;
+      }
       const t = (event.message.text ?? "").trim().toLowerCase();
       if (t === "id" || t === "/id" || t === "ไอดี") {
         const src = event.source ?? {};
@@ -102,4 +109,42 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+// ติ๊ก "ลูกค้ารับทราบแล้ว" ที่คิวจองถ่าย
+//
+// เทียบเฉพาะคิวของ LINE user ที่กดเท่านั้น — ต่อให้ใครพิมพ์ #ref ของคนอื่น
+// มาเอง ก็ติ๊กของคนอื่นไม่ได้ · ผู้ปกครองคนเดียวจองให้ลูกหลายคนได้ เลยต้องใช้
+// ref แยกใบ (คิวของไลน์เดียวมีไม่กี่ใบ กรองใน JS ได้ — คอลัมน์ id เป็น uuid
+// ใช้ like ผ่าน PostgREST ไม่ได้)
+async function markBookingAck(
+  ref: string,
+  userId: string | undefined,
+  replyToken: string | undefined,
+) {
+  if (!userId) return;
+  const { data: mine } = await supabase
+    .from("shoot_bookings")
+    .select("id, line_ack_at")
+    .eq("line_user_id", userId)
+    .limit(200);
+  const hit = (mine ?? []).find((b) => ackRef(b.id) === ref);
+  if (!hit) return; // ไม่ใช่ของไลน์นี้ → เงียบ (แอดมินยังเห็นแชทตามปกติ)
+
+  // กดซ้ำ → ไม่ทับเวลาแรก แต่ยังตอบขอบคุณ
+  if (!hit.line_ack_at) {
+    await supabase
+      .from("shoot_bookings")
+      .update({ line_ack_at: new Date().toISOString() })
+      .eq("id", hit.id);
+  }
+  // reply ไม่นับโควตาข้อความรายเดือน (ต่างจาก push)
+  if (replyToken && !/^0+$/.test(replyToken)) {
+    await replyLineMessage(replyToken, [
+      {
+        type: "text",
+        text: "ขอบคุณที่ยืนยันค่ะ 🙏 แล้วพบกันวันถ่ายนะคะ",
+      },
+    ]);
+  }
 }
