@@ -913,6 +913,15 @@ export default async function ShootDayDetailPage({
                       {formatThaiTime(b.arrived_at)}
                     </span>
                   )}
+                  {/* ย้ายมาจากรอบที่ขอเลื่อน (migration 029) — บอกพนักงาน
+                      หน้างานว่าจ่ายไว้แล้วตั้งแต่รอบเดิม ไม่ต้องเก็บเงินซ้ำ */}
+                  {b.rescheduled_from_date && (
+                    <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
+                      🔁 เลื่อนมาจาก {thaiDateLabel(b.rescheduled_from_date)}
+                      {b.rescheduled_from_hour ? ` ${b.rescheduled_from_hour} น.` : ""}
+                      {b.slip_path ? " · จ่ายแล้ว" : ""}
+                    </span>
+                  )}
                   <span className="font-semibold text-neutral-800">
                     {b.full_name}
                     {b.nickname ? ` (${b.nickname})` : ""}

@@ -237,7 +237,7 @@ export async function getPostponedBookings() {
   const { data: postponed, error } = await supabase
     .from("shoot_bookings")
     .select(
-      "id, status, full_name, nickname, nickname_th, phone, line_id, line_user_id, hour, package, created_at, shoot_day_id, shoot_day:shoot_days(id, shoot_date, location)",
+      "id, status, full_name, nickname, nickname_th, phone, line_id, line_user_id, hour, package, created_at, shoot_day_id, slip_path, talent_id, height, weight, dob, shoot_day:shoot_days(id, shoot_date, location), talent:talents(dob, height_cm, weight_kg)",
     )
     .eq("status", "postponed")
     .order("created_at", { ascending: false });
@@ -293,6 +293,145 @@ export async function getPostponedBookings() {
   });
 }
 
+// ===== ย้ายคนที่ขอเลื่อน → ลงรอบใหม่ (ขอ 2026-09-21) =====
+
+// รอบที่ย้ายไปได้: ยังไม่ผ่านวัน · รวมรอบที่ยังไม่เปิดจอง (draft) ด้วย
+// เพื่อให้แอดมินจองที่ให้คนที่เลื่อนไว้ก่อนเปิดจองสาธารณะ
+export async function getRescheduleTargets() {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: days } = await supabase
+    .from("shoot_days")
+    .select("id, shoot_date, location, status, slots")
+    .gte("shoot_date", today)
+    .order("shoot_date");
+  if (!days || days.length === 0) return [];
+
+  const { data: taken } = await supabase
+    .from("shoot_bookings")
+    .select("shoot_day_id, hour, package")
+    .in("shoot_day_id", days.map((d) => d.id))
+    .not("status", "in", `(${BOOKING_FREED_STATUSES.join(",")})`);
+
+  return days.map((d) => {
+    const mine = (taken ?? []).filter((b) => b.shoot_day_id === d.id);
+    const slots = (d.slots ?? {}) as Record<string, { photo_open?: boolean }>;
+    return {
+      id: d.id as string,
+      label: thaiDateLabel(d.shoot_date),
+      location: (d.location as string | null) ?? null,
+      published: d.status === "published",
+      hours: BOOKING.hours.map((hour) => {
+        const here = mine.filter((b) => b.hour === hour);
+        return {
+          hour,
+          photoLeft: Math.max(BOOKING.photoCap - here.length, 0),
+          videoLeft: Math.max(
+            BOOKING.videoCap - here.filter((b) => b.package === "A").length,
+            0,
+          ),
+          // ปิดรับบนหน้าเว็บ — แอดมินยังใส่คนได้ถ้าที่นั่งเหลือ
+          publicClosed: slots[hour]?.photo_open === false,
+        };
+      }),
+    };
+  });
+}
+
+const RESCHEDULE_ERRORS: Record<string, string> = {
+  full: "รอบเวลานั้นเต็มแล้ว — เลือกเวลาอื่นค่ะ",
+  full_video: "ห้องวิดีโอรอบนั้นเต็มแล้ว — เลือกเวลาอื่น หรือเปลี่ยนเป็น Package B",
+  no_day: "ไม่พบรอบถ่ายนี้ หรือเป็นวันที่ผ่านมาแล้ว",
+  not_postponed: "คิวนี้ถูกย้ายไปแล้ว (หรือไม่ได้อยู่ในสถานะเลื่อนรอบ)",
+  not_found: "ไม่พบการจองนี้",
+};
+
+// ฟอร์มในแผง "ลงรอบใหม่" หน้า /admin/shoots
+// intent=save → บันทึกข้อมูลติดต่ออย่างเดียว · intent=move → บันทึก + ย้ายรอบ
+export async function rescheduleBooking(formData: FormData) {
+  const id = String(formData.get("id"));
+  const intent = String(formData.get("intent") ?? "save");
+  const s = (k: string) => str(formData, k);
+  const back = (extra: Record<string, string>) =>
+    `/admin/shoots?${new URLSearchParams({ pp: id, ...extra })}#pp-${id}`;
+
+  const fullName = s("full_name");
+  const phone = s("phone");
+  if (!fullName || !phone) {
+    redirect(back({ pperr: "ต้องมีชื่อ-สกุล และเบอร์โทรค่ะ" }));
+  }
+
+  const { data: before } = await supabase
+    .from("shoot_bookings")
+    .select("shoot_day_id, talent_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!before) redirect(back({ pperr: RESCHEDULE_ERRORS.not_found }));
+
+  const info: Record<string, string | null> = {
+    full_name: fullName,
+    nickname: s("nickname"),
+    nickname_th: s("nickname_th"),
+    phone,
+    line_id: s("line_id"),
+  };
+  // ผูกโปรไฟล์แล้ว → วันเกิด/สัดส่วนยึดโปรไฟล์ (การ์ดคิวก็อ่านจากโปรไฟล์)
+  // ฟอร์มจึงไม่ส่งช่องพวกนี้มา · ไม่ผูก → แก้ที่ใบจองได้
+  if (!before.talent_id) {
+    info.height = s("height");
+    info.weight = s("weight");
+    info.dob = s("dob");
+  }
+  const { error: infoErr } = await supabase
+    .from("shoot_bookings")
+    .update(info)
+    .eq("id", id);
+  if (infoErr) redirect(back({ pperr: `บันทึกไม่สำเร็จ: ${infoErr.message}` }));
+
+  revalidatePath("/admin/shoots");
+  revalidatePath(`/admin/shoots/${before.shoot_day_id}`);
+  if (intent !== "move") redirect(back({ ppsaved: "1" }));
+
+  const dayId = String(formData.get("to_day") ?? "");
+  const hour = String(formData.get("to_hour") ?? "");
+  const pkg = String(formData.get("to_package") ?? "");
+  const validHours: readonly string[] = BOOKING.hours;
+  if (!dayId || !validHours.includes(hour) || !(pkg in BOOKING.packages)) {
+    redirect(back({ pperr: "เลือกวันที่ เวลา และแพ็กเกจของรอบใหม่ให้ครบค่ะ" }));
+  }
+
+  const { error } = await supabase.rpc("reschedule_booking", {
+    p_id: id,
+    p_day: dayId,
+    p_hour: hour,
+    p_package: pkg,
+    p_photo_cap: BOOKING.photoCap,
+    p_video_cap: BOOKING.videoCap,
+  });
+  if (error) {
+    const key = Object.keys(RESCHEDULE_ERRORS).find((k) =>
+      new RegExp(`\\b${k}\\b`).test(error.message),
+    );
+    // ยังไม่ได้รัน migration 029
+    const msg = key
+      ? RESCHEDULE_ERRORS[key]
+      : /reschedule_booking/.test(error.message)
+        ? "ยังใช้ปุ่มนี้ไม่ได้ — ต้องรัน migration 029 ใน Supabase ก่อนค่ะ"
+        : `ย้ายไม่สำเร็จ: ${error.message}`;
+    redirect(back({ pperr: msg }));
+  }
+
+  let line: LineSendResult | "off" = "off";
+  if (formData.get("send_line") === "on") {
+    line = await sendBookingConfirmedLine(id);
+  }
+
+  revalidatePath(`/admin/shoots/${dayId}`);
+  revalidatePath("/booking");
+  redirect(
+    `/admin/shoots?${new URLSearchParams({ moved: id, to: dayId, line })}`,
+  );
+}
+
 // ===== ตรวจสลิป: approve / reject (สลับกลับได้) =====
 export async function setBookingStatus(formData: FormData) {
   const id = String(formData.get("id"));
@@ -345,7 +484,9 @@ export async function setBookingStatus(formData: FormData) {
 export async function buildBookingConfirmText(bookingId: string) {
   const { data: b } = await supabase
     .from("shoot_bookings")
-    .select("full_name, nickname, hour, package, line_user_id, shoot_day:shoot_days(shoot_date, location)")
+    // `*` ไม่ระบุชื่อคอลัมน์ — rescheduled_from_* มาจาก migration 029 ถ้าระบุชื่อ
+    // ตรงๆ แล้ว DB ยังไม่ได้รัน ข้อความยืนยันทุกใบจะส่งไม่ออก
+    .select("*, shoot_day:shoot_days(shoot_date, location)")
     .eq("id", bookingId)
     .maybeSingle();
   if (!b) return null;
@@ -361,6 +502,12 @@ export async function buildBookingConfirmText(bookingId: string) {
     text: [
       "✅ แก้มแดง ยืนยันรอบถ่ายโปรไฟล์",
       name,
+      // ย้ายมาจากรอบที่ขอเลื่อน (migration 029) — บอกให้ชัดว่ารอบเดิมยกเลิกแล้ว
+      ...(b.rescheduled_from_date
+        ? [
+            `เลื่อนจากรอบ ${thaiDateLabel(b.rescheduled_from_date)}${b.rescheduled_from_hour ? ` ${b.rescheduled_from_hour} น.` : ""} มาเป็นรอบใหม่ด้านล่างเรียบร้อยแล้วค่ะ`,
+          ]
+        : []),
       "",
       `วันถ่าย: ${day ? thaiDateLabel(day.shoot_date) : "-"}${day?.location ? ` · ${day.location}` : ""}`,
       `รอบ: ${b.hour} น. · ${pkg ? `${pkg.name} (${pkg.subtitle})` : b.package}`,

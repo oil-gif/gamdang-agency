@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   createShootDay,
   getPostponedBookings,
+  getRescheduleTargets,
   getShootDays,
   searchBookings,
 } from "@/actions/shoots";
@@ -17,7 +18,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RescheduleBooking } from "@/components/admin/RescheduleBooking";
 import { thaiDateLabel } from "@/lib/booking";
+import { BOOKING } from "@/lib/constants";
 
 const SEARCH_STATUS: Record<string, string> = {
   pending: "⏳ รอตรวจ",
@@ -29,13 +32,25 @@ const SEARCH_STATUS: Record<string, string> = {
 export default async function ShootDaysPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; q?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    q?: string;
+    // แผง "ลงรอบใหม่": pp = คิวที่เพิ่งกด · pperr/ppsaved = ผลลัพธ์
+    pp?: string;
+    pperr?: string;
+    ppsaved?: string;
+    // ย้ายสำเร็จ: moved = คิว · to = วันใหม่ · line = ผลการส่ง LINE
+    moved?: string;
+    to?: string;
+    line?: string;
+  }>;
 }) {
-  const { error, q } = await searchParams;
-  const [days, found, postponed] = await Promise.all([
+  const { error, q, pp, pperr, ppsaved, moved, to, line } = await searchParams;
+  const [days, found, postponed, targets] = await Promise.all([
     getShootDays(),
     q ? searchBookings(q) : Promise.resolve([]),
     getPostponedBookings(),
+    getRescheduleTargets(),
   ]);
   // ยังไม่กลับมาจอง = ที่ต้องตามต่อ · กลับมาแล้ว = เก็บไว้ดูย้อนหลัง
   const waiting = postponed.filter((p) => !p.rebooked);
@@ -55,6 +70,29 @@ export default async function ShootDaysPage({
           </a>
         </p>
       </div>
+
+      {moved && to && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <span className="font-semibold">
+            ✅ ย้ายไปรอบใหม่เรียบร้อย — สถานะอนุมัติแล้ว
+          </span>
+          <span>
+            {line === "sent"
+              ? "ส่ง LINE แจ้งลูกค้าแล้ว"
+              : line === "quota"
+                ? "⚠️ ส่ง LINE ไม่ได้ (โควตาเดือนนี้เต็ม) — แจ้งลูกค้าเองนะคะ"
+                : line === "failed"
+                  ? "⚠️ ส่ง LINE ไม่สำเร็จ — ลองกด 📨 ส่ง LINE ยืนยันอีกครั้ง ในหน้าวันใหม่ หรือแจ้งลูกค้าเองนะคะ"
+                  : "ยังไม่ได้แจ้งลูกค้า — อย่าลืมโทร/ทักแจ้งรอบใหม่นะคะ"}
+          </span>
+          <Link
+            href={`/admin/shoots/${to}?bfocus=${moved}#queue`}
+            className="ml-auto font-semibold text-[#1D4ED8] hover:underline"
+          >
+            เปิดดูคิวในวันใหม่ →
+          </Link>
+        </div>
+      )}
 
       {error && (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -160,10 +198,16 @@ export default async function ShootDaysPage({
               const back = p.rebooked as any;
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const backDay = back?.shoot_day as any;
+              const talent = p.talent as {
+                dob?: string | null;
+                height_cm?: number | null;
+                weight_kg?: number | null;
+              } | null;
               return (
                 <div
                   key={p.id}
-                  className={`rounded-xl border bg-white p-3 shadow-sm ${
+                  id={`pp-${p.id}`}
+                  className={`scroll-mt-24 rounded-xl border bg-white p-3 shadow-sm ${
                     p.matchKind === "sure"
                       ? "border-emerald-200"
                       : p.matchKind === "maybe"
@@ -196,8 +240,8 @@ export default async function ShootDaysPage({
                     </b>
                   </p>
 
+                  {back ? (
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {back ? (
                       <>
                         {p.matchKind === "sure" ? (
                           <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
@@ -222,11 +266,6 @@ export default async function ShootDaysPage({
                           {back.hour} น. → เปิดดู
                         </Link>
                       </>
-                    ) : (
-                      <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
-                        ⏳ ยังไม่กลับมาจอง
-                      </span>
-                    )}
                     <Link
                       href={`/admin/shoots/${p.shoot_day_id}?bs=postponed#b-${p.id}`}
                       className="ml-auto text-xs text-neutral-400 hover:text-[#1D4ED8]"
@@ -234,6 +273,49 @@ export default async function ShootDaysPage({
                       ดูคิวเดิม →
                     </Link>
                   </div>
+                  ) : (
+                    // ยังไม่กลับมาจอง → แอดมินย้ายไปรอบใหม่ให้ได้เลย
+                    // (คนที่ "น่าจะกลับมาแล้ว" จองใหม่เองไปแล้ว ไม่ให้ย้ายซ้ำ)
+                    <RescheduleBooking
+                      booking={{
+                        id: p.id,
+                        full_name: p.full_name,
+                        nickname: p.nickname,
+                        nickname_th: p.nickname_th,
+                        phone: p.phone,
+                        line_id: p.line_id,
+                        line_user_id: p.line_user_id,
+                        hour: p.hour,
+                        package: p.package,
+                        talent_id: p.talent_id,
+                        height: p.height,
+                        weight: p.weight,
+                        dob: p.dob,
+                        profile: talent
+                          ? {
+                              dob: talent.dob ?? null,
+                              height: talent.height_cm ?? null,
+                              weight: talent.weight_kg ?? null,
+                            }
+                          : null,
+                      }}
+                      targets={targets}
+                      packages={Object.keys(BOOKING.packages)}
+                      startOpen={pp === p.id}
+                      error={pp === p.id ? pperr : undefined}
+                      saved={pp === p.id && !!ppsaved}
+                    >
+                      <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
+                        ⏳ ยังไม่กลับมาจอง
+                      </span>
+                      <Link
+                        href={`/admin/shoots/${p.shoot_day_id}?bs=postponed#b-${p.id}`}
+                        className="ml-auto text-xs text-neutral-400 hover:text-[#1D4ED8]"
+                      >
+                        ดูคิวเดิม →
+                      </Link>
+                    </RescheduleBooking>
+                  )}
                 </div>
               );
             })}
