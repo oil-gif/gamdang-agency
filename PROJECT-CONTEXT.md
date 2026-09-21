@@ -153,7 +153,7 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 | Route | ทำอะไร |
 |---|---|
 | `POST /api/line/verify` | ตรวจ LINE id/access token → ออกเซสชัน talent |
-| `POST /api/line/webhook` | **OA หลัก** — postback ปุ่มรับงาน/ปฏิเสธ (ตรวจ signature) |
+| `POST /api/line/webhook` | **OA หลัก** — postback ปุ่มรับงาน/ปฏิเสธ + ข้อความจากปุ่ม "รับทราบค่ะ" ของคิวจองถ่าย (ตรวจ signature) |
 | `POST /api/line/webhook-notify` | OA `gamdangprofile` — ตอบ group id |
 | `POST /api/line/webhook-casting` | OA `Gamdang Casting` — ตอบ group id |
 | `POST /api/booking` | จองคิว (CORS เปิดให้ WP) → RPC `book_shoot_slot` |
@@ -183,17 +183,21 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 | **project_applications** | ใบสมัคร casting (pending/approved/rejected) | `actions/casting-apply.ts`, `actions/projects.ts` |
 | **project_links** | ลิงก์ proposal ของลูกค้า (token, T&C, วันหมดอายุ, `role_ids` = โชว์เฉพาะบทที่เลือก) | `actions/project-links.ts`, `actions/public-link.ts`, `actions/client-selection.ts`, `lib/public-link.ts` |
 | **shoot_days** | รอบวันถ่ายโปรไฟล์ + เปิด/ปิดสล็อตรายชั่วโมง | `actions/shoots.ts`, `api/booking`, `lib/booking.ts` |
-| **shoot_bookings** | การจองคิวถ่าย + สลิป + เช็คอินหน้างาน (`status`: pending/approved/rejected/**postponed**) | `actions/shoots.ts`, `actions/talents.ts`, `api/booking`, `lib/booking.ts` |
+| **shoot_bookings** | การจองคิวถ่าย + สลิป + เช็คอินหน้างาน (`status`: pending/approved/rejected/**postponed**) · `rescheduled_from_*` = ย้ายมาจากรอบที่ขอเลื่อน · `line_confirm_sent_at`/`line_ack_at` = ส่ง LINE ยืนยัน/ลูกค้ากดรับทราบ | `actions/shoots.ts`, `actions/talents.ts`, `api/booking`, `api/line/webhook`, `lib/booking.ts` |
 | **photo_inbox** | รูป batch ที่ยังไม่จับคู่กับ talent | `actions/photo-inbox.ts`, `api/inbox-upload` |
 
 **RPC**: `book_shoot_slot` — จองคิวแบบ atomic (advisory lock กันจองชน) → เรียกจาก `api/booking` และ `actions/shoots.ts`
+· `reschedule_booking` (029) — ย้ายใบจองที่ `postponed` ไปวันใหม่ ใช้ล็อกเดียวกัน · ลงรอบ draft ได้ · ไม่สนสวิตช์ปิดหน้าเว็บ แต่เคารพจำนวนที่นั่งเสมอ
 **Storage buckets**: `talent-photos` (สาธารณะผ่าน proxy) · `booking-slips` (**ส่วนตัว** — ดูผ่าน signed URL เท่านั้น)
-**Migrations**: `supabase/migrations/` (ล่าสุด `028_client_select_notice.sql`) — schema แก้ที่นี่ ไม่มี ORM migrate
+**Migrations**: `supabase/migrations/` (ล่าสุด `030_booking_line_ack.sql`) — schema แก้ที่นี่ ไม่มี ORM migrate
 · ที่เพิ่มมาหลัง 019: `020` ส่ง proposal ให้ลูกค้าแล้ว · `021` โน้ตภายในของงาน ·
 `022` ข้อมูลเพิ่มเติม · `023` ชื่อเล่นไทยในฟอร์มจอง · `024` ลิงก์ผลงาน influencer ·
 `025` สถานะจอง **postponed** (เลื่อนรอบ — คืนที่นั่ง แก้ทั้ง CHECK และ RPC `book_shoot_slot`) ·
 `026` สถานะ talent **draft** (ใบร่างจากคอมการ์ด) · `027` `project_links.role_ids` (ลิงก์เฉพาะบท) ·
-`028` `projects.client_select_notified_at` (กันแจ้ง LINE ซ้ำตอนลูกค้ากดเลือก)
+`028` `projects.client_select_notified_at` (กันแจ้ง LINE ซ้ำตอนลูกค้ากดเลือก) ·
+`029` ย้ายคนเลื่อนรอบ (`rescheduled_from_date/hour/at` + RPC `reschedule_booking`) — **เก็บเป็นวันที่ธรรมดา
+ห้ามเพิ่ม FK ตัวที่ 2 ไป `shoot_days`** ไม่งั้น `shoot_day:shoot_days(...)` ทั้งระบบพัง (ambiguous) ·
+`030` ปุ่มรับทราบใน LINE (`line_confirm_sent_at`, `line_ack_at`)
 **ไฟล์รูปคงที่**: `public/` — `gamdang-logo.png` (โลโก้บนคอมการ์ด), `gamdang-modeling.png`, `gamdang-influencer.png`, `promptpay-gamdang.jpg` (QR จ่ายเงินค่าถ่าย)
 
 ---
@@ -217,7 +221,8 @@ client-selection.ts · project-links.ts · public-link.ts · talent-link.ts · a
 | `app/api/line/verify/route.ts` | ทางเข้าเดียวของ talent — เคยพังทั้งระบบมาแล้ว (ดู GOTCHA เรื่อง LIFF scope / `liff.logout()` ใน PROGRESS.md) |
 | `app/api/line/webhook*.ts` (3 ไฟล์) | รับ webhook จาก LINE — **ต้องตรวจ `x-line-signature` เสมอ** ห้ามถอดออก |
 | `app/api/booking/route.ts` + `supabase/migrations/007_booking.sql` (`book_shoot_slot`) | **เกี่ยวกับเงิน** — จองคิว/รับสลิป · logic กันจองเกิน-จองชนอยู่ใน RPC ห้ามข้ามไป insert ตรงๆ |
-| `actions/shoots.ts` | ตรวจสลิป/อนุมัติ/ย้ายรอบ/คืนที่นั่ง + ส่ง LINE ยืนยันลูกค้า |
+| `actions/shoots.ts` | ตรวจสลิป/อนุมัติ/ย้ายรอบ/คืนที่นั่ง + ส่ง LINE ยืนยันลูกค้า · **ส่งยืนยันทุกทางต้องผ่าน `sendBookingConfirmedLine()`** ตัวเดียว (ได้ปุ่มรับทราบ + บันทึกเวลาส่ง) |
+| `lib/booking-ack.ts` | ข้อความของปุ่ม "รับทราบค่ะ" + ตัวอ่าน `#ref` ที่ webhook ใช้ · **ห้ามจับแค่คำว่า "รับทราบ"** — ข้อความแจ้งงาน casting ก็ขอให้ตอบคำนี้ แยกไม่ออก |
 | `lib/danger.ts` + `components/admin/DangerConfirmButton.tsx` | รหัสยืนยันชั้นที่ 2 ก่อน "ลบถาวร" ทุกจุด — ถอดออก = แอดมินเผลอลบข้อมูลจริงได้ |
 | `lib/compcard.ts` | สเปคคอมการ์ด (ขนาด/กรอบ/สี/CTA) — แก้ที่นี่ที่เดียว ทุกใบเปลี่ยนตาม |
 | `lib/datetime.ts` | ⚠️ **ต้องใช้แทน `toLocaleString/DateString/TimeString` เสมอ** — Vercel รันเป็น UTC เคยทำเวลาเพี้ยน 7 ชม. |
