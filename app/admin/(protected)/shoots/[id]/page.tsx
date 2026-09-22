@@ -904,6 +904,18 @@ export default async function ShootDayDetailPage({
                 className="scroll-mt-32 rounded-xl border bg-white p-4 shadow-sm target:border-[#1D4ED8] target:ring-2 target:ring-[#1D4ED8]/30"
               >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {/* ชื่อ · แพ็กเกจ · เวลา ขึ้นก่อน แล้วค่อยป้ายสถานะ (พี่เจ้าของขอ
+                      2026-09-22) — กวาดตาหาคนจากชื่อ ไม่ต้องข้ามป้าย 3 อันทุกใบ */}
+                  <span className="font-semibold text-neutral-800">
+                    {b.full_name}
+                    {b.nickname ? ` (${b.nickname})` : ""}
+                  </span>
+                  <span className="rounded bg-[#1D4ED8]/10 px-1.5 py-px text-xs font-bold text-[#1D4ED8]">
+                    Package {b.package}
+                  </span>
+                  <span className="font-mono text-sm text-neutral-600">
+                    {b.hour} น.
+                  </span>
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${chip.className}`}>
                     {chip.label}
                   </span>
@@ -937,16 +949,6 @@ export default async function ShootDayDetailPage({
                       ⏳ ยังไม่กดรับทราบ LINE
                     </span>
                   ) : null}
-                  <span className="font-semibold text-neutral-800">
-                    {b.full_name}
-                    {b.nickname ? ` (${b.nickname})` : ""}
-                  </span>
-                  <span className="rounded bg-[#1D4ED8]/10 px-1.5 py-px text-xs font-bold text-[#1D4ED8]">
-                    Package {b.package}
-                  </span>
-                  <span className="font-mono text-sm text-neutral-600">
-                    {b.hour} น.
-                  </span>
                   <span className="ml-auto text-xs text-neutral-400">
                     จองเมื่อ{" "}
                     {formatThaiDateTime(b.created_at, { year: undefined })}
