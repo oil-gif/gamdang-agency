@@ -22,7 +22,7 @@ Production: `app.gamdangagency.com` (Vercel) · เว็บหน้าบ้�
 | ภาษา | TypeScript | ^5 |
 | Database + Storage | **Supabase** — `@supabase/supabase-js` + `@supabase/ssr` | ^2.110.2 / ^0.12.0 |
 | Auth (แอดมิน) | **Supabase Auth** (email/password) ผ่าน `@supabase/ssr` cookie client | — |
-| Auth (talent) | **LINE Login + LIFF** → เซสชันเอง (JWT ด้วย **jose**) | `@line/liff` ^2.29.1 / jose ^6.2.3 |
+| Auth (talent) | **LINE Login + LIFF** → เซสชันเอง (JWT ด้วย **jose**) | `@line/liff` ^2.32.0 (**ห้ามต่ำกว่า 2.31.1** — ช่องโหว่ XSS, LINE จำกัดเวอร์ชันเก่าตั้งแต่ ~24 พ.ย. 2026) / jose ^6.2.3 |
 | UI | **Tailwind CSS v4** + **shadcn/ui** (Radix) | tailwindcss ^4 / radix-ui ^1.6.2 |
 | ไอคอน / toast | lucide-react · sonner | ^1.24.0 / ^2.0.7 |
 | รูปภาพ | **sharp** (ฝั่ง server) · browser-image-compression (ฝั่ง client) | ^0.35.3 / ^2.0.2 |
@@ -269,6 +269,9 @@ deploy ทีเดียว** แทน deploy ทุกการแก้เ�
 - `LINE_SESSION_SECRET` — เซ็น JWT เซสชัน talent
 - `NEXT_PUBLIC_LIFF_ID` — LIFF สมัคร/โปรไฟล์ (endpoint `/apply`)
 - `NEXT_PUBLIC_BOOKING_LIFF_ID` — LIFF จองถ่าย (endpoint `/booking`)
+- ⚠️ Endpoint จริงของ LIFF ทั้ง 2 ตัวคือ `https://app.gamdangagency.com/apply` และ `/booking` (ตรวจผ่าน LIFF API 2026-11-12)
+  — หน้า LINE Developers อาจโชว์แค่โดเมน **ห้ามเปลี่ยนเป็นหน้าแรก** (หน้าแรกไม่ได้โหลด LIFF ลิงก์ใน Rich Menu/ข้อความจะไม่ล็อกอิน)
+  · ลิงก์ `liff.line.me/<id>` ไม่ผูกกับเวอร์ชัน SDK — อัปเดต SDK แล้ว Rich Menu ไม่ต้องแก้
 
 ### LINE — OA หลัก (คุยกับ talent)
 - `LINE_MESSAGING_ACCESS_TOKEN`
